@@ -1,0 +1,61 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>com.bol.SpinnerHelper</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>SpinnerHelper</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor url="https://www.bing.com">Bol</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+    快速部署spinner相关的文件<br>
+    <em>
+       <li>选择需要部署的文件，右键选择spinner deploy部署</li>
+       <li>xls文件选择几行就部署几行,全选完整部署</li>
+       <li>JPO完整部署</li>
+       <li>修改EnoBrowserJPO runScript方法，以获得部署日志</li>
+       <pre>
+       <code>
+public String runScript(Context ctx, String[] args) throws Exception {
+    if (adminOnly)
+        checkAdmin(ctx);
+    String[] cmdarray = Arrays.copyOf(args, args.length - 2);
+    String dir = args[args.length - 2];
+    String output = args[args.length - 1];
+    ProcessBuilder pb = new ProcessBuilder(cmdarray);
+    pb.directory(new File(dir));
+    pb.redirectErrorStream(true);
+    Process p = pb.start();
+    StreamWriter sw = new StreamWriter(p.getInputStream(), output);
+    sw.run();
+    return readFile(ctx, new String[]{output});
+}
+       </code>
+       </pre>
+       </em>
+  ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij" >
+        <toolWindow id="SpinnerConfig" factoryClass="com.bol.spinner.ui.SpinnerUIFactory" anchor="right" icon="AllIcons.RunConfigurations.Remote"/>
+        <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
+                           bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
+        <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
+    </extensions>
+    <actions>
+        <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </action>
+    </actions>
+    <resource-bundle>messages.ActionBundles</resource-bundle>
+</idea-plugin>
