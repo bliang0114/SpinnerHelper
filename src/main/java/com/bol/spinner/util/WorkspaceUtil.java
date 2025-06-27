@@ -18,7 +18,7 @@ public class WorkspaceUtil {
         // 查找 spinner 出现的位置
         int spinnerIndex = fullPath.indexOf("/spinner");
         if (spinnerIndex == -1) {
-            throw new IllegalArgumentException("路径中不包含 'spinner' 文件夹");
+            throw new IllegalArgumentException("The path does not contain the 'spinner' folder");
         }
         // 截取 spinner 后面的部分
         String subPath = fullPath.substring(spinnerIndex + "/spinner".length());

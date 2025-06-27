@@ -21,6 +21,7 @@
        <li>修改EnoBrowserJPO runScript方法，以获得部署日志</li>
        <pre>
        <code>
+
 public String runScript(Context ctx, String[] args) throws Exception {
     if (adminOnly)
         checkAdmin(ctx);
@@ -53,7 +54,7 @@ public String runScript(Context ctx, String[] args) throws Exception {
         <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
     </extensions>
     <actions>
-        <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy">
+        <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
     </actions>

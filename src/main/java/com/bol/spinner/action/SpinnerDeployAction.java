@@ -29,48 +29,47 @@ public class SpinnerDeployAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
-        // TODO: insert action logic here
-        PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
-        assert file != null;
-        String filePath = file.getViewProvider().getVirtualFile().getPath();
-        Project project = e.getData(CommonDataKeys.PROJECT);
-        String fileName = file.getName();
-        Context context = SpinnerToken.context;
-        //indeterminate
-        if (context == null) {
-            SpinnerNotifier.showWarningNotification(project, "not login", "");
-            return;
-        }
-        if (fileName.endsWith(".java")) {
-            String javaContent = file.getText();
-            System.out.println("javaContent = \n" + javaContent);
-            importJPOFile(context, project, filePath, javaContent);
-        } else if (fileName.endsWith(".xls")) {
-            Editor editor = e.getData(CommonDataKeys.EDITOR);
-            assert editor != null;
-            Document document = editor.getDocument();
-            SelectionModel selectionModel = editor.getSelectionModel();
-            int firstLine = 0;
-            String firstLineText = editor.getDocument().getText(new TextRange(
-                    editor.getDocument().getLineStartOffset(firstLine),
-                    editor.getDocument().getLineEndOffset(firstLine)
-            ));
-            System.out.println("firstLineText = \n" + firstLineText);
-            int selectionStart = selectionModel.getSelectionStart();
-            int selectionEnd = selectionModel.getSelectionEnd();
-            int startLine = document.getLineNumber(selectionStart);
-            if (startLine == 0) {
-                startLine++;
+        try {
+            PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
+            assert file != null;
+            String filePath = file.getViewProvider().getVirtualFile().getPath();
+            Project project = e.getData(CommonDataKeys.PROJECT);
+            String fileName = file.getName();
+            Context context = SpinnerToken.context;
+            if (context == null) {
+                SpinnerNotifier.showWarningNotification(project, "Not Login, Please Login First", "");
+                return;
             }
-            int endLine = document.getLineNumber(selectionEnd);
-            String selectLineContent = editor.getDocument().getText(new TextRange(
-                    editor.getDocument().getLineStartOffset(startLine),
-                    editor.getDocument().getLineEndOffset(endLine)
-            ));
-            System.out.println("currentLineText = \n" + selectLineContent);
-            importSpinnerFile(context, project, filePath, firstLineText + "\n" + selectLineContent);
-        } else {
-            SpinnerNotifier.showErrorNotification(project, "不支持的文件类型", "");
+            if (fileName.endsWith(".java")) {
+                String javaContent = file.getText();
+                importJPOFile(context, project, filePath, javaContent);
+            } else if (fileName.endsWith(".xls")) {
+                Editor editor = e.getData(CommonDataKeys.EDITOR);
+                assert editor != null;
+                Document document = editor.getDocument();
+                SelectionModel selectionModel = editor.getSelectionModel();
+                int firstLine = 0;
+                String firstLineText = editor.getDocument().getText(new TextRange(
+                        editor.getDocument().getLineStartOffset(firstLine),
+                        editor.getDocument().getLineEndOffset(firstLine)
+                ));
+                int selectionStart = selectionModel.getSelectionStart();
+                int selectionEnd = selectionModel.getSelectionEnd();
+                int startLine = document.getLineNumber(selectionStart);
+                if (startLine == 0) {
+                    startLine++;
+                }
+                int endLine = document.getLineNumber(selectionEnd);
+                String selectLineContent = editor.getDocument().getText(new TextRange(
+                        editor.getDocument().getLineStartOffset(startLine),
+                        editor.getDocument().getLineEndOffset(endLine)
+                ));
+                importSpinnerFile(context, project, filePath, firstLineText + "\n" + selectLineContent);
+            } else {
+                SpinnerNotifier.showErrorNotification(project, "Unsupported File Type, Supports .java .xls", "");
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, ex.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
 
 
@@ -87,7 +86,6 @@ public class SpinnerDeployAction extends AnAction {
             String remoteSpinnerDir = "spinner" + new Random().nextInt();
             String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
             //创建目录
-            System.out.println("create tmp dir:" + remoteBaseDir + "/" + remoteRelativePath);
             WorkspaceUtil.createRemoteTempDir(context, remoteBaseDir, remoteRelativePath);
             //上传文件
             WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, jpoFile.getName(), codeContent);
@@ -95,7 +93,7 @@ public class SpinnerDeployAction extends AnAction {
             String jpoName = jpoFile.getName().replace("_mxJPO.java", "");
             String res = WorkspaceUtil.runJPOImport(context, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath, jpoName);
             if (res == null || res.isEmpty()) {
-                res = "deploy success but no response, see it in " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
+                res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
             }
             showMessage(res);
         } catch (MatrixException e) {
@@ -114,14 +112,13 @@ public class SpinnerDeployAction extends AnAction {
             String remoteSpinnerDir = "spinner" + new Random().nextInt();
             String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
             //创建目录
-            System.out.println("create tmp dir:" + remoteBaseDir + "/" + remoteRelativePath);
             WorkspaceUtil.createRemoteTempDir(context, remoteBaseDir, remoteRelativePath);
             //上传文件
             WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, spinnerFile.getName(), content);
             //编译JPO
             String res = WorkspaceUtil.runSpinnerImport(context, remoteBaseDir + "/" + remoteSpinnerDir);
             if (res == null || res.isEmpty()) {
-                res = "deploy success but no response, see it in " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
+                res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
             }
             showMessage(res);
         } catch (MatrixException e) {
@@ -130,12 +127,10 @@ public class SpinnerDeployAction extends AnAction {
     }
 
     public void showMessage(String message) {
-        // 创建 RSyntaxTextArea 实例并设置语言
         RSyntaxTextArea textArea = new RSyntaxTextArea();
-        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_UNIX_SHELL); // 设置 Java 语法高亮
+        textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_UNIX_SHELL);
         textArea.setHighlightCurrentLine(false);
         if (StartupUiUtil.INSTANCE.isDarkTheme()) {
-            textArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVA);
             textArea.setBackground(Color.decode("#2B2D30"));
             textArea.setForeground(Color.WHITE);
         } else {

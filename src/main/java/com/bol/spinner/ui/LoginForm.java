@@ -46,7 +46,7 @@ public class LoginForm {
         }
         loginBtn.addActionListener(e -> {
             if(SpinnerToken.context != null){
-                SpinnerNotifier.showNotification(project, "已有账号登录","");
+                SpinnerNotifier.showNotification(project, "Already logged in with an account","");
                 return;
             }
             if(!checkLogin()){
@@ -64,7 +64,7 @@ public class LoginForm {
                 context = logonServer.connect();
             } catch (Exception ex) {
                 ex.printStackTrace();
-                SpinnerNotifier.showNotification(project, "登录失败", ex.getLocalizedMessage());
+                SpinnerNotifier.showNotification(project, "Login failed", ex.getLocalizedMessage());
             }
             SpinnerToken.setContext(context);
             if (context != null) {
@@ -72,14 +72,14 @@ public class LoginForm {
                 spinnerSettings.addLoginConfig(env, loginConfig);
                 spinnerSettings.setLastLogin(env);
                 disable();
-                SpinnerNotifier.showNotification(project, "登录成功", "");
+                SpinnerNotifier.showNotification(project, "Login successful", "");
             }
         });
         logoutBth.addActionListener(e -> {
             SpinnerToken.closeContext();
             SpinnerToken.setContext(null);
             enable();
-            SpinnerNotifier.showNotification(project, "登出成功", "");
+            SpinnerNotifier.showNotification(project, "Logout successful", "");
         });
         envComboBox.addActionListener(e -> {
             if(envComboBox.getSelectedItem() == null || envComboBox.getSelectedItem().toString().isEmpty()){
@@ -145,27 +145,27 @@ public class LoginForm {
     public boolean checkLogin(){
         String env = envField.getText();
         if(env == null || env.isEmpty()){
-            SpinnerNotifier.showNotification(null, "ENV is required", "");
+            SpinnerNotifier.showNotification(null, "Env is required", "");
             return false;
         }
         String url = urlField.getText();
         if(url == null || url.isEmpty()){
-            SpinnerNotifier.showNotification(null, "URL is required", "");
+            SpinnerNotifier.showNotification(null, "Url is required", "");
             return false;
         }
         String username = usernameField.getText();
         if(username == null || username.isEmpty()){
-            SpinnerNotifier.showNotification(null, "username is required", "");
+            SpinnerNotifier.showNotification(null, "Username is required", "");
             return false;
         }
         String password = passwordField.getText();
         if(password == null || password.isEmpty()){
-            SpinnerNotifier.showNotification(null, "password is required", "");
+            SpinnerNotifier.showNotification(null, "Password is required", "");
             return false;
         }
         String role = roleField.getText();
         if(role == null || role.isEmpty()){
-            SpinnerNotifier.showNotification(null, "role is required", "");
+            SpinnerNotifier.showNotification(null, "Role is required", "");
             return false;
         }
         return true;
