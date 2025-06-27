@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     implementation(fileTree("libs"))
+    implementation("com.fifesoft:rsyntaxtextarea:3.6.0")
 }
 
 group = "com.bol"

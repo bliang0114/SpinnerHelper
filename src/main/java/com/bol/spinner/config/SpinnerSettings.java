@@ -4,6 +4,7 @@ import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -11,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@Service
+@Service(Service.Level.PROJECT)
 @State(name="SpinnerSettings", storages = @Storage("spinnerSettingsConfig.xml"))
 public final class SpinnerSettings implements PersistentStateComponent<SpinnerSettings> {
 
@@ -35,8 +36,8 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
         this.lastLogin = lastLogin;
     }
 
-    public static SpinnerSettings getInstance(){
-        return new SpinnerSettings();
+    public static SpinnerSettings getInstance(Project project){
+        return project.getService(SpinnerSettings.class);
     }
     @Override
     public @Nullable SpinnerSettings getState() {

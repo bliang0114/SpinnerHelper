@@ -5,7 +5,6 @@ import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.LoginConfig;
 import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.util.SpinnerNotifier;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import matrix.db.Context;
@@ -32,9 +31,10 @@ public class LoginForm {
     private JLabel envLabel;
     private JComboBox envComboBox;
     private JButton refreshBtn;
-    SpinnerSettings spinnerSettings = ApplicationManager.getApplication().getService(SpinnerSettings.class);
+    SpinnerSettings spinnerSettings;
 
     public LoginForm(Project project, ToolWindow toolWindow) {
+        spinnerSettings = SpinnerSettings.getInstance(project);
         Map<String, LoginConfig> loginConfigs = spinnerSettings.getLoginConfigs();
         if(loginConfigs != null){
             for (String env : loginConfigs.keySet()) {
