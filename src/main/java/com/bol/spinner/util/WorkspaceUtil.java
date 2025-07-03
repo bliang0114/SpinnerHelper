@@ -89,4 +89,11 @@ public class WorkspaceUtil {
         return JPO.invoke(context, "EnoBrowserJPO", (String[])null, "runScript", cmdArray, String.class);
     }
 
+    public static String runPageImport(Context context, String spinnerBaseDir, String filePath, String fileName) throws MatrixException {
+        String script = "mql";
+        String output = spinnerBaseDir + "/spinner.log";
+        String[] cmdArray = new String[]{script, "-c", "set context user creator;mod page \""+fileName+"\" file \""+filePath+"\";print context;quit;", spinnerBaseDir, output};
+        return JPO.invoke(context, "EnoBrowserJPO", (String[])null, "runScript", cmdArray, String.class);
+    }
+
 }

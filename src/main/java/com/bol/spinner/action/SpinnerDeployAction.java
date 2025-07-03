@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
+import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.StartupUiUtil;
@@ -30,10 +31,18 @@ public class SpinnerDeployAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
         try {
-            PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
-            assert file != null;
-            String filePath = file.getViewProvider().getVirtualFile().getPath();
             Project project = e.getData(CommonDataKeys.PROJECT);
+            PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
+            if(file == null){
+                SpinnerNotifier.showWarningNotification(project, "File is null", "");
+                return;
+            }
+            String filePath = file.getViewProvider().getVirtualFile().getPath();
+            PsiDirectory parent = file.getParent();
+            if(parent == null){
+                SpinnerNotifier.showWarningNotification(project, "Parent Dir is null", "");
+                return;
+            }
             String fileName = file.getName();
             Context context = SpinnerToken.context;
             if (context == null) {
@@ -65,6 +74,11 @@ public class SpinnerDeployAction extends AnAction {
                         editor.getDocument().getLineEndOffset(endLine)
                 ));
                 importSpinnerFile(context, project, filePath, firstLineText + "\n" + selectLineContent);
+            } else if(fileName.endsWith(".properties")){
+                if(parent.getName().equals("PageFiles")){
+                    importPageFile(context, project, file);
+                }
+
             } else {
                 SpinnerNotifier.showErrorNotification(project, "Unsupported File Type, Supports .java .xls", "");
             }
@@ -73,6 +87,25 @@ public class SpinnerDeployAction extends AnAction {
         }
 
 
+    }
+
+    private void importPageFile(Context context, Project project, PsiFile file) {
+        try {
+            String remoteBaseDir = WorkspaceUtil.getTmpDir(context);
+            String remoteSpinnerDir = "spinner" + new Random().nextInt();
+            String remoteRelativePath = remoteSpinnerDir + "/Business/PageFiles";
+            //创建目录
+            WorkspaceUtil.createRemoteTempDir(context, remoteBaseDir, remoteRelativePath);
+            //上传文件
+            WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, file.getName(), file.getText());
+            String res = WorkspaceUtil.runPageImport(context, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(), file.getName());
+            if (res == null || res.isEmpty()) {
+                res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
+            }
+            showMessage(res);
+        } catch (MatrixException e) {
+            JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void importJPOFile(Context context, Project project, String filePath, String codeContent) {
