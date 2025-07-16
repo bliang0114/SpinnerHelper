@@ -421,13 +421,13 @@ public class Util {
         return s;
     }
 
-    static void handleException(Exception ex) {
+    public static void handleException(Exception ex) {
         trace(ex);
         var msg = ex.getLocalizedMessage();
         displayError(msg);
     }
 
-    static void handleMatrixException(Exception ex) {
+    public static void handleMatrixException(Exception ex) {
         trace(ex);
         var msg = ex.getLocalizedMessage();
         if (msg == null)
@@ -566,5 +566,6 @@ public class Util {
         // Convert the new URI back to a string
         return newUri.toString();
     }
+
 
 }
