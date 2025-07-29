@@ -9,6 +9,9 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDirectory;
@@ -20,6 +23,7 @@ import matrix.util.MatrixException;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -124,11 +128,24 @@ public class SpinnerDeployAction extends AnAction {
             WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, jpoFile.getName(), codeContent);
             //编译JPO
             String jpoName = jpoFile.getName().replace("_mxJPO.java", "");
-            String res = WorkspaceUtil.runJPOImport(context, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath, jpoName);
-            if (res == null || res.isEmpty()) {
-                res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
-            }
-            showMessage(res);
+
+            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    indicator.setIndeterminate(false);
+                    indicator.setText("Starting deployment...");
+                    try {
+                        //编译JPO
+                        String res = WorkspaceUtil.runJPOImport(context, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath, jpoName);
+                        if (res == null || res.isEmpty()) {
+                            res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
+                        }
+                        SpinnerNotifier.showNotification(project, "Deploy Result",res);
+                    } catch (MatrixException e) {
+                        SpinnerNotifier.showErrorNotification(project, "Error", e.getLocalizedMessage());
+                    }
+                }
+            });
         } catch (MatrixException e) {
             JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
@@ -148,12 +165,23 @@ public class SpinnerDeployAction extends AnAction {
             WorkspaceUtil.createRemoteTempDir(context, remoteBaseDir, remoteRelativePath);
             //上传文件
             WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, spinnerFile.getName(), content);
-            //编译JPO
-            String res = WorkspaceUtil.runSpinnerImport(context, remoteBaseDir + "/" + remoteSpinnerDir);
-            if (res == null || res.isEmpty()) {
-                res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
-            }
-            showMessage(res);
+            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    indicator.setIndeterminate(false);
+                    indicator.setText("Starting deployment...");
+                    try {
+                        //编译JPO
+                        String res = WorkspaceUtil.runSpinnerImport(context, remoteBaseDir + "/" + remoteSpinnerDir);
+                        if (res == null || res.isEmpty()) {
+                            res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
+                        }
+                        SpinnerNotifier.showNotification(project, "Deploy Result",res);
+                    } catch (MatrixException e) {
+                        SpinnerNotifier.showErrorNotification(project, "Error", e.getLocalizedMessage());
+                    }
+                }
+            });
         } catch (MatrixException e) {
             JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
