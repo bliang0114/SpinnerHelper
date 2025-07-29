@@ -12,8 +12,10 @@ import enobrowser.WhereClause;
 import matrix.db.Context;
 import matrix.db.MQLCommand;
 import matrix.util.MatrixException;
+import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxScheme;
+import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
 import javax.swing.*;
@@ -182,6 +184,8 @@ public class MQL_Box extends JFrame {
         this.mnuMultiLineMQL.setSelected(this.multiLineEdit);
         this.numberOfLines = 4;
         this.txtMQLResult.setPopupMenu((JPopupMenu)null);
+        AbstractTokenMakerFactory defaultInstance = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
+        defaultInstance.putMapping("text/MQL", "com.bol.spinner.ui.MQLTokenMaker");
         this.txtMQLCommand.setSyntaxEditingStyle("text/MQL");
         this.txtMQLCommand.setHighlightCurrentLine(false);
         this.txtMQLCommand.setLineWrap(true);
