@@ -1,7 +1,7 @@
 package com.bol.spinner.action;
 
 import com.bol.spinner.auth.SpinnerToken;
-import com.bol.spinner.ui.MQL_Box;
+import com.bol.spinner.ui.MQL;
 import com.bol.spinner.util.SpinnerNotifier;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -19,6 +19,6 @@ public class MQLBoxAction extends AnAction {
             SpinnerNotifier.showWarningNotification(project, "Not Login, Please Login First", "");
             return;
         }
-        MQL_Box.main(context, "", 0, 0, false);
+        new MQL().main();
     }
 }

@@ -1,6 +1,5 @@
 package com.bol.spinner.ui;
 
-import matrix.db.Context;
 import org.fife.ui.rsyntaxtextarea.AbstractTokenMakerFactory;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
@@ -8,7 +7,7 @@ import org.fife.ui.rsyntaxtextarea.TokenMakerFactory;
 import javax.swing.*;
 import java.awt.*;
 
-public class MqlBox extends JFrame{
+public class MqlBox {
     private JPanel mainPanel;
     private JTextField findTextField;
     private JButton findButton;
@@ -16,16 +15,21 @@ public class MqlBox extends JFrame{
     private RSyntaxTextArea mqlCommandArea;
     private RSyntaxTextArea mqlResultArea;
 
-    private void createUIComponents() {
+    public MqlBox() {
+        mainPanel.setPreferredSize(new Dimension(800, 600));
         AbstractTokenMakerFactory defaultInstance = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
         defaultInstance.putMapping("text/MQL", "com.bol.spinner.ui.MQLTokenMaker");
         mqlCommandArea.setSyntaxEditingStyle("text/MQL");
         mqlCommandArea.setHighlightCurrentLine(false);
         mqlCommandArea.setLineWrap(true);
         mqlCommandArea.setRows(4);
+        mqlResultArea.setEditable(false);
+        mqlResultArea.setColumns(20);
+        mqlResultArea.setRows(5);
+        mqlResultArea.setFont(new java.awt.Font("Monospaced", 0, 13)); // NOI18N
     }
 
-    public static void main(Context ctx, String command, int markA, int markE, boolean execute) {
-        EventQueue.invokeLater(() -> (new MqlBox()).setVisible(true));
+    public JPanel getMainPanel() {
+        return mainPanel;
     }
 }

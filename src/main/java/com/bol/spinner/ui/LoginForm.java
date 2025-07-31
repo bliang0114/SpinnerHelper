@@ -5,9 +5,13 @@ import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.LoginConfig;
 import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.util.SpinnerNotifier;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import matrix.db.Context;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -57,23 +61,29 @@ public class LoginForm {
             String username = usernameField.getText();
             String password = passwordField.getText();
             String role = roleField.getText();
-            Context context = null;
-            try {
-                LogonServer logonServer = new LogonServer(url, username, password, "eService Production", "", true);
-                logonServer.setRole(role);
-                context = logonServer.connect();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                SpinnerNotifier.showNotification(project, "Login failed", ex.getLocalizedMessage());
-            }
-            SpinnerToken.setContext(context);
-            if (context != null) {
-                LoginConfig loginConfig = new LoginConfig(url, username, password, role);
-                spinnerSettings.addLoginConfig(env, loginConfig);
-                spinnerSettings.setLastLogin(env);
-                disable();
-                SpinnerNotifier.showNotification(project, "Login successful", "");
-            }
+            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Login") {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    indicator.setIndeterminate(false);
+                    indicator.setText("Login...");
+                    Context context = null;
+                    try {
+                        LogonServer logonServer = new LogonServer(url, username, password, "eService Production", "", true);
+                        logonServer.setRole(role);
+                        context = logonServer.connect();
+                        SpinnerToken.setContext(context);
+                        if (context != null) {
+                            LoginConfig loginConfig = new LoginConfig(url, username, password, role);
+                            spinnerSettings.addLoginConfig(env, loginConfig);
+                            spinnerSettings.setLastLogin(env);
+                            disable();
+                            SpinnerNotifier.showNotification(project, "Login successful", "");
+                        }
+                    } catch (Exception ex) {
+                        SpinnerNotifier.showNotification(project, "Login failed", ex.getLocalizedMessage());
+                    }
+                }
+            });
         });
         logoutBth.addActionListener(e -> {
             SpinnerToken.closeContext();
