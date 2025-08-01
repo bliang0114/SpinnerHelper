@@ -4,9 +4,7 @@ import com.bol.spinner.auth.SpinnerToken;
 import com.intellij.openapi.ui.ComboBox;
 import matrix.db.MQLCommand;
 import matrix.util.MatrixException;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.Theme;
-import org.fife.ui.rsyntaxtextarea.Token;
+import org.fife.ui.rsyntaxtextarea.*;
 
 import javax.swing.*;
 import javax.swing.event.UndoableEditEvent;
@@ -42,6 +40,8 @@ public class MQL extends JFrame {
     private static boolean windowLoad = false;
 
     public MQL() {
+        AbstractTokenMakerFactory defaultInstance = (AbstractTokenMakerFactory) TokenMakerFactory.getDefaultInstance();
+        defaultInstance.putMapping("text/MQL", "com.bol.spinner.ui.MQLTokenMaker");
         windowLoad = true;
         this.command = "";
         this.execute = false;
