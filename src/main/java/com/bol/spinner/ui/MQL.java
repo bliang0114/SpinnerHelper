@@ -55,7 +55,7 @@ public class MQL extends JFrame {
         mnuMultiLineMQL.setSelected(multiLineEdit);
         numberOfLines = 4;
         txtMQLResult.setPopupMenu(null);
-        setSyntaxHighlightTheme(txtMQLCommand,"idea");
+        setSyntaxHighlightTheme(txtMQLCommand,"default");
         txtMQLCommand.setSyntaxEditingStyle("text/MQL");
         txtMQLCommand.setHighlightCurrentLine(false);
         txtMQLCommand.setLineWrap(true);
