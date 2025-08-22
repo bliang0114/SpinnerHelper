@@ -58,6 +58,7 @@ public class MQL extends JFrame {
         setSyntaxHighlightTheme(txtMQLCommand,"default");
         txtMQLCommand.setSyntaxEditingStyle("text/MQL");
         txtMQLCommand.setHighlightCurrentLine(false);
+        txtMQLResult.setHighlightCurrentLine(false);
         txtMQLCommand.setLineWrap(true);
         txtMQLCommand.setRows(numberOfLines);
         var scheme = txtMQLCommand.getSyntaxScheme();
