@@ -10,7 +10,7 @@ dependencies {
 }
 
 group = "com.bol"
-version = "1.06"
+version = "R2023_V1.06"
 
 repositories {
     mavenCentral()
