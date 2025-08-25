@@ -6,6 +6,7 @@ import com.bol.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
@@ -32,9 +33,12 @@ import java.util.Random;
 
 public class SpinnerDeployAction extends AnAction {
 
+    private static final Logger logger = Logger.getInstance(SpinnerDeployAction.class);
+
     @Override
     public void actionPerformed(AnActionEvent e) {
         try {
+            logger.info("Deploy Action start");
             Project project = e.getData(CommonDataKeys.PROJECT);
             PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
             if(file == null){
@@ -87,6 +91,7 @@ public class SpinnerDeployAction extends AnAction {
                 SpinnerNotifier.showErrorNotification(project, "Unsupported File Type, Supports .java .xls", "");
             }
         } catch (Exception ex) {
+            logger.error("Deploy Error", ex);
             JOptionPane.showMessageDialog(null, ex.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
 
@@ -101,15 +106,50 @@ public class SpinnerDeployAction extends AnAction {
             //创建目录
             WorkspaceUtil.createRemoteTempDir(context, remoteBaseDir, remoteRelativePath);
             //上传文件
-            WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, file.getName(), file.getText());
+            WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, file.getName(), encodeToUnicode(file.getText()));
             String res = WorkspaceUtil.runPageImport(context, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(), file.getName());
             if (res == null || res.isEmpty()) {
                 res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
             }
             showMessage(res);
         } catch (MatrixException e) {
+            logger.error("Deploy Error", e);
             JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    public static String encodeToUnicode(String str) {
+        if(str == null){
+            return null;
+        }
+        if(isUnicode(str)){
+            return str;
+        }
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < str.length(); i++) {
+            char ch = str.charAt(i);
+            result.append("\\u").append(String.format("%04x", (int) ch));
+        }
+        return result.toString();
+    }
+
+    public static boolean isUnicode(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            // 检查是否为基本多文种平面之外的字符(需要代理对表示)
+            if (Character.isHighSurrogate(c) || Character.isLowSurrogate(c)) {
+                return true;
+            }
+            // 检查是否为非ASCII字符
+            if (c > 127) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void importJPOFile(Context context, Project project, String filePath, String codeContent) {
@@ -147,6 +187,7 @@ public class SpinnerDeployAction extends AnAction {
                 }
             });
         } catch (MatrixException e) {
+            logger.error("Deploy Error", e);
             JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -183,6 +224,7 @@ public class SpinnerDeployAction extends AnAction {
                 }
             });
         } catch (MatrixException e) {
+            logger.error("Deploy Error", e);
             JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
     }
