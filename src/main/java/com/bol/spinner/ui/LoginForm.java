@@ -35,6 +35,7 @@ public class LoginForm {
     private JLabel envLabel;
     private JComboBox envComboBox;
     private JButton refreshBtn;
+    private JButton urlParseButton;
     SpinnerSettings spinnerSettings;
 
     public LoginForm(Project project, ToolWindow toolWindow) {
@@ -110,6 +111,9 @@ public class LoginForm {
             public void actionPerformed(ActionEvent e) {
                 load();
             }
+        });
+        urlParseButton.addActionListener(e-> {
+            URLParameterParser.main(null);
         });
     }
 
