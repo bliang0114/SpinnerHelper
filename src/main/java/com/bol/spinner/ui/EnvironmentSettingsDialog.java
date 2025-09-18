@@ -1,16 +1,25 @@
 package com.bol.spinner.ui;
 
+import com.bol.spinner.auth.LogonServer;
+import com.bol.spinner.auth.Util;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerSettings;
+import com.bol.spinner.util.UIUtil;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.JBTextField;
+import com.intellij.ui.components.fields.ExtendableTextComponent;
+import com.intellij.ui.components.fields.ExtendableTextField;
 import com.intellij.util.ui.FormBuilder;
+import matrix.db.Context;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.util.Optional;
+import javax.swing.plaf.basic.BasicComboBoxEditor;
+import java.util.*;
 
 public class EnvironmentSettingsDialog extends DialogWrapper {
     private final Project project;
@@ -20,7 +29,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
     private final JBTextField usernameField;
     private final JBPasswordField passwordField;
     private final JBTextField vaultField;
-    private final JBTextField securityContextField;
+    private final ComboBox<String> securityContextComboBox;
 
     public EnvironmentSettingsDialog(Project project, EnvironmentConfig environment) {
         super(true); // 使用当前窗口作为父窗口
@@ -34,7 +43,24 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
         usernameField = new JBTextField();
         passwordField = new JBPasswordField();
         vaultField = new JBTextField("eService Production");
-        securityContextField = new JBTextField();
+        ExtendableTextComponent.Extension loadExtension =
+                ExtendableTextComponent.Extension.create(
+                        AllIcons.General.Refresh,
+                        AllIcons.General.Refresh,
+                        "Load Security Context",
+                        loadSecurityContext()
+                );
+        securityContextComboBox = new ComboBox<>();
+        securityContextComboBox.setEditable(true);
+        securityContextComboBox.setEditor(new BasicComboBoxEditor() {
+            @Override
+            protected JTextField createEditorComponent() {
+                ExtendableTextField ecbEditor = new ExtendableTextField();
+                ecbEditor.addExtension(loadExtension);
+                ecbEditor.setBorder(null);
+                return ecbEditor;
+            }
+        });
         init();
         if (environment != null) {
             environmentField.setEnabled(false);
@@ -43,7 +69,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
             usernameField.setText(environment.getUser());
             passwordField.setText(environment.getPassword());
             vaultField.setText(environment.getVault());
-            securityContextField.setText(environment.getSecurityContext());
+            securityContextComboBox.setItem(environment.getSecurityContext());
         }
     }
 
@@ -61,7 +87,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                 .addSeparator()
                 .addLabeledComponent("Vault:", vaultField)
                 .addTooltip("E.g., eService production")
-                .addLabeledComponent("Security Context:", securityContextField)
+                .addLabeledComponent("Security Context:", securityContextComboBox)
                 .addTooltip("E.g., VPLMAdmin.Company Name.Common Space")
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
@@ -88,7 +114,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
     }
 
     private String getSecurityContext() {
-        return securityContextField.getText().trim();
+        return securityContextComboBox.getItem().trim();
     }
 
     // 验证输入
@@ -144,5 +170,28 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
             environment.setSecurityContext(getSecurityContext());
             return environment;
         }
+    }
+
+    public Runnable loadSecurityContext() {
+        return () -> {
+            securityContextComboBox.removeAllItems();
+            LogonServer logonServer = new LogonServer(getHostUrl(), getUsername(), getPassword(), getVault(), "", true);
+            try (Context context = logonServer.connect()) {
+                String res = Util.execMQL(context, "list person '" + getUsername() + "' select assignment dump");
+                String[] values = res.split(",");
+                List<String> valueList = new ArrayList<>(Arrays.asList(values));
+                valueList = valueList.stream()
+                        .filter(v -> v.startsWith("ctx::"))
+                        .map(v -> v.substring(5))
+                        .sorted(String::compareTo)
+                        .toList();
+                for (String value : valueList) {
+                    securityContextComboBox.addItem(value);
+                }
+                securityContextComboBox.setItem(environment.getSecurityContext());
+            } catch (Exception e) {
+                UIUtil.showErrorNotification(project, "Spinner Config", e.getLocalizedMessage());
+            }
+        };
     }
 }
