@@ -7,6 +7,8 @@ plugins {
 dependencies {
     implementation(fileTree("libs"))
     implementation("com.fifesoft:rsyntaxtextarea:3.6.0")
+    implementation("net.sourceforge.plantuml:plantuml:1.2023.10")
+    implementation("org.projectlombok:lombok:1.18.38")
 }
 
 group = "com.bol"
