@@ -12,10 +12,9 @@ import javax.swing.*;
 public class SpinnerUIFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        LoginForm loginForm = new LoginForm(project, toolWindow);
-        JPanel loginPanel = loginForm.getMainPanel();
+        EnvironmentToolWindow contentPanel = new EnvironmentToolWindow(project);
         ContentFactory contentFactory = ContentFactory.getInstance();
-        Content content = contentFactory.createContent(loginPanel, "", false);
+        Content content = contentFactory.createContent(contentPanel, "", false);
         toolWindow.getContentManager().addContent(content);
     }
 

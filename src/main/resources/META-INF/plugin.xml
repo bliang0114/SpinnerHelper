@@ -60,6 +60,34 @@ public String runScript(Context ctx, String[] args) throws Exception {
         <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
+        <group id="Spinner Config.Toolbar">
+            <action id="Spinner Config.New"
+                    class="com.bol.spinner.action.NewEnvAction"
+                    icon="AllIcons.General.Add"/>
+            <action id="Spinner Config.Edit"
+                    class="com.bol.spinner.action.EditEnvAction"
+                    icon="AllIcons.Actions.Edit"/>
+            <action id="Spinner Config.Remove"
+                    class="com.bol.spinner.action.RemoveEnvAction"
+                    icon="AllIcons.General.Remove"/>
+            <separator/>
+            <action id="Spinner Config.Connect"
+                    class="com.bol.spinner.action.ConnectAction"
+                    icon="AllIcons.Toolwindows.ToolWindowRun"/>
+            <action id="Spinner Config.ReConnect"
+                    class="com.bol.spinner.action.ReConnectAction"
+                    icon="AllIcons.Actions.Rerun"/>
+            <action id="Spinner Config.Disconnect"
+                    class="com.bol.spinner.action.DisconnectAction"
+                    icon="AllIcons.Debugger.KillProcess"/>
+            <separator/>
+            <action id="Spinner Config.URLParser"
+                    class="com.bol.spinner.action.URLParserAction"
+                    icon="AllIcons.General.Web"/>
+            <action id="Spinner Config.MQLBox"
+                    class="com.bol.spinner.action.MQLBoxTbAction"
+                    icon="AllIcons.Nodes.DataTables"/>
+        </group>
     </actions>
     <resource-bundle>messages.ActionBundles</resource-bundle>
 </idea-plugin>

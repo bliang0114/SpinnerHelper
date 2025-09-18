@@ -124,7 +124,7 @@ public class Util {
         JOptionPane.showMessageDialog(null, msg, "Information", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    static String execMQL(Context ctx, String command) throws MatrixException {
+    public static String execMQL(Context ctx, String command) throws MatrixException {
         return execMQL(ctx, command, true);
     }
 
