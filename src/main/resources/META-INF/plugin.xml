@@ -54,9 +54,6 @@ public String runScript(Context ctx, String[] args) throws Exception {
         <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
     </extensions>
     <actions>
-        <action id="MQLBox" class="com.bol.spinner.action.MQLBoxAction" text="MQL Box">
-            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
-        </action>
         <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
