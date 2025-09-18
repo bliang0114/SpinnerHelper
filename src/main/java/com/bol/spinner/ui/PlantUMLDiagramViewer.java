@@ -1,9 +1,6 @@
 package com.bol.spinner.ui;
 
-import com.bol.spinner.auth.SpinnerToken;
-import com.bol.spinner.util.MqlUtil;
 import net.sourceforge.plantuml.SourceStringReader;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -11,8 +8,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,19 +46,16 @@ public class PlantUMLDiagramViewer extends JFrame {
         imageScrollPane.getHorizontalScrollBar().setUnitIncrement(16);
 
         // 添加鼠标滚轮缩放支持
-        imageScrollPane.addMouseWheelListener(new MouseWheelListener() {
-            @Override
-            public void mouseWheelMoved(MouseWheelEvent e) {
-                if (e.isControlDown()) {
-                    // Ctrl+滚轮进行缩放
-                    int wheelRotation = e.getWheelRotation();
-                    if (wheelRotation < 0) {
-                        zoomImage(1.1);
-                    } else {
-                        zoomImage(0.9);
-                    }
-                    e.consume();
+        imageScrollPane.addMouseWheelListener(e -> {
+            if (e.isControlDown()) {
+                // Ctrl+滚轮进行缩放
+                int wheelRotation = e.getWheelRotation();
+                if (wheelRotation < 0) {
+                    zoomImage(1.1);
+                } else {
+                    zoomImage(0.9);
                 }
+                e.consume();
             }
         });
 
@@ -405,8 +397,6 @@ public class PlantUMLDiagramViewer extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-
-
             new PlantUMLDiagramViewer().setVisible(true);
         });
     }
@@ -414,25 +404,3 @@ public class PlantUMLDiagramViewer extends JFrame {
 
 }
 
-class UMLSource {
-
-    private List<String> sourceList = new ArrayList<>();
-
-    public void expandFrom(String objectId, int expandLevel) throws Exception {
-        String mql = String.format("expand bus %s from recurse to %s withroots select bus type select rel type dump ,", objectId, expandLevel);
-        String res = MqlUtil.runMql(SpinnerToken.context, mql);
-        if(StringUtils.isNotEmpty(res)){
-            String[] data = res.split("\n");
-            String from = data[0].split(",",-1)[6];
-            for (int i = 1; i < data.length; i++) {
-                String to = data[i].split(",",-1)[6];
-                String rel = data[i].split(",",-1)[7];
-                if(!sourceList.contains(from + "," + rel + "," + to)){
-                }else{
-                    sourceList.add(from + "," + rel + "," + to);
-                }
-            }
-        }
-
-    }
-}
