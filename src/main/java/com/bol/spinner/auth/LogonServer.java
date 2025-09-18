@@ -206,7 +206,7 @@ public class LogonServer extends Object implements Cloneable {
         return this.cas;
     }
 
-    public Context connect() {
+    public Context connect() throws Exception {
 
         try {
             Passport.setTrustManager(false);
@@ -235,11 +235,9 @@ public class LogonServer extends Object implements Cloneable {
                     checkLibraryVersion(ctx);
                 }
             }
-
+            return ctx;
         } catch (Exception ex) {
-            ex.printStackTrace();
             var msg = ex.getLocalizedMessage();
-
             if (msg.contains("XML: Expected") || msg.contains("Exception: Expected") || msg.contains("XML: -1")) {
                 msg = "Enovia reported the following error: " + msg
                         + "\nThis can be due to wrong library versions. Take these files"
@@ -296,13 +294,10 @@ public class LogonServer extends Object implements Cloneable {
                             + "\n• Make sure you have copied 'enoviaKernel.jar' from the ...\\WEB-INF\\lib folder to EnoBrowser\\lib.";
                 }
             }
-
-            Util.trace("Connect Error: " + msg);
-            Util.trace(ex);
-            JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
-
-        } finally {
-            return ctx;
+            throw new Exception(msg);
+//            Util.trace("Connect Error: " + msg);
+//            Util.trace(ex);
+//            JOptionPane.showMessageDialog(null, msg, "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -424,7 +419,7 @@ public class LogonServer extends Object implements Cloneable {
         }
     }
 
-    public Context checkContext() {
+    public Context checkContext() throws Exception {
 
         if (ctx == null) {
             Util.displayError("Please logon to an 3DEXPERIENCE Platform!");

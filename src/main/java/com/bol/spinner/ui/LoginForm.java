@@ -40,15 +40,15 @@ public class LoginForm {
 
     public LoginForm(Project project, ToolWindow toolWindow) {
         spinnerSettings = SpinnerSettings.getInstance(project);
-        Map<String, LoginConfig> loginConfigs = spinnerSettings.getLoginConfigs();
-        if(loginConfigs != null){
-            for (String env : loginConfigs.keySet()) {
-                envComboBox.addItem(env);
-            }
-            if(spinnerSettings.getLastLogin() != null && loginConfigs.containsKey(spinnerSettings.getLastLogin())){
-                envComboBox.setSelectedItem(spinnerSettings.getLastLogin());
-            }
-        }
+//        Map<String, LoginConfig> loginConfigs = spinnerSettings.getLoginConfigs();
+//        if(loginConfigs != null){
+//            for (String env : loginConfigs.keySet()) {
+//                envComboBox.addItem(env);
+//            }
+//            if(spinnerSettings.getLastLogin() != null && loginConfigs.containsKey(spinnerSettings.getLastLogin())){
+//                envComboBox.setSelectedItem(spinnerSettings.getLastLogin());
+//            }
+//        }
         loginBtn.addActionListener(e -> {
             if(SpinnerToken.context != null){
                 SpinnerNotifier.showNotification(project, "Already logged in with an account","");
@@ -75,8 +75,8 @@ public class LoginForm {
                         SpinnerToken.setContext(context);
                         if (context != null) {
                             LoginConfig loginConfig = new LoginConfig(url, username, password, role);
-                            spinnerSettings.addLoginConfig(env, loginConfig);
-                            spinnerSettings.setLastLogin(env);
+//                            spinnerSettings.addLoginConfig(env, loginConfig);
+//                            spinnerSettings.setLastLogin(env);
                             disable();
                             SpinnerNotifier.showNotification(project, "Login successful", "");
                         }
@@ -92,19 +92,19 @@ public class LoginForm {
             enable();
             SpinnerNotifier.showNotification(project, "Logout successful", "");
         });
-        envComboBox.addActionListener(e -> {
-            if(envComboBox.getSelectedItem() == null || envComboBox.getSelectedItem().toString().isEmpty()){
-                return;
-            }
-            LoginConfig loginConfig = spinnerSettings.getLoginConfig(envComboBox.getSelectedItem().toString());
-            if(loginConfig != null){
-                envField.setText(envComboBox.getSelectedItem().toString());
-                urlField.setText(loginConfig.getUrl());
-                usernameField.setText(loginConfig.getUsername());
-                passwordField.setText(loginConfig.getPassword());
-                roleField.setText(loginConfig.getRole());
-            }
-        });
+//        envComboBox.addActionListener(e -> {
+//            if(envComboBox.getSelectedItem() == null || envComboBox.getSelectedItem().toString().isEmpty()){
+//                return;
+//            }
+//            LoginConfig loginConfig = spinnerSettings.getLoginConfig(envComboBox.getSelectedItem().toString());
+//            if(loginConfig != null){
+//                envField.setText(envComboBox.getSelectedItem().toString());
+//                urlField.setText(loginConfig.getUrl());
+//                usernameField.setText(loginConfig.getUsername());
+//                passwordField.setText(loginConfig.getPassword());
+//                roleField.setText(loginConfig.getRole());
+//            }
+//        });
         refreshBtn.setPreferredSize(new Dimension(30, 30));
         refreshBtn.addActionListener(new ActionListener() {
             @Override
@@ -122,16 +122,16 @@ public class LoginForm {
     }
 
     public void load(){
-        Map<String, LoginConfig> loginConfigs = spinnerSettings.getLoginConfigs();
-        if(loginConfigs != null){
-            envComboBox.removeAllItems();
-            for (String env : loginConfigs.keySet()) {
-                envComboBox.addItem(env);
-            }
-            if(spinnerSettings.getLastLogin() != null && loginConfigs.containsKey(spinnerSettings.getLastLogin())){
-                envComboBox.setSelectedItem(spinnerSettings.getLastLogin());
-            }
-        }
+//        Map<String, LoginConfig> loginConfigs = spinnerSettings.getLoginConfigs();
+//        if(loginConfigs != null){
+//            envComboBox.removeAllItems();
+//            for (String env : loginConfigs.keySet()) {
+//                envComboBox.addItem(env);
+//            }
+//            if(spinnerSettings.getLastLogin() != null && loginConfigs.containsKey(spinnerSettings.getLastLogin())){
+//                envComboBox.setSelectedItem(spinnerSettings.getLastLogin());
+//            }
+//        }
     }
 
     public void disable(){

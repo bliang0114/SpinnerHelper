@@ -7,40 +7,22 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Service(Service.Level.PROJECT)
 @State(name="SpinnerSettings", storages = @Storage("spinnerSettingsConfig.xml"))
 public final class SpinnerSettings implements PersistentStateComponent<SpinnerSettings> {
-
-    private Map<String, LoginConfig> loginConfigs;
-
-    private String lastLogin;
-
-    public Map<String, LoginConfig> getLoginConfigs() {
-        return loginConfigs;
-    }
-
-    public void setLoginConfigs(Map<String, LoginConfig> loginConfigs) {
-        this.loginConfigs = loginConfigs;
-    }
-
-    public String getLastLogin() {
-        return lastLogin;
-    }
-
-    public void setLastLogin(String lastLogin) {
-        this.lastLogin = lastLogin;
-    }
+    private List<EnvironmentConfig> environments;
 
     public static SpinnerSettings getInstance(Project project){
         return project.getService(SpinnerSettings.class);
     }
+
     @Override
-    public @Nullable SpinnerSettings getState() {
+    public @NotNull SpinnerSettings getState() {
         return this;
     }
 
@@ -49,17 +31,18 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
         XmlSerializerUtil.copyBean(spinnerSettings, this);
     }
 
-    public void addLoginConfig(String name, LoginConfig loginConfig){
-        if(loginConfigs == null){
-            loginConfigs = new LinkedHashMap<>();
+    public List<EnvironmentConfig> getEnvironments() {
+        if  (environments == null) {
+            environments = new ArrayList<>();
         }
-        loginConfigs.put(name, loginConfig);
+        return environments;
     }
 
-    public LoginConfig getLoginConfig(String name){
-        if(loginConfigs == null){
-            return null;
-        }
-        return loginConfigs.get(name);
+    public void setEnvironments(List<EnvironmentConfig> environments) {
+        this.environments = environments;
+    }
+
+    public Optional<EnvironmentConfig> getEnvironment(String name) {
+        return getEnvironments().stream().filter(env -> env.getName().equals(name)).findFirst();
     }
 }
