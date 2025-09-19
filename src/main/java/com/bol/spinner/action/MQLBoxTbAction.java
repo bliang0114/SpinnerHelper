@@ -2,7 +2,6 @@ package com.bol.spinner.action;
 
 import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.EnvironmentConfig;
-import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.ui.MQL;
 import com.bol.spinner.util.SpinnerNotifier;
@@ -11,17 +10,13 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
-import matrix.db.Context;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
 
 public class MQLBoxTbAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        Context context = SpinnerToken.context;
-        if (context == null) {
+        if (SpinnerToken.context == null) {
             SpinnerNotifier.showWarningNotification(project, "Not Login, Please Login First", "");
             return;
         }

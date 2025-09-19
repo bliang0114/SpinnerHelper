@@ -1,4 +1,4 @@
-package com.bol.spinner.auth;
+package com.bol.spinner;
 
 import matrix.db.*;
 import matrix.util.MatrixException;
@@ -17,7 +17,7 @@ import java.util.Properties;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-public class Util {
+class Util {
 
     public static String rootdir, systemprops, ematrixml;
     static HashMap<String, String> syntaxStyles = new HashMap<String, String>();
@@ -26,6 +26,7 @@ public class Util {
     private final static Logger logger = LoggerFactory.getLogger(Util.class.getName());
     
     static String buildMQL(String command, String... args) {
+        var mql = new MQLCommand();
         for (var i = 0; i < args.length; i++)
             if (args[i].contains(" "))
                 command = command.replace("&" + String.valueOf(i + 1), "'" + args[i] + "'");
@@ -470,16 +471,11 @@ public class Util {
         return s.replace("\\", "_").replace("/", "_").replace(":", "_").replace("*", "_").replace("?", "_").replace("\"", "_").replace("<", "_").replace(">", "_").replace("|", "_");
     }
 
-
-
     static String[] setArray(String... args) {
         return args;
     }
 
-
-
     public static void trace(Exception e) {
-        
         logger.error("ERROR:", e);
     }
 
@@ -493,31 +489,14 @@ public class Util {
             where = ", " + className + "." + methodName + "(), line " + lineNumber;
         }
         var when = df.format(new Date());
-        
-        logger.error(when + where + "\n" + s);
+        logger.error("{}{}\n{}", when, where, s);
     }
 
-    public static String resolverUrl(String host, String relaventPath) throws URISyntaxException {
-        // Parse the host URL
+    public static String resolverUrl(String host, String path) throws URISyntaxException {
         URI hostUri = new URI(host);
-
-        // Extract the path and query components
-        String path = hostUri.getPath();
         String query = hostUri.getQuery();
-
-        // Append the kernelServlet path to the extracted path
-        String newPath = path + relaventPath;
-
-        // Reconstruct the URL with the new path and the original query
-        URI resultUri = new URI(
-                hostUri.getScheme(),
-                hostUri.getAuthority(),
-                newPath,
-                query,
-                null
-        );
-
-        // Convert the resolved URI back to a string
+        String newPath = hostUri.getPath() + path;
+        URI resultUri = new URI(hostUri.getScheme(), hostUri.getAuthority(), newPath, query, null);
         return resultUri.toString();
     }
 

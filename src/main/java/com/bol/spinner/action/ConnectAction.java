@@ -10,7 +10,6 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
-import matrix.db.Context;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -27,14 +26,11 @@ public class ConnectAction extends AnAction {
 
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         // 关闭所有的连接
-        Context context = SpinnerToken.context;
-        if (context != null) {
-            SpinnerToken.closeContext();
-            SpinnerToken.setContext(null);
-            spinnerSettings.getEnvironments().stream().filter(EnvironmentConfig::isConnected)
-                    .forEach(env -> env.setConnected(false));
+        if (SpinnerToken.context != null) {
+            SpinnerToken.disconnect();
         }
-
+        spinnerSettings.getEnvironments().stream().filter(EnvironmentConfig::isConnected)
+                .forEach(env -> env.setConnected(false));
         // 连接
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {

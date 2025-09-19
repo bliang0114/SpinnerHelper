@@ -1,9 +1,9 @@
 package com.bol.spinner.ui;
 
+import com.bol.spinner.MatrixUtil;
+import com.bol.spinner.MatrixMQLResult;
 import com.bol.spinner.auth.SpinnerToken;
 import com.intellij.openapi.ui.ComboBox;
-import matrix.db.MQLCommand;
-import matrix.util.MatrixException;
 import org.fife.ui.rsyntaxtextarea.*;
 
 import javax.swing.*;
@@ -508,9 +508,9 @@ public class MQL extends JFrame {
     private void btnExecuteActionPerformed(ActionEvent evt) {//GEN-FIRST:event_btnExecuteActionPerformed
         setCursor(new Cursor(Cursor.WAIT_CURSOR));
         try {
-            var mql = new MQLCommand();
-            if (mql.executeCommand(SpinnerToken.context, txtMQLCommand.getText(), true)) {
-                var result = mql.getResult();
+            MatrixMQLResult mqlResult = MatrixUtil.executeMQL(SpinnerToken.context, txtMQLCommand.getText(), true);
+            if (mqlResult.isSuccess()) {
+                var result = mqlResult.getResult();
                 if (result.endsWith("\n")) {
                     result = result.substring(0, result.length() - 1);
                 }
@@ -530,10 +530,9 @@ public class MQL extends JFrame {
                 }
                 btnBack.setEnabled(cmbMQLCommand.getItemCount() > 1);
             } else {
-                var error = mql.getError();
-                txtMQLResult.setText(error);
+                txtMQLResult.setText(mqlResult.getResult());
             }
-        } catch (MatrixException ex) {
+        } catch (Exception ex) {
             handleMatrixException(ex);
         }
         txtMQLResult.setSelectionStart(0);

@@ -1,13 +1,12 @@
 package com.bol.spinner.task;
 
-import com.bol.spinner.auth.LogonServer;
+import com.bol.spinner.MatrixContext;
 import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.util.SpinnerNotifier;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import matrix.db.Context;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,13 +21,9 @@ public class Connect3DETask extends Task.Backgroundable {
 
     @Override
     public void run(@NotNull ProgressIndicator progressIndicator) {
-        Context context;
         try {
-            LogonServer logonServer = new LogonServer(environment.getHostUrl(), environment.getUser(), environment.getPassword(), environment.getVault(), "", true);
-            logonServer.setRole(environment.getRole());
-            context = logonServer.connect();
+            MatrixContext context = SpinnerToken.connect(environment.getHostUrl(), environment.getUser(), environment.getPassword(), environment.getVault(), environment.getRole());
             if (context != null) {
-                SpinnerToken.setContext(context);
                 this.environment.setConnected(true);
                 SpinnerNotifier.showNotification(myProject, "Login successful", "");
             }

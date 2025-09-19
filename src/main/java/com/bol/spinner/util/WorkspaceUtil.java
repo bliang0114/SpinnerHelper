@@ -1,11 +1,7 @@
 package com.bol.spinner.util;
 
-import matrix.db.Context;
-import matrix.db.Environment;
-import matrix.db.JPO;
-import matrix.util.MatrixException;
-
-import java.util.Properties;
+import com.bol.spinner.MatrixContext;
+import com.bol.spinner.MatrixUtil;
 
 public class WorkspaceUtil {
 
@@ -39,61 +35,49 @@ public class WorkspaceUtil {
         return subPath;
     }
 
-    public static String getTmpDir(Context ctx) {
+    public static String getTmpDir(MatrixContext ctx) {
         return getEnvironmentVariable(ctx, "TMPDIR");
     }
 
-    public static String getEnvironmentVariable(Context ctx, String var) {
+    public static String getEnvironmentVariable(MatrixContext ctx, String var) {
         try {
-            if (Character.isUpperCase(var.charAt(0))) {
-                return Environment.getValue(ctx, var);
-            } else {
-                if (systemprops == null) {
-                    Properties props = (Properties) JPO.invoke(ctx, "EnoBrowserJPO", (String[])null, "getProperties", (String[])null, Properties.class);
-                    systemprops = props.toString().replace(", ", "\n").replace("{", "").replace("}", "");
-                }
-
-                int a = systemprops.indexOf(var + "=");
-                int b = systemprops.indexOf("\n", a);
-                String s = systemprops.substring(a + var.length() + 1, b);
-                return s;
-            }
-        } catch (MatrixException var5) {
+            return MatrixUtil.getEnvironmentVariable(ctx, var);
+        } catch (Exception var5) {
             throw new RuntimeException(var5);
         }
     }
 
-    public static void createRemoteTempDir(Context context, String baseDir, String newDir) throws MatrixException {
+    public static void createRemoteTempDir(MatrixContext context, String baseDir, String newDir) throws Exception {
         String script = "mkdir";
         String output = baseDir + "/mkdir.txt";
         String[] cmdArray = new String[]{script, "-p", newDir, baseDir, output};
-        JPO.invoke(context, "EnoBrowserJPO", (String[])null, "runScript", cmdArray);
+        MatrixUtil.invokeJPOMethod(context, "EnoBrowserJPO", "runScript", cmdArray);
     }
 
-    public static void uploadTempFile(Context context, String dir, String fileName, String content) throws MatrixException {
+    public static void uploadTempFile(MatrixContext context, String dir, String fileName, String content) throws Exception {
         String filePath = dir + "/" + fileName;
         String[] cmdArray = new String[]{filePath, content};
-        JPO.invoke(context, "EnoBrowserJPO", (String[])null, "writeFile", cmdArray);
+        MatrixUtil.invokeJPOMethod(context, "EnoBrowserJPO", "writeFile", cmdArray);
     }
-    public static String runSpinnerImport(Context context, String baseDir) throws MatrixException {
+    public static String runSpinnerImport(MatrixContext context, String baseDir) throws Exception {
         String script = "mql";
         String output = baseDir + "/spinner.log";
         String[] cmdArray = new String[]{script, "-c", "set context user creator;exec prog emxSpinnerAgent.tcl;quit;", baseDir, output};
-        return JPO.invoke(context, "EnoBrowserJPO", (String[]) null, "runScript", cmdArray, String.class);
+        return MatrixUtil.invokeJPOMethod(context, "EnoBrowserJPO", "runScript", cmdArray, String.class);
     }
 
-    public static String runJPOImport(Context context, String spinnerBaseDir, String baseDir, String jpoName) throws MatrixException {
+    public static String runJPOImport(MatrixContext context, String spinnerBaseDir, String baseDir, String jpoName) throws Exception {
         String script = "mql";
         String output = spinnerBaseDir + "/spinner.log";
         String[] cmdArray = new String[]{script, "-c", "set context user creator;insert prog "+baseDir +"/"+jpoName+"_mxJPO.java;compile prog "+jpoName+" force update;print context;quit;", spinnerBaseDir, output};
-        return JPO.invoke(context, "EnoBrowserJPO", (String[])null, "runScript", cmdArray, String.class);
+        return MatrixUtil.invokeJPOMethod(context, "EnoBrowserJPO", "runScript", cmdArray, String.class);
     }
 
-    public static String runPageImport(Context context, String spinnerBaseDir, String filePath, String fileName) throws MatrixException {
+    public static String runPageImport(MatrixContext context, String spinnerBaseDir, String filePath, String fileName) throws Exception {
         String script = "mql";
         String output = spinnerBaseDir + "/spinner.log";
         String[] cmdArray = new String[]{script, "-c", "set context user creator;mod page \""+fileName+"\" file \""+filePath+"\";print context;quit;", spinnerBaseDir, output};
-        return JPO.invoke(context, "EnoBrowserJPO", (String[])null, "runScript", cmdArray, String.class);
+        return MatrixUtil.invokeJPOMethod(context, "EnoBrowserJPO", "runScript", cmdArray, String.class);
     }
 
 }

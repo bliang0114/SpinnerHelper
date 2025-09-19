@@ -1,5 +1,6 @@
 package com.bol.spinner.action;
 
+import com.bol.spinner.MatrixContext;
 import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.util.SpinnerNotifier;
 import com.bol.spinner.util.WorkspaceUtil;
@@ -19,8 +20,6 @@ import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.StartupUiUtil;
-import matrix.db.Context;
-import matrix.util.MatrixException;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rtextarea.RTextScrollPane;
@@ -53,14 +52,14 @@ public class SpinnerDeployAction extends AnAction {
                 return;
             }
             String fileName = file.getName();
-            Context context = SpinnerToken.context;
-            if (context == null) {
+            MatrixContext matrixContext = SpinnerToken.context;
+            if (matrixContext== null) {
                 SpinnerNotifier.showWarningNotification(project, "Not Login, Please Login First", "");
                 return;
             }
             if (fileName.endsWith(".java")) {
                 String javaContent = file.getText();
-                importJPOFile(context, project, filePath, javaContent);
+                importJPOFile(matrixContext, project, filePath, javaContent);
             } else if (fileName.endsWith(".xls")) {
                 Editor editor = e.getData(CommonDataKeys.EDITOR);
                 assert editor != null;
@@ -82,10 +81,10 @@ public class SpinnerDeployAction extends AnAction {
                         editor.getDocument().getLineStartOffset(startLine),
                         editor.getDocument().getLineEndOffset(endLine)
                 ));
-                importSpinnerFile(context, project, filePath, firstLineText + "\n" + selectLineContent);
+                importSpinnerFile(matrixContext, project, filePath, firstLineText + "\n" + selectLineContent);
             } else if(fileName.endsWith(".properties")){
                 if(parent.getName().equals("PageFiles")){
-                    importPageFile(context, project, file);
+                    importPageFile(matrixContext, project, file);
                 }
 
             } else {
@@ -99,7 +98,7 @@ public class SpinnerDeployAction extends AnAction {
 
     }
 
-    private void importPageFile(Context context, Project project, PsiFile file) {
+    private void importPageFile(MatrixContext context, Project project, PsiFile file) {
         try {
             String remoteBaseDir = WorkspaceUtil.getTmpDir(context);
             String remoteSpinnerDir = "spinner" + new Random().nextInt();
@@ -122,7 +121,7 @@ public class SpinnerDeployAction extends AnAction {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
                         }
                         SpinnerNotifier.showNotification(project, "Deploy Result",res);
-                    } catch (MatrixException e) {
+                    } catch (Exception e) {
                         SpinnerNotifier.showErrorNotification(project, "Error", e.getLocalizedMessage());
                     }
                 }
@@ -170,7 +169,7 @@ public class SpinnerDeployAction extends AnAction {
         return false;
     }
 
-    private void importJPOFile(Context context, Project project, String filePath, String codeContent) {
+    private void importJPOFile(MatrixContext context, Project project, String filePath, String codeContent) {
         try {
             File jpoFile = new File(filePath);
             if (!jpoFile.exists()) {
@@ -199,18 +198,18 @@ public class SpinnerDeployAction extends AnAction {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
                         }
                         SpinnerNotifier.showNotification(project, "Deploy Result",res);
-                    } catch (MatrixException e) {
+                    } catch (Exception e) {
                         SpinnerNotifier.showErrorNotification(project, "Error", e.getLocalizedMessage());
                     }
                 }
             });
-        } catch (MatrixException e) {
+        } catch (Exception e) {
             logger.error("Deploy Error", e);
             JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void importSpinnerFile(Context context, Project project, String filePath, String content) {
+    private void importSpinnerFile(MatrixContext context, Project project, String filePath, String content) {
         try {
             File spinnerFile = new File(filePath);
             if (!spinnerFile.exists()) {
@@ -236,12 +235,12 @@ public class SpinnerDeployAction extends AnAction {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
                         }
                         SpinnerNotifier.showNotification(project, "Deploy Result",res);
-                    } catch (MatrixException e) {
+                    } catch (Exception e) {
                         SpinnerNotifier.showErrorNotification(project, "Error", e.getLocalizedMessage());
                     }
                 }
             });
-        } catch (MatrixException e) {
+        } catch (Exception e) {
             logger.error("Deploy Error", e);
             JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }

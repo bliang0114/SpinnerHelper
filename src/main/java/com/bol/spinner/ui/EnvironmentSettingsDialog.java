@@ -1,7 +1,8 @@
 package com.bol.spinner.ui;
 
-import com.bol.spinner.auth.LogonServer;
-import com.bol.spinner.auth.Util;
+import com.bol.spinner.MatrixContext;
+import com.bol.spinner.MatrixUtil;
+import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.util.UIUtil;
@@ -14,7 +15,6 @@ import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.components.fields.ExtendableTextComponent;
 import com.intellij.ui.components.fields.ExtendableTextField;
 import com.intellij.util.ui.FormBuilder;
-import matrix.db.Context;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
@@ -175,9 +175,10 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
     public Runnable loadSecurityContext() {
         return () -> {
             securityContextComboBox.removeAllItems();
-            LogonServer logonServer = new LogonServer(getHostUrl(), getUsername(), getPassword(), getVault(), "", true);
-            try (Context context = logonServer.connect()) {
-                String res = Util.execMQL(context, "list person '" + getUsername() + "' select assignment dump");
+            MatrixContext context = null;
+            try {
+                context = SpinnerToken.tempConnect(getHostUrl(), getUsername(), getPassword(), getVault());
+                String res = MatrixUtil.execMQL(context, "list person '" + getUsername() + "' select assignment dump");
                 String[] values = res.split(",");
                 List<String> valueList = new ArrayList<>(Arrays.asList(values));
                 valueList = valueList.stream()
@@ -191,6 +192,10 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                 securityContextComboBox.setItem(environment.getSecurityContext());
             } catch (Exception e) {
                 UIUtil.showErrorNotification(project, "Spinner Config", e.getLocalizedMessage());
+            } finally {
+                if (context != null) {
+                    context.disconnect();
+                }
             }
         };
     }

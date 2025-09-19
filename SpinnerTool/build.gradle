@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.bol'
+version = '1.0.3'
+repositories {
+//    mavenCentral()
+    maven {
+        url = uri("https://maven.aliyun.com/repository/public")
+    }
+}
+
+dependencies {
+    implementation(fileTree("libs"))
+}
+
+compileJava {
+    sourceCompatibility = '21'
+    targetCompatibility = '21'
+}

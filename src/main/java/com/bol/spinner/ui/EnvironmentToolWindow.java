@@ -5,6 +5,7 @@ import com.bol.spinner.config.SpinnerSettings;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
+import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.ui.components.JBScrollPane;
@@ -15,6 +16,7 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeSelectionModel;
+import java.awt.*;
 import java.util.List;
 
 public class EnvironmentToolWindow extends SimpleToolWindowPanel{
@@ -33,19 +35,31 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel{
         // 创建配置树
         createEnvironmentTree();
         // 创建工具栏
-        JComponent toolbar = createToolbar();
+        JComponent toolbar = createAdvancedToolbar();
         setToolbar(toolbar);
         // 创建内容区域
         JComponent content = createTreeContent();
         setContent(content);
     }
 
-    private JComponent createToolbar() {
+    private JComponent createAdvancedToolbar() {
+        JPanel toolbarPanel = new JPanel(new BorderLayout());
+        // 左侧操作按钮
         ActionManager actionManager = ActionManager.getInstance();
         ActionGroup actionGroup = (ActionGroup) actionManager.getAction("Spinner Config.Toolbar");
-        ActionToolbar toolbar = actionManager.createActionToolbar("SpinnerConfigToolbar", actionGroup, false);
-        toolbar.setTargetComponent(this);
-        return toolbar.getComponent();
+        ActionToolbar leftToolbar = actionManager.createActionToolbar("SpinnerConfigToolbar", actionGroup, true);
+        leftToolbar.setLayoutStrategy(ToolbarLayoutStrategy.AUTOLAYOUT_STRATEGY);
+        leftToolbar.setTargetComponent(this);
+
+        // 右侧操作按钮
+        ActionGroup rightActionGroup = (ActionGroup) actionManager.getAction("Spinner Config.RightToolbar");
+        ActionToolbar rightToolbar = actionManager.createActionToolbar("SpinnerConfigRightToolbar", rightActionGroup, true);
+        rightToolbar.setTargetComponent(this);
+        rightToolbar.setLayoutStrategy(ToolbarLayoutStrategy.NOWRAP_STRATEGY);
+
+        toolbarPanel.add(leftToolbar.getComponent(), BorderLayout.WEST);
+        toolbarPanel.add(rightToolbar.getComponent(), BorderLayout.EAST);
+        return toolbarPanel;
     }
 
     private JComponent createTreeContent() {

@@ -25,8 +25,7 @@ public class ReConnectAction extends AnAction {
         if (environment == null) return;
 
         // 关闭并重新连接
-        SpinnerToken.closeContext();
-        SpinnerToken.setContext(null);
+        SpinnerToken.disconnect();
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {

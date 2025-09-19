@@ -85,6 +85,11 @@ public String runScript(Context ctx, String[] args) throws Exception {
                     class="com.bol.spinner.action.MQLBoxTbAction"
                     icon="AllIcons.Nodes.DataTables"/>
         </group>
+        <group id="Spinner Config.RightToolbar">
+            <action id="Spinner Config.Dependencies"
+                    class="com.bol.spinner.action.DependenciesAction"
+                    icon="AllIcons.Toolwindows.Dependencies"/>
+        </group>
     </actions>
     <resource-bundle>messages.ActionBundles</resource-bundle>
 </idea-plugin>

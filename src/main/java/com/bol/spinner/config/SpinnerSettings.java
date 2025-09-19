@@ -6,6 +6,7 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -15,7 +16,10 @@ import java.util.Optional;
 @Service(Service.Level.PROJECT)
 @State(name="SpinnerSettings", storages = @Storage("spinnerSettingsConfig.xml"))
 public final class SpinnerSettings implements PersistentStateComponent<SpinnerSettings> {
+    @Setter
     private List<EnvironmentConfig> environments;
+    @Setter
+    private List<String> dependencies;
 
     public static SpinnerSettings getInstance(Project project){
         return project.getService(SpinnerSettings.class);
@@ -38,8 +42,11 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
         return environments;
     }
 
-    public void setEnvironments(List<EnvironmentConfig> environments) {
-        this.environments = environments;
+    public List<String> getDependencies() {
+        if  (dependencies == null) {
+            dependencies = new ArrayList<>();
+        }
+        return dependencies;
     }
 
     public Optional<EnvironmentConfig> getEnvironment(String name) {

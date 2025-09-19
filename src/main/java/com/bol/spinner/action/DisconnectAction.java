@@ -23,8 +23,7 @@ public class DisconnectAction extends AnAction {
         EnvironmentConfig environment = toolWindow.getEnvironment();
         if (environment == null) return;
 
-        SpinnerToken.closeContext();
-        SpinnerToken.setContext(null);
+        SpinnerToken.disconnect();
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {
