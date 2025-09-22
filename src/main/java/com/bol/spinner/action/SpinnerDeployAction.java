@@ -3,6 +3,7 @@ package com.bol.spinner.action;
 import com.bol.spinner.MatrixContext;
 import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.util.SpinnerNotifier;
+import com.bol.spinner.util.UIUtil;
 import com.bol.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -37,9 +38,13 @@ public class SpinnerDeployAction extends AnAction {
 
     @Override
     public void actionPerformed(AnActionEvent e) {
+        Project project = e.getData(CommonDataKeys.PROJECT);
+        if (!UIUtil.hasMatrixRuntime()) {
+            UIUtil.showErrorNotification(project, "Spinner Config", "缺少3DE运行时依赖");
+            return;
+        }
         try {
             logger.info("Deploy Action start");
-            Project project = e.getData(CommonDataKeys.PROJECT);
             PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
             if(file == null){
                 SpinnerNotifier.showWarningNotification(project, "File is null", "");

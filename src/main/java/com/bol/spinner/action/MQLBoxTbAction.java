@@ -16,6 +16,10 @@ public class MQLBoxTbAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
+        if (!UIUtil.hasMatrixRuntime()) {
+            UIUtil.showErrorNotification(project, "Spinner Config", "缺少3DE运行时依赖");
+            return;
+        }
         if (SpinnerToken.context == null) {
             SpinnerNotifier.showWarningNotification(project, "Not Login, Please Login First", "");
             return;

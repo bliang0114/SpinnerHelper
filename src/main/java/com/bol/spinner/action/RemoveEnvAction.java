@@ -41,7 +41,7 @@ public class RemoveEnvAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return;
         }
-        e.getPresentation().setEnabled(true);
+        e.getPresentation().setEnabled(!environment.isConnected());
     }
 
     @Override

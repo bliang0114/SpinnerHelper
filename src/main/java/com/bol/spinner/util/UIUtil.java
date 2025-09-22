@@ -49,4 +49,13 @@ public class UIUtil {
         );
         Notifications.Bus.notify(notification, project);
     }
+
+    public static boolean hasMatrixRuntime() {
+        try {
+            Class.forName("matrix.db.Context");
+            return true;
+        } catch (ClassNotFoundException var1) {
+            return false;
+        }
+    }
 }

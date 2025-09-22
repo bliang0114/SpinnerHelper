@@ -4,6 +4,7 @@ import com.bol.spinner.MatrixContext;
 import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.util.SpinnerNotifier;
+import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
@@ -21,6 +22,10 @@ public class Connect3DETask extends Task.Backgroundable {
 
     @Override
     public void run(@NotNull ProgressIndicator progressIndicator) {
+        if (!UIUtil.hasMatrixRuntime()) {
+            UIUtil.showErrorNotification(myProject, "Spinner Config", "缺少3DE运行时依赖");
+            return;
+        }
         try {
             MatrixContext context = SpinnerToken.connect(environment.getHostUrl(), environment.getUser(), environment.getPassword(), environment.getVault(), environment.getRole());
             if (context != null) {

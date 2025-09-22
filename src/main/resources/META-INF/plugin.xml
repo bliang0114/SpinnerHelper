@@ -86,6 +86,9 @@ public String runScript(Context ctx, String[] args) throws Exception {
                     icon="AllIcons.Nodes.DataTables"/>
         </group>
         <group id="Spinner Config.RightToolbar">
+            <action id="Spinner Config.Load"
+                    class="com.bol.spinner.action.LoadMatrixAction"
+                    icon="AllIcons.Actions.Compile"/>
             <action id="Spinner Config.Dependencies"
                     class="com.bol.spinner.action.DependenciesAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>

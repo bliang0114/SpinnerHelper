@@ -15,11 +15,14 @@ public class DependenciesAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
+        if (project == null) return;
+
         DependenciesSettingDialog dialog = new DependenciesSettingDialog(project);
         if (dialog.showAndGet()) {
-            List<VirtualFile> selectedJars = dialog.getSelectedJars();
+            List<VirtualFile> selectedJars = dialog.getJars();
+            List<SpinnerSettings.Dependency> dependencies = selectedJars.stream().map(file -> new SpinnerSettings.Dependency(file.getName(), file.getPath())).toList();
             SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
-            spinnerSettings.setDependencies(selectedJars.stream().map(VirtualFile::getPath).toList());
+            spinnerSettings.setDependencies(dependencies);
         }
     }
 }

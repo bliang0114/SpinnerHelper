@@ -174,6 +174,10 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
 
     public Runnable loadSecurityContext() {
         return () -> {
+            if (!UIUtil.hasMatrixRuntime()) {
+                UIUtil.showErrorNotification(project, "Spinner Config", "缺少3DE运行时依赖");
+                return;
+            }
             securityContextComboBox.removeAllItems();
             MatrixContext context = null;
             try {
