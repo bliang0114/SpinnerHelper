@@ -10,10 +10,7 @@ import lombok.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service(Service.Level.APP)
 @State(name="SpinnerSettings", storages = @Storage("matrix-drivers-config.xml"))
@@ -48,7 +45,7 @@ public final class MatrixDriversConfig implements PersistentStateComponent<Matri
 
     public List<File> getDriverFiles(String driverName) {
         DriverInfo driverInfo = putDriver(driverName);
-        List<DriverFile> driverFiles = driverInfo.getDriverFiles();
+        List<DriverFile> driverFiles = Optional.ofNullable(driverInfo).map(DriverInfo::getDriverFiles).orElse(new ArrayList<>());
         return driverFiles.stream().map(driverFile -> new File(driverFile.getPath())).toList();
     }
 
