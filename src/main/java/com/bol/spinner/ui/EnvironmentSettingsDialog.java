@@ -199,10 +199,14 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
 
     public Runnable loadSecurityContext() {
         return () -> {
+            MatrixDriversConfig.DriverInfo driverInfo = MatrixDriversConfig.getInstance().putDriver(getDriver());
+            if (driverInfo == null || driverInfo.getDriverClass() == null || driverInfo.getDriverClass().isEmpty()) {
+                return;
+            }
             securityContextComboBox.removeAllItems();
             List<File> driverFiles = MatrixDriversConfig.getInstance().getDriverFiles(getDriver());
             try (MatrixJarClassLoader classLoader = new MatrixJarClassLoader(driverFiles, this.getClass().getClassLoader())) {
-                Class.forName("cn.github.connector.MatrixCommonDriver", true, classLoader);
+                Class.forName(driverInfo.getDriverClass(), true, classLoader);
                 MatrixConnection connection = MatrixDriverManager.getConnection(getHostUrl(), getUsername(), getPassword(), getVault(), classLoader);
                 MatrixStatement statement = connection.executeStatement("list person '" + getUsername() + "' select assignment dump");
                 MatrixResultSet resultSet = statement.executeQuery();
@@ -219,7 +223,9 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                 for (String value : valueList) {
                     securityContextComboBox.addItem(value);
                 }
-                securityContextComboBox.setItem(environment.getSecurityContext());
+                if (environment != null) {
+                    securityContextComboBox.setItem(environment.getSecurityContext());
+                }
             } catch (ClassNotFoundException e) {
                 UIUtil.showErrorNotification(project, "Spinner Environment", "Load Driver Error<br/>" + getDriver());
             } catch (Exception e) {

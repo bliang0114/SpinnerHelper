@@ -30,10 +30,15 @@ public class Connect3DETask extends Task.Backgroundable {
 
     @Override
     public void run(@NotNull ProgressIndicator progressIndicator) {
+        MatrixDriversConfig.DriverInfo driverInfo = MatrixDriversConfig.getInstance().putDriver(environment.getDriver());
+        if (driverInfo == null || driverInfo.getDriverClass() == null || driverInfo.getDriverClass().isEmpty()) {
+            UIUtil.showWarningNotification(myProject, "Load Driver Error<br/>" + environment.getDriver() + " Driver is empty", "");
+            return;
+        }
         List<File> driverFiles = MatrixDriversConfig.getInstance().getDriverFiles(environment.getDriver());
         ClassLoader classLoader = MatrixJarLoadManager.loadMatrixJars(environment.getName(), driverFiles, getClass().getClassLoader());
         try {
-            Class.forName("cn.github.connector.MatrixCommonDriver", true, classLoader);
+            Class.forName(driverInfo.getDriverClass(), true, classLoader);
             SpinnerToken.connection = MatrixDriverManager.getConnection(environment.getHostUrl(), environment.getUser(), environment.getPassword(), environment.getVault(), environment.getRole(), classLoader);
             environment.setConnected(true);
             UIUtil.showNotification(myProject, "Login successful", "");
