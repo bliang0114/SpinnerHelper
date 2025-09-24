@@ -35,7 +35,7 @@ public class MQLBoxTbAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return;
         }
-        e.getPresentation().setEnabled(SpinnerToken.connection != null);
+        e.getPresentation().setEnabled(environment.isConnected());
     }
 
     @Override
