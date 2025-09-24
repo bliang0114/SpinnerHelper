@@ -1,8 +1,8 @@
 package com.bol.spinner.action;
 
-import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerSettings;
+import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
@@ -23,7 +23,7 @@ public class DisconnectAction extends AnAction {
         EnvironmentConfig environment = toolWindow.getEnvironment();
         if (environment == null) return;
 
-        SpinnerToken.disconnect();
+        SpinnerToken.closeConnection();
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {
@@ -45,7 +45,7 @@ public class DisconnectAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return;
         }
-        e.getPresentation().setEnabled(environment.isConnected());
+        e.getPresentation().setEnabled(SpinnerToken.connection != null);
     }
 
     @Override

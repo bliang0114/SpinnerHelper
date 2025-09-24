@@ -2,6 +2,7 @@ package com.bol.spinner.action;
 
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerSettings;
+import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.ui.EnvironmentSettingsDialog;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.util.UIUtil;
@@ -49,7 +50,7 @@ public class EditEnvAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return;
         }
-        e.getPresentation().setEnabled(!environment.isConnected());
+        e.getPresentation().setEnabled(SpinnerToken.connection == null);
     }
 
     @Override

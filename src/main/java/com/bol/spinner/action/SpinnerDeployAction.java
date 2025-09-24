@@ -1,8 +1,7 @@
 package com.bol.spinner.action;
 
-import com.bol.spinner.MatrixContext;
-import com.bol.spinner.auth.SpinnerToken;
-import com.bol.spinner.util.SpinnerNotifier;
+import cn.github.driver.connection.MatrixConnection;
+import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.util.UIUtil;
 import com.bol.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -39,32 +38,28 @@ public class SpinnerDeployAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getData(CommonDataKeys.PROJECT);
-        if (!UIUtil.hasMatrixRuntime()) {
-            UIUtil.showErrorNotification(project, "Spinner Config", "缺少3DE运行时依赖");
-            return;
-        }
         try {
             logger.info("Deploy Action start");
             PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
             if(file == null){
-                SpinnerNotifier.showWarningNotification(project, "File is null", "");
+                UIUtil.showWarningNotification(project, "File is null", "");
                 return;
             }
             String filePath = file.getViewProvider().getVirtualFile().getPath();
             PsiDirectory parent = file.getParent();
             if(parent == null){
-                SpinnerNotifier.showWarningNotification(project, "Parent Dir is null", "");
+                UIUtil.showWarningNotification(project, "Parent Dir is null", "");
                 return;
             }
             String fileName = file.getName();
-            MatrixContext matrixContext = SpinnerToken.context;
-            if (matrixContext== null) {
-                SpinnerNotifier.showWarningNotification(project, "Not Login, Please Login First", "");
+            MatrixConnection connection = SpinnerToken.connection;
+            if (connection== null) {
+                UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
                 return;
             }
             if (fileName.endsWith(".java")) {
                 String javaContent = file.getText();
-                importJPOFile(matrixContext, project, filePath, javaContent);
+                importJPOFile(connection, project, filePath, javaContent);
             } else if (fileName.endsWith(".xls")) {
                 Editor editor = e.getData(CommonDataKeys.EDITOR);
                 assert editor != null;
@@ -86,34 +81,32 @@ public class SpinnerDeployAction extends AnAction {
                         editor.getDocument().getLineStartOffset(startLine),
                         editor.getDocument().getLineEndOffset(endLine)
                 ));
-                importSpinnerFile(matrixContext, project, filePath, firstLineText + "\n" + selectLineContent);
+                importSpinnerFile(connection, project, filePath, firstLineText + "\n" + selectLineContent);
             } else if(fileName.endsWith(".properties")){
                 if(parent.getName().equals("PageFiles")){
-                    importPageFile(matrixContext, project, file);
+                    importPageFile(connection, project, file);
                 }
 
             } else {
-                SpinnerNotifier.showErrorNotification(project, "Unsupported File Type, Supports .java .xls", "");
+                UIUtil.showErrorNotification(project, "Unsupported File Type, Supports .java .xls", "");
             }
         } catch (Exception ex) {
             logger.error("Deploy Error", ex);
             JOptionPane.showMessageDialog(null, ex.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
-
-
     }
 
-    private void importPageFile(MatrixContext context, Project project, PsiFile file) {
+    private void importPageFile(MatrixConnection connection, Project project, PsiFile file) {
         try {
-            String remoteBaseDir = WorkspaceUtil.getTmpDir(context);
+            String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
             String remoteSpinnerDir = "spinner" + new Random().nextInt();
             String remoteRelativePath = remoteSpinnerDir + "/Business/PageFiles";
             //创建目录
-            WorkspaceUtil.createRemoteTempDir(context, remoteBaseDir, remoteRelativePath);
+            WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
             //上传文件
             byte[] content = file.getVirtualFile().contentsToByteArray();
             String originalContent = new String(content, StandardCharsets.UTF_8);
-            WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, file.getName(), originalContent);
+            WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, file.getName(), originalContent);
             ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
@@ -121,13 +114,13 @@ public class SpinnerDeployAction extends AnAction {
                     indicator.setText("Starting deployment...");
                     try {
                         //编译JPO
-                        String res = WorkspaceUtil.runPageImport(context, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(), file.getName());
+                        String res = WorkspaceUtil.runPageImport(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(), file.getName());
                         if (res == null || res.isEmpty()) {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
                         }
-                        SpinnerNotifier.showNotification(project, "Deploy Result",res);
+                        UIUtil.showNotification(project, "Deploy Result",res);
                     } catch (Exception e) {
-                        SpinnerNotifier.showErrorNotification(project, "Error", e.getLocalizedMessage());
+                        UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
                     }
                 }
             });
@@ -135,9 +128,6 @@ public class SpinnerDeployAction extends AnAction {
             logger.error("Deploy Error", e);
             JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
         }
-
-
-
     }
 
     public static String encodeToUnicode(String str) {
@@ -174,20 +164,20 @@ public class SpinnerDeployAction extends AnAction {
         return false;
     }
 
-    private void importJPOFile(MatrixContext context, Project project, String filePath, String codeContent) {
+    private void importJPOFile(MatrixConnection connection, Project project, String filePath, String codeContent) {
         try {
             File jpoFile = new File(filePath);
             if (!jpoFile.exists()) {
                 throw new RuntimeException("File not found.");
             }
             String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
-            String remoteBaseDir = WorkspaceUtil.getTmpDir(context);
+            String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
             String remoteSpinnerDir = "spinner" + new Random().nextInt();
             String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
             //创建目录
-            WorkspaceUtil.createRemoteTempDir(context, remoteBaseDir, remoteRelativePath);
+            WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
             //上传文件
-            WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, jpoFile.getName(), codeContent);
+            WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, jpoFile.getName(), codeContent);
             //编译JPO
             String jpoName = jpoFile.getName().replace("_mxJPO.java", "");
 
@@ -198,13 +188,13 @@ public class SpinnerDeployAction extends AnAction {
                     indicator.setText("Starting deployment...");
                     try {
                         //编译JPO
-                        String res = WorkspaceUtil.runJPOImport(context, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath, jpoName);
+                        String res = WorkspaceUtil.runJPOImport(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath, jpoName);
                         if (res == null || res.isEmpty()) {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
                         }
-                        SpinnerNotifier.showNotification(project, "Deploy Result",res);
+                        UIUtil.showNotification(project, "Deploy Result",res);
                     } catch (Exception e) {
-                        SpinnerNotifier.showErrorNotification(project, "Error", e.getLocalizedMessage());
+                        UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
                     }
                 }
             });
@@ -214,20 +204,20 @@ public class SpinnerDeployAction extends AnAction {
         }
     }
 
-    private void importSpinnerFile(MatrixContext context, Project project, String filePath, String content) {
+    private void importSpinnerFile(MatrixConnection connection, Project project, String filePath, String content) {
         try {
             File spinnerFile = new File(filePath);
             if (!spinnerFile.exists()) {
                 throw new RuntimeException("File not found.");
             }
             String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
-            String remoteBaseDir = WorkspaceUtil.getTmpDir(context);
+            String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
             String remoteSpinnerDir = "spinner" + new Random().nextInt();
             String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
             //创建目录
-            WorkspaceUtil.createRemoteTempDir(context, remoteBaseDir, remoteRelativePath);
+            WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
             //上传文件
-            WorkspaceUtil.uploadTempFile(context, remoteBaseDir + "/" + remoteRelativePath, spinnerFile.getName(), content);
+            WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, spinnerFile.getName(), content);
             ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
@@ -235,13 +225,13 @@ public class SpinnerDeployAction extends AnAction {
                     indicator.setText("Starting deployment...");
                     try {
                         //编译JPO
-                        String res = WorkspaceUtil.runSpinnerImport(context, remoteBaseDir + "/" + remoteSpinnerDir);
+                        String res = WorkspaceUtil.runSpinnerImport(connection, remoteBaseDir + "/" + remoteSpinnerDir);
                         if (res == null || res.isEmpty()) {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
                         }
-                        SpinnerNotifier.showNotification(project, "Deploy Result",res);
+                        UIUtil.showNotification(project, "Deploy Result",res);
                     } catch (Exception e) {
-                        SpinnerNotifier.showErrorNotification(project, "Error", e.getLocalizedMessage());
+                        UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
                     }
                 }
             });
@@ -268,5 +258,4 @@ public class SpinnerDeployAction extends AnAction {
         RTextScrollPane scrollPane = new RTextScrollPane(textArea);
         JOptionPane.showMessageDialog(null, scrollPane, "Deploy Result", JOptionPane.INFORMATION_MESSAGE);
     }
-
 }

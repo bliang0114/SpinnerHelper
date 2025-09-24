@@ -4,10 +4,14 @@ import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.content.Content;
+import com.intellij.ui.treeStructure.Tree;
 
 public class UIUtil {
 
@@ -48,14 +52,5 @@ public class UIUtil {
                 NotificationType.WARNING
         );
         Notifications.Bus.notify(notification, project);
-    }
-
-    public static boolean hasMatrixRuntime() {
-        try {
-            Class.forName("matrix.db.Context");
-            return true;
-        } catch (ClassNotFoundException var1) {
-            return false;
-        }
     }
 }

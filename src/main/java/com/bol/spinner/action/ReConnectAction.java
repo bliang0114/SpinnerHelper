@@ -1,8 +1,8 @@
 package com.bol.spinner.action;
 
-import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerSettings;
+import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.task.Connect3DETask;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.util.UIUtil;
@@ -25,7 +25,7 @@ public class ReConnectAction extends AnAction {
         if (environment == null) return;
 
         // 关闭并重新连接
-        SpinnerToken.disconnect();
+        SpinnerToken.closeConnection();
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {
@@ -48,7 +48,7 @@ public class ReConnectAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return;
         }
-        e.getPresentation().setEnabled(environment.isConnected());
+        e.getPresentation().setEnabled(SpinnerToken.connection != null);
     }
 
     @Override

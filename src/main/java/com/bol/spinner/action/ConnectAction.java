@@ -1,8 +1,8 @@
 package com.bol.spinner.action;
 
-import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerSettings;
+import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.task.Connect3DETask;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.util.UIUtil;
@@ -10,10 +10,12 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
+@Slf4j
 public class ConnectAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
@@ -26,11 +28,10 @@ public class ConnectAction extends AnAction {
 
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         // 关闭所有的连接
-        if (SpinnerToken.context != null) {
-            SpinnerToken.disconnect();
+        if (SpinnerToken.connection != null) {
+            SpinnerToken.closeConnection();
         }
-        spinnerSettings.getEnvironments().stream().filter(EnvironmentConfig::isConnected)
-                .forEach(env -> env.setConnected(false));
+        spinnerSettings.getEnvironments().stream().filter(EnvironmentConfig::isConnected).forEach(env -> env.setConnected(false));
         // 连接
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {
@@ -53,11 +54,11 @@ public class ConnectAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return;
         }
-        e.getPresentation().setEnabled(!environment.isConnected());
+        e.getPresentation().setEnabled(SpinnerToken.connection == null);
     }
 
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
-        return super.getActionUpdateThread();
+        return ActionUpdateThread.BGT;
     }
 }

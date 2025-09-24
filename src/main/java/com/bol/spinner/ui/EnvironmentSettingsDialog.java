@@ -1,10 +1,14 @@
 package com.bol.spinner.ui;
 
-import com.bol.spinner.MatrixContext;
-import com.bol.spinner.MatrixUtil;
-import com.bol.spinner.auth.SpinnerToken;
+import cn.github.driver.MQLException;
+import cn.github.driver.MatrixDriverManager;
+import cn.github.driver.connection.MatrixConnection;
+import cn.github.driver.connection.MatrixResultSet;
+import cn.github.driver.connection.MatrixStatement;
 import com.bol.spinner.config.EnvironmentConfig;
+import com.bol.spinner.config.MatrixDriversConfig;
 import com.bol.spinner.config.SpinnerSettings;
+import com.bol.spinner.util.MatrixJarClassLoader;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
@@ -15,12 +19,16 @@ import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.components.fields.ExtendableTextComponent;
 import com.intellij.ui.components.fields.ExtendableTextField;
 import com.intellij.util.ui.FormBuilder;
+import ext.plantuml.com.google.zxing.qrcode.encoder.MatrixUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicComboBoxEditor;
+import java.io.File;
 import java.util.*;
 
+@Slf4j
 public class EnvironmentSettingsDialog extends DialogWrapper {
     private final Project project;
     private final EnvironmentConfig environment;
@@ -30,6 +38,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
     private final JBPasswordField passwordField;
     private final JBTextField vaultField;
     private final ComboBox<String> securityContextComboBox;
+    private final ComboBox<String> driverComboBox;
 
     public EnvironmentSettingsDialog(Project project, EnvironmentConfig environment) {
         super(true); // 使用当前窗口作为父窗口
@@ -61,6 +70,10 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                 return ecbEditor;
             }
         });
+        driverComboBox = new  ComboBox<>();
+        driverComboBox.setEditable(false);
+        Map<String, MatrixDriversConfig.DriverInfo> driversMap = MatrixDriversConfig.getInstance().getDriversMap();
+        driversMap.keySet().forEach(driverComboBox::addItem);
         init();
         if (environment != null) {
             environmentField.setEnabled(false);
@@ -70,6 +83,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
             passwordField.setText(environment.getPassword());
             vaultField.setText(environment.getVault());
             securityContextComboBox.setItem(environment.getSecurityContext());
+            driverComboBox.setItem(environment.getDriver());
         }
     }
 
@@ -79,6 +93,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
         return FormBuilder.createFormBuilder()
                 .addLabeledComponent("Environment:", environmentField)
                 .addTooltip("Enter a unique name for this environment")
+                .addLabeledComponent("Driver:", driverComboBox)
                 .addSeparator()
                 .addLabeledComponent("Host URL:", hostUrlField)
                 .addTooltip("E.g., https://r2023x.mydomain.com/3dspace")
@@ -114,7 +129,11 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
     }
 
     private String getSecurityContext() {
-        return securityContextComboBox.getItem().trim();
+        return Optional.ofNullable(securityContextComboBox.getItem()).map(String::trim).orElse("");
+    }
+
+    private String getDriver() {
+        return Optional.ofNullable(driverComboBox.getItem()).map(String::trim).orElse("");
     }
 
     // 验证输入
@@ -151,8 +170,13 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
         if (getVault().isEmpty()) {
             setErrorText("Vault is required", vaultField);
             return false;
-        }if (getSecurityContext().isEmpty()) {
-            setErrorText("Vault is required", vaultField);
+        }
+        if (getSecurityContext().isEmpty()) {
+            setErrorText("Security Context is required", securityContextComboBox);
+            return false;
+        }
+        if (getDriver().isEmpty()) {
+            setErrorText("Driver is required", driverComboBox);
             return false;
         }
         setErrorText(null); // 清除错误信息
@@ -161,29 +185,31 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
 
     public EnvironmentConfig getEnvironment() {
         if (environment == null) {
-            return new EnvironmentConfig(getName(), getHostUrl(), getUsername(), getPassword(), getVault(), getSecurityContext());
+            return new EnvironmentConfig(getName(), getHostUrl(), getUsername(), getPassword(), getVault(), getSecurityContext(), getDriver());
         } else {
             environment.setHostUrl(getHostUrl());
             environment.setUser(getUsername());
             environment.setPassword(getPassword());
             environment.setVault(getVault());
             environment.setSecurityContext(getSecurityContext());
+            environment.setDriver(getDriver());
             return environment;
         }
     }
 
     public Runnable loadSecurityContext() {
         return () -> {
-            if (!UIUtil.hasMatrixRuntime()) {
-                UIUtil.showErrorNotification(project, "Spinner Config", "缺少3DE运行时依赖");
-                return;
-            }
             securityContextComboBox.removeAllItems();
-            MatrixContext context = null;
-            try {
-                context = SpinnerToken.tempConnect(getHostUrl(), getUsername(), getPassword(), getVault());
-                String res = MatrixUtil.execMQL(context, "list person '" + getUsername() + "' select assignment dump");
-                String[] values = res.split(",");
+            List<File> driverFiles = MatrixDriversConfig.getInstance().getDriverFiles(getDriver());
+            try (MatrixJarClassLoader classLoader = new MatrixJarClassLoader(driverFiles, this.getClass().getClassLoader())) {
+                Class.forName("cn.github.connector.MatrixCommonDriver", true, classLoader);
+                MatrixConnection connection = MatrixDriverManager.getConnection(getHostUrl(), getUsername(), getPassword(), getVault(), classLoader);
+                MatrixStatement statement = connection.executeStatement("list person '" + getUsername() + "' select assignment dump");
+                MatrixResultSet resultSet = statement.executeQuery();
+                if (!resultSet.isSuccess()) {
+                    throw new MQLException(resultSet.getMessage());
+                }
+                String[] values = resultSet.getResult().split(",");
                 List<String> valueList = new ArrayList<>(Arrays.asList(values));
                 valueList = valueList.stream()
                         .filter(v -> v.startsWith("ctx::"))
@@ -194,12 +220,11 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                     securityContextComboBox.addItem(value);
                 }
                 securityContextComboBox.setItem(environment.getSecurityContext());
+            } catch (ClassNotFoundException e) {
+                UIUtil.showErrorNotification(project, "Spinner Environment", "Load Driver Error<br/>" + getDriver());
             } catch (Exception e) {
-                UIUtil.showErrorNotification(project, "Spinner Config", e.getLocalizedMessage());
-            } finally {
-                if (context != null) {
-                    context.disconnect();
-                }
+                log.error(e.getLocalizedMessage(), e);
+                UIUtil.showErrorNotification(project, "Spinner Environment", "Get Security Context Error<br/>" + e.getLocalizedMessage());
             }
         };
     }

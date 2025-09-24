@@ -10,6 +10,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -21,8 +22,10 @@ import java.util.List;
 
 public class EnvironmentToolWindow extends SimpleToolWindowPanel{
     private final Project project;
+    @Getter
     private Tree environmentTree;
     private DefaultTreeModel treeModel;
+    @Getter
     private EnvironmentConfig environment;
 
     public EnvironmentToolWindow(@NotNull Project project) {
@@ -108,7 +111,4 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel{
         }
     }
 
-    public EnvironmentConfig getEnvironment() {
-        return environment;
-    }
 }

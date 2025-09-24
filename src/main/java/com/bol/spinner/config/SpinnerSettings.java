@@ -21,8 +21,6 @@ import java.util.Optional;
 public final class SpinnerSettings implements PersistentStateComponent<SpinnerSettings> {
     @Setter
     private List<EnvironmentConfig> environments;
-    @Setter
-    private List<Dependency> dependencies;
 
     public static SpinnerSettings getInstance(Project project){
         return project.getService(SpinnerSettings.class);
@@ -51,13 +49,6 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
             environments = new ArrayList<>();
         }
         return environments;
-    }
-
-    public List<Dependency> getDependencies() {
-        if  (dependencies == null) {
-            dependencies = new ArrayList<>();
-        }
-        return dependencies;
     }
 
     public Optional<EnvironmentConfig> getEnvironment(String name) {

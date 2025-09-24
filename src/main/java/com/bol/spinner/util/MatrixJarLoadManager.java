@@ -1,27 +1,38 @@
 package com.bol.spinner.util;
 
-
-import com.intellij.openapi.diagnostic.Logger;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class MatrixJarLoadManager {
-    private static final Logger LOGGER = Logger.getInstance(MatrixJarClassLoader.class);
-    private static MatrixJarClassLoader matrixJarClassLoader;
+    private static final ConcurrentHashMap<String, MatrixJarClassLoader> environmentClassLoaders = new ConcurrentHashMap<>();
 
-    public static void loadMatrixJars(List<File> jarFiles, ClassLoader parent) {
+    /**
+     * 加载驱动包
+     *
+     * @param environment 环境名称
+     * @param jarFiles    驱动包
+     * @param parent      父类加载器
+     * @return {@link ClassLoader}
+     * @author xlwang
+     */
+    public static ClassLoader loadMatrixJars(String environment, List<File> jarFiles, ClassLoader parent) {
+        MatrixJarClassLoader classLoader = environmentClassLoaders.get(environment);
         // 移除现有的类加载器
-        if (matrixJarClassLoader != null) {
+        if (classLoader != null) {
             try {
-                matrixJarClassLoader.close();
+                classLoader.close();
             } catch (IOException e) {
-                LOGGER.error(e.getLocalizedMessage(), e);
+                log.error(e.getLocalizedMessage(), e);
             }
         }
-
         // 创建新的类加载器
-        matrixJarClassLoader = new MatrixJarClassLoader(jarFiles, parent);
+        classLoader = new MatrixJarClassLoader(jarFiles, parent);
+        environmentClassLoaders.put(environment, classLoader);
+        return classLoader;
     }
 }

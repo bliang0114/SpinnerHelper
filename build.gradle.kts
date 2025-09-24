@@ -5,11 +5,15 @@ plugins {
 }
 
 dependencies {
-    implementation(fileTree("libs"))
+    implementation("org.projectlombok:lombok:1.18.42")
+    annotationProcessor("org.projectlombok:lombok:1.18.42")
+    implementation(project(":matrix-driver"))
+    implementation("org.slf4j:slf4j-api:2.0.17")
+    implementation("org.slf4j:slf4j-simple:2.0.17")
+    implementation("cn.hutool:hutool-json:5.8.40")
+
     implementation("com.fifesoft:rsyntaxtextarea:3.6.0")
     implementation("net.sourceforge.plantuml:plantuml:1.2023.10")
-    implementation("org.projectlombok:lombok:1.18.38")
-    annotationProcessor("org.projectlombok:lombok:1.18.38")
 }
 
 group = "com.bol"

@@ -1,15 +1,23 @@
 package com.bol.spinner.task;
 
-import com.bol.spinner.MatrixContext;
-import com.bol.spinner.auth.SpinnerToken;
+import cn.github.driver.MatrixDriverManager;
+import cn.github.driver.connection.MatrixConnection;
 import com.bol.spinner.config.EnvironmentConfig;
-import com.bol.spinner.util.SpinnerNotifier;
+import com.bol.spinner.config.MatrixDriversConfig;
+import com.bol.spinner.config.SpinnerToken;
+import com.bol.spinner.ui.EnvironmentToolWindow;
+import com.bol.spinner.util.MatrixJarLoadManager;
 import com.bol.spinner.util.UIUtil;
+import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
+import java.util.List;
+import java.util.Optional;
 
 public class Connect3DETask extends Task.Backgroundable {
     private final EnvironmentConfig environment;
@@ -22,18 +30,17 @@ public class Connect3DETask extends Task.Backgroundable {
 
     @Override
     public void run(@NotNull ProgressIndicator progressIndicator) {
-        if (!UIUtil.hasMatrixRuntime()) {
-            UIUtil.showErrorNotification(myProject, "Spinner Config", "缺少3DE运行时依赖");
-            return;
-        }
+        List<File> driverFiles = MatrixDriversConfig.getInstance().getDriverFiles(environment.getDriver());
+        ClassLoader classLoader = MatrixJarLoadManager.loadMatrixJars(environment.getName(), driverFiles, getClass().getClassLoader());
         try {
-            MatrixContext context = SpinnerToken.connect(environment.getHostUrl(), environment.getUser(), environment.getPassword(), environment.getVault(), environment.getRole());
-            if (context != null) {
-                this.environment.setConnected(true);
-                SpinnerNotifier.showNotification(myProject, "Login successful", "");
-            }
+            Class.forName("cn.github.connector.MatrixCommonDriver", true, classLoader);
+            SpinnerToken.connection = MatrixDriverManager.getConnection(environment.getHostUrl(), environment.getUser(), environment.getPassword(), environment.getVault(), environment.getRole(), classLoader);
+            environment.setConnected(true);
+            UIUtil.showNotification(myProject, "Login successful", "");
+        } catch (ClassNotFoundException e) {
+            UIUtil.showErrorNotification(myProject, "Load Driver Error<br/>" + environment.getDriver(), "");
         } catch (Exception ex) {
-            SpinnerNotifier.showErrorNotification(myProject, "Login failed", ex.getLocalizedMessage());
+            UIUtil.showErrorNotification(myProject, "Login failed", ex.getLocalizedMessage());
         }
     }
 }

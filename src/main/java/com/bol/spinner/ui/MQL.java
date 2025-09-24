@@ -1,8 +1,9 @@
 package com.bol.spinner.ui;
 
-import com.bol.spinner.MatrixUtil;
-import com.bol.spinner.MatrixMQLResult;
-import com.bol.spinner.auth.SpinnerToken;
+import cn.github.driver.connection.MatrixConnection;
+import cn.github.driver.connection.MatrixResultSet;
+import cn.github.driver.connection.MatrixStatement;
+import com.bol.spinner.config.SpinnerToken;
 import com.intellij.openapi.ui.ComboBox;
 import org.fife.ui.rsyntaxtextarea.*;
 
@@ -67,7 +68,7 @@ public class MQL extends JFrame {
         rTextScrollPane2.setLineNumbersEnabled(true);
         if (command != null && !command.isEmpty()) {
             txtMQLCommand.setText(command);
-            if (execute && SpinnerToken.context != null) {
+            if (execute/* && SpinnerToken.context != null*/) {
                 btnExecuteActionPerformed(null);
             }
         }
@@ -507,10 +508,14 @@ public class MQL extends JFrame {
 
     private void btnExecuteActionPerformed(ActionEvent evt) {//GEN-FIRST:event_btnExecuteActionPerformed
         setCursor(new Cursor(Cursor.WAIT_CURSOR));
+        MatrixConnection connection = SpinnerToken.connection;
+        if (connection == null) return ;
+
         try {
-            MatrixMQLResult mqlResult = MatrixUtil.executeMQL(SpinnerToken.context, txtMQLCommand.getText(), true);
-            if (mqlResult.isSuccess()) {
-                var result = mqlResult.getResult();
+            MatrixStatement statement = connection.executeStatement(txtMQLCommand.getText());
+            MatrixResultSet resultSet = statement.executeQuery();
+            if (resultSet.isSuccess()) {
+                var result = resultSet.getResult();
                 if (result.endsWith("\n")) {
                     result = result.substring(0, result.length() - 1);
                 }
@@ -530,7 +535,7 @@ public class MQL extends JFrame {
                 }
                 btnBack.setEnabled(cmbMQLCommand.getItemCount() > 1);
             } else {
-                txtMQLResult.setText(mqlResult.getResult());
+                txtMQLResult.setText(resultSet.getResult());
             }
         } catch (Exception ex) {
             handleMatrixException(ex);

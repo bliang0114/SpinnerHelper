@@ -52,6 +52,7 @@ public String runScript(Context ctx, String[] args) throws Exception {
         <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
         <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
+        <applicationService serviceImplementation="com.bol.spinner.config.MatrixDriversConfig"/>
     </extensions>
     <actions>
         <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
@@ -86,11 +87,8 @@ public String runScript(Context ctx, String[] args) throws Exception {
                     icon="AllIcons.Nodes.DataTables"/>
         </group>
         <group id="Spinner Config.RightToolbar">
-            <action id="Spinner Config.Load"
-                    class="com.bol.spinner.action.LoadMatrixAction"
-                    icon="AllIcons.Actions.Compile"/>
             <action id="Spinner Config.Dependencies"
-                    class="com.bol.spinner.action.DependenciesAction"
+                    class="com.bol.spinner.action.MatrixDriverSettingsAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>
         </group>
     </actions>

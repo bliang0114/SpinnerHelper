@@ -1,10 +1,9 @@
 package com.bol.spinner.action;
 
-import com.bol.spinner.auth.SpinnerToken;
 import com.bol.spinner.config.EnvironmentConfig;
+import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.ui.MQL;
-import com.bol.spinner.util.SpinnerNotifier;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -16,12 +15,8 @@ public class MQLBoxTbAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        if (!UIUtil.hasMatrixRuntime()) {
-            UIUtil.showErrorNotification(project, "Spinner Config", "缺少3DE运行时依赖");
-            return;
-        }
-        if (SpinnerToken.context == null) {
-            SpinnerNotifier.showWarningNotification(project, "Not Login, Please Login First", "");
+        if (SpinnerToken.connection == null) {
+            UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
             return;
         }
         new MQL().main();
@@ -40,7 +35,7 @@ public class MQLBoxTbAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return;
         }
-        e.getPresentation().setEnabled(environment.isConnected());
+        e.getPresentation().setEnabled(SpinnerToken.connection != null);
     }
 
     @Override
