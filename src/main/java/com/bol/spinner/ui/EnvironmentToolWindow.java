@@ -78,7 +78,7 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel{
         refreshTree();
         environmentTree.setRootVisible(true);
         environmentTree.setShowsRootHandles(true);
-        environmentTree.setCellRenderer(new EnvironmentTreeCellRenderer(this));
+        environmentTree.setCellRenderer(new EnvironmentTreeCellRenderer());
         environmentTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         // 添加选择监听器
         environmentTree.addTreeSelectionListener(e -> {

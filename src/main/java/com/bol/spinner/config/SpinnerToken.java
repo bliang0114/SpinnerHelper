@@ -8,6 +8,7 @@ import java.io.IOException;
 @Slf4j
 public class SpinnerToken {
     public static MatrixConnection connection = null;
+    public static String environmentName = null;
 
     public static void closeConnection() {
         try {

@@ -1,14 +1,11 @@
 package com.bol.spinner.task;
 
 import cn.github.driver.MatrixDriverManager;
-import cn.github.driver.connection.MatrixConnection;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.MatrixDriversConfig;
 import com.bol.spinner.config.SpinnerToken;
-import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.util.MatrixJarLoadManager;
 import com.bol.spinner.util.UIUtil;
-import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
@@ -17,7 +14,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.List;
-import java.util.Optional;
 
 public class Connect3DETask extends Task.Backgroundable {
     private final EnvironmentConfig environment;
@@ -40,6 +36,7 @@ public class Connect3DETask extends Task.Backgroundable {
         try {
             Class.forName(driverInfo.getDriverClass(), true, classLoader);
             SpinnerToken.connection = MatrixDriverManager.getConnection(environment.getHostUrl(), environment.getUser(), environment.getPassword(), environment.getVault(), environment.getRole(), classLoader);
+            SpinnerToken.environmentName = environment.getName();
             environment.setConnected(true);
             UIUtil.showNotification(myProject, "Login successful", "");
         } catch (ClassNotFoundException e) {
