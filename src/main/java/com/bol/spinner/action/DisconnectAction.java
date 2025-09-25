@@ -11,6 +11,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.util.Optional;
 
 public class DisconnectAction extends AnAction {
@@ -29,6 +30,8 @@ public class DisconnectAction extends AnAction {
         if (optional.isPresent()) {
             environment = optional.get();
             environment.setConnected(false);
+            SpinnerToken.environmentName = null;
+            SwingUtilities.invokeLater(toolWindow::repaint);
         }
     }
 
