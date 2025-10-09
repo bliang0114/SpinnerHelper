@@ -4,10 +4,7 @@ import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.editor.EditorSettings;
+import com.intellij.openapi.editor.*;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -18,16 +15,20 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
 
 public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
     private final Project project;
     private final VirtualFile virtualFile;
+    @Getter
+    private Document document;
     private SimpleToolWindowPanel mainPanel;
     private Editor editor;
 
@@ -36,7 +37,7 @@ public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
         this.virtualFile = virtualFile;
         // 创建编辑器
         EditorFactory editorFactory = EditorFactory.getInstance();
-        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
+        document = FileDocumentManager.getInstance().getDocument(virtualFile);
         if (document == null) {
             document = editorFactory.createDocument("");
         }
@@ -141,5 +142,52 @@ public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
         settings.setAnimatedScrolling(true);
         // 设置MQL语法高亮
         editorEx.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(project, virtualFile));
+    }
+
+    /**
+     * 获取当前选中的文本内容
+     *
+     * @return {@link String}
+     * @author zaydenwang
+     */
+    public String getSelectedText() {
+        return editor.getSelectionModel().getSelectedText();
+    }
+
+    /**
+     * 获取选中行的内容（支持多行选择）
+
+     * @return {@link List}
+     * @author xlwang
+     */
+    public java.util.List<String> getSelectedLines() {
+        java.util.List<String> selectedLines = new ArrayList<>();
+        SelectionModel selectionModel = editor.getSelectionModel();
+        if (selectionModel.hasSelection()) {
+            Document document = editor.getDocument();
+            int startOffset = selectionModel.getSelectionStart();
+            int endOffset = selectionModel.getSelectionEnd();
+            int startLine = document.getLineNumber(startOffset);
+            int endLine = document.getLineNumber(endOffset);
+            for (int i = startLine; i <= endLine; i++) {
+                int lineStart = document.getLineStartOffset(i);
+                int lineEnd = document.getLineEndOffset(i);
+                String lineText = document.getText().substring(lineStart, lineEnd);
+                selectedLines.add(lineText);
+            }
+        }
+        return selectedLines;
+    }
+
+    /**
+     * 获取当前光标所在行的内容
+     */
+    public String getCurrentLine() {
+        Document document = editor.getDocument();
+        CaretModel caretModel = editor.getCaretModel();
+        int currentLine = caretModel.getLogicalPosition().line;
+        int lineStart = document.getLineStartOffset(currentLine);
+        int lineEnd = document.getLineEndOffset(currentLine);
+        return document.getText().substring(lineStart, lineEnd).trim();
     }
 }
