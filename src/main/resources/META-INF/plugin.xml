@@ -53,6 +53,24 @@ public String runScript(Context ctx, String[] args) throws Exception {
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
         <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
         <applicationService serviceImplementation="com.bol.spinner.config.MatrixDriversConfig"/>
+
+        <!-- MQL语言支持 -->
+        <fileType name="MQL File"
+                  implementationClass="com.bol.spinner.editor.MQLFileType"
+                  fieldName="INSTANCE"
+                  language="MQL"
+                  extensions="mql"/>
+
+        <lang.parserDefinition language="MQL"
+                               implementationClass="com.bol.spinner.editor.parser.MQLParserDefinition"/>
+
+        <lang.syntaxHighlighterFactory language="MQL"
+                                       implementationClass="com.bol.spinner.editor.highlights.MQLSyntaxHighlighterFactory"/>
+
+        <completion.contributor language="MQL"
+                                implementationClass="com.bol.spinner.editor.completion.MQLCompletionContributor"/>
+
+        <colorSettingsPage implementation="com.bol.spinner.editor.highlights.MQLColorSettingsPage"/>
     </extensions>
     <actions>
         <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
@@ -85,11 +103,19 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.MQLBox"
                     class="com.bol.spinner.action.MQLBoxTbAction"
                     icon="AllIcons.Nodes.DataTables"/>
+            <action id="Spinner Config.MQLConsole"
+                    class="com.bol.spinner.action.MQLConsoleAction"
+                    icon="AllIcons.Nodes.Console"/>
         </group>
         <group id="Spinner Config.RightToolbar">
             <action id="Spinner Config.Dependencies"
                     class="com.bol.spinner.action.MatrixDriverSettingsAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>
+        </group>
+        <group id="MQL Editor.Toolbar">
+            <action id="MQL Editor.Run"
+                    class="com.bol.spinner.action.RunMQLAction"
+                    icon="AllIcons.Actions.Execute"/>
         </group>
     </actions>
     <resource-bundle>messages.ActionBundles</resource-bundle>

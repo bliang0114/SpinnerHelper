@@ -20,7 +20,7 @@ import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
 import java.util.List;
 
-public class EnvironmentToolWindow extends SimpleToolWindowPanel{
+public class EnvironmentToolWindow extends SimpleToolWindowPanel {
     private final Project project;
     @Getter
     private Tree environmentTree;
