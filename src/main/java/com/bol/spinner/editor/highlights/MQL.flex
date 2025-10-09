@@ -37,8 +37,7 @@ NUMBER         = ({DIGIT}+|{DIGIT}*\.{DIGIT}+)([eE][-+]?{DIGIT}+)? // 数值（�
     {WHITE_SPACE}          { return com.intellij.psi.TokenType.WHITE_SPACE; }
 
     // 2. 注释处理
-    {LINE_COMMENT}         { return MQLTokenTypes.COMMENT; }
-    {BLOCK_COMMENT}        { return MQLTokenTypes.COMMENT; }
+    #[^\n]*                { return MQLTokenTypes.COMMENT; }
 
     // 3. 字面量处理（字符串、字符、数值）
     {STRING}               { return MQLTokenTypes.STRING; }

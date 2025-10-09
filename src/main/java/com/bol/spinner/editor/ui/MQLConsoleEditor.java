@@ -1,58 +1,71 @@
 package com.bol.spinner.editor.ui;
 
-import com.bol.spinner.editor.MQLLanguage;
+import com.intellij.openapi.actionSystem.ActionGroup;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionToolbar;
+import com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.EditorSettings;
 import com.intellij.openapi.editor.ex.EditorEx;
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.fileEditor.FileEditorStateLevel;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.SimpleToolWindowPanel;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.awt.*;
 import java.beans.PropertyChangeListener;
 
 public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
     private final Project project;
     private final VirtualFile virtualFile;
+    private SimpleToolWindowPanel mainPanel;
     private Editor editor;
 
-    public MQLConsoleEditor(@NotNull Project project) {
+    public MQLConsoleEditor(@NotNull Project project, @NotNull VirtualFile virtualFile) {
         this.project = project;
-        this.virtualFile = createVirtualFile();
+        this.virtualFile = virtualFile;
         // 创建编辑器
         EditorFactory editorFactory = EditorFactory.getInstance();
-        Document document = editorFactory.createDocument("");
+        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
+        if (document == null) {
+            document = editorFactory.createDocument("");
+        }
         // 使用MQL文件类型创建编辑器
         this.editor = editorFactory.createEditor(document, project);
         EditorEx editorEx = (EditorEx) this.editor;
         // 配置编辑器设置
         configureEditorSettings(editorEx);
-        // 设置MQL语法高亮
-        setupSyntaxHighlighting(editorEx);
+        // 创建带工具栏的面板
+        createEditorWithToolbar();
     }
 
-    private VirtualFile createVirtualFile() {
-        // 创建一个虚拟文件用于标识编辑器
-        LightVirtualFile file = new LightVirtualFile("MQL Console");
-        file.setLanguage(MQLLanguage.INSTANCE);
-        file.setWritable(true);
-        file.setCharset(null);
-        return file;
+    private void createEditorWithToolbar() {
+        this.mainPanel = new SimpleToolWindowPanel(true, true);
+        // 创建工具栏
+        ActionManager actionManager = ActionManager.getInstance();
+        ActionGroup actionGroup = (ActionGroup) actionManager.getAction("MQL Editor.Toolbar");
+        ActionToolbar toolbar = actionManager.createActionToolbar("MQLEditorToolbar", actionGroup, true);
+        toolbar.setLayoutStrategy(ToolbarLayoutStrategy.AUTOLAYOUT_STRATEGY);
+        toolbar.setTargetComponent(this.mainPanel);
+        this.mainPanel.setToolbar(toolbar.getComponent());
+        // 添加编辑器
+        this.mainPanel.setContent(this.editor.getComponent());
     }
 
     @NotNull
     @Override
     public JComponent getComponent() {
-        return new JPanel();
+        return this.mainPanel;
     }
 
     @Nullable
@@ -126,9 +139,7 @@ public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
         settings.setLineMarkerAreaShown(true);
         settings.setIndentGuidesShown(true);
         settings.setAnimatedScrolling(true);
-    }
-
-    private void setupSyntaxHighlighting(EditorEx editorEx) {
+        // 设置MQL语法高亮
         editorEx.setHighlighter(EditorHighlighterFactory.getInstance().createEditorHighlighter(project, virtualFile));
     }
 }

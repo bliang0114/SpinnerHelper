@@ -71,6 +71,8 @@ public String runScript(Context ctx, String[] args) throws Exception {
                                 implementationClass="com.bol.spinner.editor.completion.MQLCompletionContributor"/>
 
         <colorSettingsPage implementation="com.bol.spinner.editor.highlights.MQLColorSettingsPage"/>
+
+        <fileEditorProvider implementation="com.bol.spinner.editor.ui.MQLFileEditorProvider"/>
     </extensions>
     <actions>
         <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
