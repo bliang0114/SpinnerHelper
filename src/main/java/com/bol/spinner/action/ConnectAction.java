@@ -20,18 +20,13 @@ public class ConnectAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getToolWindow(project);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) return;
 
         EnvironmentConfig environment = toolWindow.getEnvironment();
         if (environment == null) return;
 
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
-        // 关闭所有的连接
-        if (SpinnerToken.connection != null) {
-            SpinnerToken.closeConnection();
-        }
-        spinnerSettings.getEnvironments().stream().filter(EnvironmentConfig::isConnected).forEach(env -> env.setConnected(false));
         // 连接
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {
@@ -44,7 +39,7 @@ public class ConnectAction extends AnAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getToolWindow(project);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) {
             e.getPresentation().setEnabled(false);
             return;

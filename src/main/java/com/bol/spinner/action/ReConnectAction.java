@@ -18,14 +18,12 @@ public class ReConnectAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getToolWindow(project);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) return;
 
         EnvironmentConfig environment = toolWindow.getEnvironment();
         if (environment == null) return;
 
-        // 关闭并重新连接
-        SpinnerToken.closeConnection();
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {
@@ -38,7 +36,7 @@ public class ReConnectAction extends AnAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getToolWindow(project);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) {
             e.getPresentation().setEnabled(false);
             return;

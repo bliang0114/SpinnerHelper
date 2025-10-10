@@ -20,9 +20,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.awt.*;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
     private final Project project;
@@ -160,8 +160,8 @@ public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
      * @return {@link List}
      * @author xlwang
      */
-    public java.util.List<String> getSelectedLines() {
-        java.util.List<String> selectedLines = new ArrayList<>();
+    public List<String> getSelectedLines() {
+        List<String> selectedLines = new ArrayList<>();
         SelectionModel selectionModel = editor.getSelectionModel();
         if (selectionModel.hasSelection()) {
             Document document = editor.getDocument();
@@ -170,13 +170,22 @@ public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
             int startLine = document.getLineNumber(startOffset);
             int endLine = document.getLineNumber(endOffset);
             for (int i = startLine; i <= endLine; i++) {
-                int lineStart = document.getLineStartOffset(i);
-                int lineEnd = document.getLineEndOffset(i);
-                String lineText = document.getText().substring(lineStart, lineEnd);
+                String lineText = getLineContent(document, i);
                 selectedLines.add(lineText);
             }
         }
         return selectedLines;
+    }
+
+    public List<String> getAllLines() {
+        List<String> lines = new ArrayList<>();
+        Document document = editor.getDocument();
+        int lineCount = document.getLineCount();
+        for (int i = 0; i < lineCount; i++) {
+            String line = getLineContent(document, i);
+            lines.add(line);
+        }
+        return lines;
     }
 
     /**
@@ -186,8 +195,16 @@ public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
         Document document = editor.getDocument();
         CaretModel caretModel = editor.getCaretModel();
         int currentLine = caretModel.getLogicalPosition().line;
-        int lineStart = document.getLineStartOffset(currentLine);
-        int lineEnd = document.getLineEndOffset(currentLine);
-        return document.getText().substring(lineStart, lineEnd).trim();
+        return getLineContent(document, currentLine);
+    }
+
+    private String getLineContent(Document document, int lineNumber) {
+        try {
+            int lineStart = document.getLineStartOffset(lineNumber);
+            int lineEnd = document.getLineEndOffset(lineNumber);
+            return document.getText().substring(lineStart, lineEnd).trim();
+        } catch (IndexOutOfBoundsException e) {
+            return "";
+        }
     }
 }

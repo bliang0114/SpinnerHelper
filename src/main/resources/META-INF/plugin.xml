@@ -49,6 +49,8 @@ public String runScript(Context ctx, String[] args) throws Exception {
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij" >
         <toolWindow id="SpinnerConfig" factoryClass="com.bol.spinner.ui.SpinnerUIFactory" anchor="right" icon="AllIcons.RunConfigurations.Remote"/>
+        <toolWindow id="MQLExecutor" factoryClass="com.bol.spinner.execution.MQLExecutorToolWindowFactory" icon="AllIcons.General.LayoutEditorPreview"
+                    canCloseContents="true" anchor="bottom" doNotActivateOnStart="true" />
         <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
         <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>

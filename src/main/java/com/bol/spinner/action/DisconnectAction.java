@@ -3,6 +3,7 @@ package com.bol.spinner.action;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.config.SpinnerToken;
+import com.bol.spinner.task.Disconnect3DETask;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
@@ -18,27 +19,25 @@ public class DisconnectAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getToolWindow(project);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) return;
 
         EnvironmentConfig environment = toolWindow.getEnvironment();
         if (environment == null) return;
 
-        SpinnerToken.closeConnection();
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
         if (optional.isPresent()) {
             environment = optional.get();
-            environment.setConnected(false);
-            SpinnerToken.environmentName = null;
-            SwingUtilities.invokeLater(toolWindow::repaint);
+            Disconnect3DETask task = new Disconnect3DETask(project, toolWindow, environment);
+            task.queue();
         }
     }
 
     @Override
     public void update(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getToolWindow(project);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) {
             e.getPresentation().setEnabled(false);
             return;

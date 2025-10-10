@@ -25,7 +25,7 @@ public class MQLBoxTbAction extends AnAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getToolWindow(project);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) {
             e.getPresentation().setEnabled(false);
             return;

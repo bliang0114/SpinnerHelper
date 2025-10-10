@@ -15,7 +15,7 @@ public class NewEnvAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getToolWindow(project);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) {
             return;
         }

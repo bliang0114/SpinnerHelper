@@ -3,6 +3,7 @@ package com.bol.spinner.task;
 import cn.github.driver.MatrixDriverManager;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.MatrixDriversConfig;
+import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.util.MatrixJarLoadManager;
 import com.bol.spinner.util.UIUtil;
@@ -16,16 +17,25 @@ import java.io.File;
 import java.util.List;
 
 public class Connect3DETask extends Task.Backgroundable {
+    private final Project project;
     private final EnvironmentConfig environment;
 
     public Connect3DETask(@Nullable Project project, EnvironmentConfig environment) {
-        super(project, "Login", true);
+        super(project, "Connect to 3DExperience", true);
+        this.project = project;
         this.environment = environment;
-        setCancelText("Stop Login");
+        setCancelText("Stop Connect");
     }
 
     @Override
     public void run(@NotNull ProgressIndicator progressIndicator) {
+        // 关闭所有的连接
+        if (SpinnerToken.connection != null) {
+            progressIndicator.setText("Disconnect to 3DExperience");
+            SpinnerToken.closeConnection();
+        }
+        SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
+        spinnerSettings.getEnvironments().stream().filter(EnvironmentConfig::isConnected).forEach(env -> env.setConnected(false));
         MatrixDriversConfig.DriverInfo driverInfo = MatrixDriversConfig.getInstance().putDriver(environment.getDriver());
         if (driverInfo == null || driverInfo.getDriverClass() == null || driverInfo.getDriverClass().isEmpty()) {
             UIUtil.showWarningNotification(myProject, "Load Driver Error<br/>" + environment.getDriver() + " Driver is empty", "");
@@ -38,11 +48,11 @@ public class Connect3DETask extends Task.Backgroundable {
             SpinnerToken.connection = MatrixDriverManager.getConnection(environment.getHostUrl(), environment.getUser(), environment.getPassword(), environment.getVault(), environment.getRole(), classLoader);
             SpinnerToken.environmentName = environment.getName();
             environment.setConnected(true);
-            UIUtil.showNotification(myProject, "Login successful", "");
+            UIUtil.showNotification(myProject, "Connect successful", "");
         } catch (ClassNotFoundException e) {
             UIUtil.showErrorNotification(myProject, "Load Driver Error<br/>" + environment.getDriver(), "");
         } catch (Exception ex) {
-            UIUtil.showErrorNotification(myProject, "Login failed", ex.getLocalizedMessage());
+            UIUtil.showErrorNotification(myProject, "Connect failed", ex.getLocalizedMessage());
         }
     }
 }

@@ -1,13 +1,11 @@
 package com.bol.spinner.util;
 
 import com.bol.spinner.editor.ui.MQLConsoleEditor;
+import com.bol.spinner.execution.MQLExecutorToolWindow;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.actionSystem.ActionGroup;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
@@ -15,11 +13,10 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.ui.content.Content;
-import com.intellij.ui.treeStructure.Tree;
 
 public class UIUtil {
 
-    public static EnvironmentToolWindow getToolWindow(Project project) {
+    public static EnvironmentToolWindow getEnvironmentToolWindow(Project project) {
         if (project == null) return null;
 
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("SpinnerConfig");
@@ -29,6 +26,26 @@ public class UIUtil {
         if (content == null) return null;
 
         return (EnvironmentToolWindow) content.getComponent();
+    }
+
+    public static ToolWindow getToolWindow(Project project, String id) {
+        if (project == null) return null;
+
+        ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
+        return toolWindowManager.getToolWindow(id);
+    }
+
+    public static MQLExecutorToolWindow getMQLExecutorToolWindow(Project project) {
+        if (project == null) return null;
+
+        ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
+        ToolWindow toolWindow = toolWindowManager.getToolWindow("MQLExecutor");
+        if (toolWindow == null) return null;
+
+        Content content = toolWindow.getContentManager().getContent(0);
+        if (content == null) return null;
+
+        return (MQLExecutorToolWindow) content.getComponent();
     }
 
     public static MQLConsoleEditor getMQLEditor(Project project) {

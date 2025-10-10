@@ -1,6 +1,7 @@
 package com.bol.spinner.editor.ui;
 
 import com.bol.spinner.editor.MQLLanguage;
+import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
@@ -33,6 +34,8 @@ public final class MQLConsoleManager {
             focusEditor(existingEditor);
         } else {
             openNewMQLConsole(file);
+            // 初始化MQL执行器窗口
+            UIUtil.getMQLExecutorToolWindow(project);
         }
     }
 
