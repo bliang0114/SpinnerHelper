@@ -13,15 +13,32 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-    快速部署spinner相关的文件<br>
-    <em>
-       <li>选择需要部署的文件，右键选择spinner deploy部署</li>
-       <li>xls文件选择几行就部署几行,全选完整部署</li>
-       <li>JPO完整部署</li>
-       <li>修改EnoBrowserJPO runScript方法，以获得部署日志</li>
-       <pre>
-       <code>
+<h2>SpinnerHelper - 3DE开发效率提升插件</h2>
+<p><code>SpinnerHelper</code> 是一款专为 IntelliJ IDEA 设计的专业级插件，致力于优化 3DE 开发体验。通过智能化的部署流程和丰富的辅助工具集，显著提升开发效率与便捷性。</p>
 
+<h3>🚀 核心功能</h3>
+
+<h4>多环境管理</h4>
+<ul>
+  <li><strong>多版本支持</strong>：灵活配置不同 3DE 版本环境</li>
+  <li><strong>环境切换</strong>：一键实现在不同开发环境间的无缝切换</li>
+</ul>
+
+<h4>快速部署</h4>
+<ul>
+  <li><strong>Spinner 文件部署</strong>：通过右键菜单快速执行配置文件的增量或全量部署</li>
+  <li><strong>JPO 文件部署</strong>：提供完整的 JPO 文件部署支持</li>
+</ul>
+
+<h4>实用工具集</h4>
+<ul>
+  <li><strong>MQL Console</strong>：集成化控制台，直接执行 MQL 命令</li>
+  <li><strong>URL Parameter Parse</strong>：便捷的 URL 参数解析功能</li>
+</ul>
+
+<h3>⚙️ 技术特性</h3>
+<p>优化了 <code>EnoBrowserJPO</code> 的 <code>runScript</code> 方法，增强部署日志功能：</p>
+<pre><code>
 public String runScript(Context ctx, String[] args) throws Exception {
     if (adminOnly)
         checkAdmin(ctx);
@@ -36,10 +53,14 @@ public String runScript(Context ctx, String[] args) throws Exception {
     sw.run();
     return readFile(ctx, new String[]{output});
 }
-       </code>
-       </pre>
-       </em>
-  ]]></description>
+</code></pre>
+
+<h3>📋 配置要求</h3>
+<ul>
+  <li><strong>IDEA 版本</strong>：仅支持 IntelliJ IDEA 2024.2 及以上版本</li>
+  <li><strong>依赖准备</strong>：需自行准备对应 3DE 版本的依赖包</li>
+</ul>
+]]></description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
