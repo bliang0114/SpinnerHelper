@@ -4,6 +4,7 @@ import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.editor.ui.MQLConsoleEditor;
 import com.bol.spinner.task.MQLCommandExecutor;
 import com.bol.spinner.util.UIUtil;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
@@ -39,5 +40,10 @@ public class RunMQLAction extends AnAction {
             MQLCommandExecutor executor = new MQLCommandExecutor(project, commandList);
             executor.queue();
         }
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.EDT;
     }
 }
