@@ -77,3 +77,23 @@
 > URL参数解析
 
 ![img.png](img/URLParameterParse.png)
+
+## 四、其他
+> 可以通过修改`EnoBrowserJPO`的`runScript`方法，获得更好的日志反馈
+
+```java
+public String runScript(Context ctx, String[] args) throws Exception {
+    if (adminOnly)
+        checkAdmin(ctx);
+    String[] cmdarray = Arrays.copyOf(args, args.length - 2);
+    String dir = args[args.length - 2];
+    String output = args[args.length - 1];
+    ProcessBuilder pb = new ProcessBuilder(cmdarray);
+    pb.directory(new File(dir));
+    pb.redirectErrorStream(true);
+    Process p = pb.start();
+    StreamWriter sw = new StreamWriter(p.getInputStream(), output);
+    sw.run();
+    return readFile(ctx, new String[]{output});
+}
+```

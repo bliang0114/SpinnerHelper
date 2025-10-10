@@ -37,7 +37,7 @@
 </ul>
 
 <h3>⚙️ 技术特性</h3>
-<p>优化了 <code>EnoBrowserJPO</code> 的 <code>runScript</code> 方法，增强部署日志功能：</p>
+<p>优化了 <code>EnoBrowserJPO</code> 的 <code>runScript</code> 方法，以获得更好的日志反馈：</p>
 <pre><code>
 public String runScript(Context ctx, String[] args) throws Exception {
     if (adminOnly)
