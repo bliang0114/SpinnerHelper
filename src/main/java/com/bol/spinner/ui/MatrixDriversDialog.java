@@ -1,9 +1,7 @@
 package com.bol.spinner.ui;
 
 import cn.github.driver.MatrixDriver;
-import cn.github.driver.MatrixDriverManager;
 import com.bol.spinner.config.MatrixDriversConfig;
-import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.util.MatrixJarClassLoader;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.CommonBundle;
@@ -11,7 +9,6 @@ import com.intellij.openapi.actionSystem.ActionToolbarPosition;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -29,15 +26,11 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
@@ -51,7 +44,7 @@ public class MatrixDriversDialog extends DialogWrapper {
     private JBTable driverTable;
     private ComboBox<String> driverClassComboBox;
     private JBTextField driverNameField;
-    private List<VirtualFile> existedJars = new ArrayList<>();
+    private final List<VirtualFile> existedJars = new ArrayList<>();
 
     public MatrixDriversDialog(@Nullable Project project) {
         super(true); // 使用当前窗口作为父窗口

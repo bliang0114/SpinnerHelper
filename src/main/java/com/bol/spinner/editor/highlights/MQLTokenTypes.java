@@ -18,12 +18,6 @@ public class MQLTokenTypes extends IElementType {
     public static final IElementType IDENTIFIER = new MQLTokenTypes("IDENTIFIER");
     public static final IElementType OPERATOR = new MQLTokenTypes("OPERATOR");
     public static final IElementType CONSTANT = new MQLTokenTypes("CONSTANT");
-    public static final IElementType PAREN = new MQLTokenTypes("PAREN");
-    public static final IElementType BRACE = new MQLTokenTypes("BRACE");
-    public static final IElementType BRACKET = new MQLTokenTypes("BRACKET");
-    public static final IElementType SEMICOLON = new MQLTokenTypes("SEMICOLON");
-    public static final IElementType COMMA = new MQLTokenTypes("COMMA");
-    public static final IElementType DOT = new MQLTokenTypes("DOT");
 
     public MQLTokenTypes(@NotNull @NonNls String debugName) {
         super(debugName, MQLLanguage.INSTANCE);

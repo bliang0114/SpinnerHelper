@@ -90,6 +90,9 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.Remove"
                     class="com.bol.spinner.action.RemoveEnvAction"
                     icon="AllIcons.General.Remove"/>
+            <action id="Spinner Config.Copy"
+                    class="com.bol.spinner.action.CopyEnvAction"
+                    icon="AllIcons.Actions.Copy"/>
             <separator/>
             <action id="Spinner Config.Connect"
                     class="com.bol.spinner.action.ConnectAction"
@@ -104,9 +107,6 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.URLParser"
                     class="com.bol.spinner.action.URLParserAction"
                     icon="AllIcons.General.Web"/>
-            <action id="Spinner Config.MQLBox"
-                    class="com.bol.spinner.action.MQLBoxTbAction"
-                    icon="AllIcons.Nodes.DataTables"/>
             <action id="Spinner Config.MQLConsole"
                     class="com.bol.spinner.action.MQLConsoleAction"
                     icon="AllIcons.Nodes.Console"/>

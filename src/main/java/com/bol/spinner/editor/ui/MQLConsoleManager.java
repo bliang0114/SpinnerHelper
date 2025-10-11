@@ -1,14 +1,10 @@
 package com.bol.spinner.editor.ui;
 
-import com.bol.spinner.editor.MQLLanguage;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;

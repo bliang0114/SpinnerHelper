@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 public class MQLParser implements PsiParser {
     @NotNull
     @Override
-    public ASTNode parse(IElementType root, PsiBuilder builder) {
+    public ASTNode parse(@NotNull IElementType root, PsiBuilder builder) {
         // 简化解析器实现
         PsiBuilder.Marker rootMarker = builder.mark();
 

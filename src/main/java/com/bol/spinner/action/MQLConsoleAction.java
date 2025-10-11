@@ -2,7 +2,6 @@ package com.bol.spinner.action;
 
 import com.bol.spinner.editor.MQLLanguage;
 import com.bol.spinner.editor.ui.MQLConsoleManager;
-import com.bol.spinner.execution.MQLExecutorToolWindow;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
