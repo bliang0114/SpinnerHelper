@@ -31,6 +31,7 @@ dependencies {
 
     intellijPlatform {
         create("IC", "2025.1")
+        bundledPlugin("com.intellij.java")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
         // Add necessary plugin dependencies for compilation here, example:

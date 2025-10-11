@@ -44,7 +44,7 @@ public String runScript(Context ctx, String[] args) throws Exception {
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
-
+    <depends>com.intellij.modules.java</depends> <!-- 添加这一行 -->
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij" >
@@ -55,7 +55,7 @@ public String runScript(Context ctx, String[] args) throws Exception {
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
         <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
         <applicationService serviceImplementation="com.bol.spinner.config.MatrixDriversConfig"/>
-
+        <fileEditorProvider implementation="com.bol.spinner.provider.ProgramViewProvider"/>
         <!-- MQL语言支持 -->
         <fileType name="MQL File"
                   implementationClass="com.bol.spinner.editor.MQLFileType"
@@ -110,6 +110,9 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.MQLConsole"
                     class="com.bol.spinner.action.MQLConsoleAction"
                     icon="AllIcons.Nodes.Console"/>
+            <action id="Spinner Config.Program"
+                    class="com.bol.spinner.action.ProgramAction"
+                    icon="AllIcons.General.ProjectStructure"/>
         </group>
         <group id="Spinner Config.RightToolbar">
             <action id="Spinner Config.Dependencies"
