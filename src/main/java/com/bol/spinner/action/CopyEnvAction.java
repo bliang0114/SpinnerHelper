@@ -1,6 +1,7 @@
 package com.bol.spinner.action;
 
 import com.bol.spinner.config.EnvironmentConfig;
+import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.ui.EnvironmentSettingsDialog;
 import com.bol.spinner.ui.EnvironmentToolWindow;
 import com.bol.spinner.util.UIUtil;
@@ -9,24 +10,22 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Optional;
-
-public class EditEnvAction extends EnvironmentTbActionAdapter {
-
+public class CopyEnvAction extends EnvironmentTbActionAdapter {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
         EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
         if (toolWindow == null) return;
 
-        Optional<EnvironmentConfig> optional = getSettingsEnvironment(project);
-        if (optional.isEmpty()) return;
+        EnvironmentConfig environment = toolWindow.getEnvironment();
+        if (environment == null) return;
 
-        EnvironmentConfig environment = optional.get();
-        EnvironmentSettingsDialog dialog = new EnvironmentSettingsDialog(project, environment);
+        EnvironmentSettingsDialog dialog = new EnvironmentSettingsDialog(project, null);
+        dialog.setValue(environment);
         if (dialog.showAndGet()) {
             environment = dialog.getEnvironment();
-            optional.get().update(environment);
+            SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
+            spinnerSettings.getEnvironments().add(environment);
             toolWindow.refreshTree();
         }
     }
