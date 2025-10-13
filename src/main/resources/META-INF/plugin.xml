@@ -121,6 +121,9 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.Program"
                     class="com.bol.spinner.action.ProgramAction"
                     icon="AllIcons.General.ProjectStructure"/>
+            <action id="Spinner Config.FormAndTableAction"
+                    class="com.bol.spinner.action.FormAndTableAction"
+                    icon="AllIcons.Nodes.DataTables"/>
             <action id="Spinner Config.TypeView"
                     class="com.bol.spinner.action.TypeViewAction"
                     icon="AllIcons.General.ShowInfos"/>

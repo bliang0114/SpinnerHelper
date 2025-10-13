@@ -14,6 +14,7 @@ public class MatrixDataViewFileType implements FileType {
     public static final MatrixDataViewFileType TYPE = new MatrixDataViewFileType(ViewType.TYPE);
     public static final MatrixDataViewFileType RELATIONSHIP = new MatrixDataViewFileType(ViewType.RELATIONSHIP);
     public static final MatrixDataViewFileType PROGRAM = new MatrixDataViewFileType(ViewType.PROGRAM);
+    public static final MatrixDataViewFileType FORM_TABLE = new MatrixDataViewFileType(ViewType.FORM_TABLE);
     @Getter
     private final ViewType viewType;
 
@@ -47,6 +48,6 @@ public class MatrixDataViewFileType implements FileType {
     }
 
     public enum ViewType {
-        TYPE, RELATIONSHIP, PROGRAM
+        TYPE, RELATIONSHIP, PROGRAM,FORM_TABLE
     }
 }
