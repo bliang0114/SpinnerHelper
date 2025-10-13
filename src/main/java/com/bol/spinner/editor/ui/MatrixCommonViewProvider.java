@@ -1,6 +1,6 @@
-package com.bol.spinner.provider;
+package com.bol.spinner.editor.ui;
 
-import com.bol.spinner.ui.ProgramView;
+import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorProvider;
 import com.intellij.openapi.project.DumbAware;
@@ -8,20 +8,19 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 
-public class ProgramViewProvider implements FileEditorProvider, DumbAware { // 实现 DumbAware 接口
+public class MatrixCommonViewProvider implements FileEditorProvider, DumbAware {
 
-    private static final String EDITOR_TYPE_ID = "spinner.program.editor";
+    private static final String EDITOR_TYPE_ID = "matrix.common.editor";
 
     @Override
     public boolean accept(@NotNull Project project, @NotNull VirtualFile file) {
-        // 通过文件名判断是否由这个Provider处理
-        return "ProgramConfiguration".equals(file.getName());
+        return file.getFileType() instanceof MatrixDataViewFileType;
     }
 
     @NotNull
     @Override
     public FileEditor createEditor(@NotNull Project project, @NotNull VirtualFile file) {
-        return new ProgramView(project, file);
+        return new MatrixCommonViewEditor(project, file);
     }
 
     @NotNull
@@ -33,7 +32,6 @@ public class ProgramViewProvider implements FileEditorProvider, DumbAware { // �
     @NotNull
     @Override
     public com.intellij.openapi.fileEditor.FileEditorPolicy getPolicy() {
-        // 现在可以安全使用 HIDE_DEFAULT_EDITOR
         return com.intellij.openapi.fileEditor.FileEditorPolicy.HIDE_DEFAULT_EDITOR;
     }
 

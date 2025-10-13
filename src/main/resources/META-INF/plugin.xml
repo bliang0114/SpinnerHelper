@@ -55,7 +55,6 @@ public String runScript(Context ctx, String[] args) throws Exception {
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
         <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
         <applicationService serviceImplementation="com.bol.spinner.config.MatrixDriversConfig"/>
-        <fileEditorProvider implementation="com.bol.spinner.provider.ProgramViewProvider"/>
         <!-- MQL语言支持 -->
         <fileType name="MQL File"
                   implementationClass="com.bol.spinner.editor.MQLFileType"
@@ -75,6 +74,7 @@ public String runScript(Context ctx, String[] args) throws Exception {
         <colorSettingsPage implementation="com.bol.spinner.editor.highlights.MQLColorSettingsPage"/>
 
         <fileEditorProvider implementation="com.bol.spinner.editor.ui.MQLFileEditorProvider"/>
+        <fileEditorProvider implementation="com.bol.spinner.editor.ui.MatrixCommonViewProvider"/>
     </extensions>
     <actions>
         <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
@@ -110,14 +110,20 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.MQLConsole"
                     class="com.bol.spinner.action.MQLConsoleAction"
                     icon="AllIcons.Nodes.Console"/>
-            <action id="Spinner Config.Program"
-                    class="com.bol.spinner.action.ProgramAction"
-                    icon="AllIcons.General.ProjectStructure"/>
         </group>
         <group id="Spinner Config.RightToolbar">
             <action id="Spinner Config.Dependencies"
                     class="com.bol.spinner.action.MatrixDriverSettingsAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>
+        </group>
+        <group id="Spinner Config.More" icon="AllIcons.Actions.MoreHorizontal" popup="true">
+            <add-to-group group-id="Spinner Config.Toolbar" anchor="after" relative-to-action="Spinner Config.MQLConsole"/>
+            <action id="Spinner Config.Program"
+                    class="com.bol.spinner.action.ProgramAction"
+                    icon="AllIcons.General.ProjectStructure"/>
+            <action id="Spinner Config.TypeView"
+                    class="com.bol.spinner.action.TypeViewAction"
+                    icon="AllIcons.General.ShowInfos"/>
         </group>
         <group id="MQL Editor.Toolbar">
             <action id="MQL Editor.Run"

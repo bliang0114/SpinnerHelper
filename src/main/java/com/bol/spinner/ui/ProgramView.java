@@ -1,19 +1,18 @@
 package com.bol.spinner.ui;
 
+import cn.github.driver.MQLException;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.editor.MQLLanguage;
 import com.bol.spinner.editor.ui.MQLConsoleManager;
 import com.bol.spinner.util.MQLUtil;
 import com.bol.spinner.util.UIUtil;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.fileEditor.TextEditor;
-import cn.github.driver.MQLException;
-import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.FileEditorState;
+import com.intellij.openapi.fileEditor.TextEditor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.util.Key;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.testFramework.LightVirtualFile;
@@ -26,17 +25,10 @@ import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
-import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableColumn;
+import javax.swing.table.*;
 import java.awt.*;
-import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -50,9 +42,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ProgramView implements FileEditor {
+public class ProgramView extends JBPanel implements Disposable {
 
-    private final JBPanel<?> myPanel;
     private final Project myProject;
     private final VirtualFile myFile;
     private JBTextField filterTextField;
@@ -67,8 +58,8 @@ public class ProgramView implements FileEditor {
         myFile = file;
         programTableData = new ArrayList<>();
         initProgList();
-        myPanel = new JBPanel<>(new BorderLayout(10, 10));
-        myPanel.setBorder(JBUI.Borders.empty(8));
+        setLayout(new BorderLayout(10, 10));
+        setBorder(JBUI.Borders.empty(8));
         initializeComponents();
         setupLayout();
         setupListeners();
@@ -212,7 +203,7 @@ public class ProgramView implements FileEditor {
 
     private void setupLayout() {
         // 顶部：过滤+刷新
-        myPanel.add(createTopPanel(), BorderLayout.NORTH);
+        add(createTopPanel(), BorderLayout.NORTH);
 
         // 中间：表格滚动面板（完全铺满）
         JScrollPane tableScrollPane = ScrollPaneFactory.createScrollPane(programTable);
@@ -222,7 +213,7 @@ public class ProgramView implements FileEditor {
                 BorderFactory.createLineBorder(JBColor.LIGHT_GRAY),
                 JBUI.Borders.empty(2)
         ));
-        myPanel.add(tableScrollPane, BorderLayout.CENTER);
+        add(tableScrollPane, BorderLayout.CENTER);
     }
 
     private JComponent createTopPanel() {
@@ -390,52 +381,6 @@ public class ProgramView implements FileEditor {
 
     }
 
-    // ====================== FileEditor接口实现 ======================
-    @NotNull
-    @Override
-    public JComponent getComponent() {
-        return myPanel;
-    }
-
-    @Override
-    public @Nullable JComponent getPreferredFocusedComponent() {
-        return filterTextField;
-    }
-
-    @NotNull
-    @Override
-    public String getName() {
-        return "Program List";
-    }
-
-    @Override
-    public void setState(@NotNull FileEditorState state) {
-    }
-
-    @Override
-    public boolean isModified() {
-        return false;
-    }
-
-    @Override
-    public boolean isValid() {
-        return myFile.isValid();
-    }
-
-    @Override
-    public void addPropertyChangeListener(@NotNull PropertyChangeListener listener) {
-    }
-
-    @Override
-    public void removePropertyChangeListener(@NotNull PropertyChangeListener listener) {
-    }
-
-    @Nullable
-    @Override
-    public VirtualFile getFile() {
-        return myFile;
-    }
-
     @Override
     public void dispose() {
         executor.shutdownNow();
@@ -446,14 +391,5 @@ public class ProgramView implements FileEditor {
         if (tempDir.exists() && Objects.requireNonNull(tempDir.listFiles()).length == 0)
             tempDir.delete();
         tempJavaFiles.clear();
-    }
-
-    @Override
-    public <T> @Nullable T getUserData(@NotNull Key<T> key) {
-        return null;
-    }
-
-    @Override
-    public <T> void putUserData(@NotNull Key<T> key, @Nullable T value) {
     }
 }
