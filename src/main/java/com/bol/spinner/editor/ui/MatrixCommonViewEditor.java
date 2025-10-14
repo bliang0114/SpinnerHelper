@@ -32,7 +32,7 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
         switch (fileType.getViewType()) {
             case RELATIONSHIP:
             case TYPE:
-                this.editorComponent = new TypeDataViewComponent();
+                this.editorComponent = new TypeDataViewComponent(virtualFile);
                 break;
             case PROGRAM:
                 this.editorComponent = new ProgramView(project, virtualFile);

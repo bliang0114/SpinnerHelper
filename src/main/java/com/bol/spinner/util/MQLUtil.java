@@ -16,7 +16,11 @@ public class MQLUtil {
         if (!matrixResultSet.isSuccess()) {
             throw new MQLException(matrixResultSet.getMessage());
         }
-        return matrixResultSet.getResult();
+        String result = matrixResultSet.getResult();
+        if (result.endsWith("\n")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
     }
 
     public static String execute(String format, Object... args) throws MQLException {
