@@ -1,6 +1,7 @@
 package com.bol.spinner.editor.ui;
 
 import com.bol.spinner.editor.MatrixDataViewFileType;
+import com.bol.spinner.editor.ui.dataview.RelationshipDataViewComponent;
 import com.bol.spinner.editor.ui.dataview.TypeDataViewComponent;
 import com.bol.spinner.ui.FormsAndTablesView;
 import com.bol.spinner.editor.ui.dataview.ProgramTableComponent;
@@ -31,6 +32,8 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
         MatrixDataViewFileType fileType = (MatrixDataViewFileType) virtualFile.getFileType();
         switch (fileType.getViewType()) {
             case RELATIONSHIP:
+                this.editorComponent = new RelationshipDataViewComponent(virtualFile);
+                break;
             case TYPE:
                 this.editorComponent = new TypeDataViewComponent(virtualFile);
                 break;

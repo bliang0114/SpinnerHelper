@@ -5,28 +5,29 @@ import lombok.Data;
 import java.util.Objects;
 
 @Data
-public class ObjectsRow {
+public class ConnectionsRow {
     private String type;
-    private String name;
-    private String revision;
     private String id;
     private boolean path;
     private String physicalId;
-    private String description;
-    private String originated;
-    private String modified;
-    private String vault;
-    private String policy;
-    private String owner;
-    private String state;
-    private String organization;
-    private String collaborativeSpace;
+    private String fromType;
+    private String fromName;
+    private String fromRevision;
+    private String fromId;
+    private String fromRelType;
+    private String fromRelId;
+    private String toType;
+    private String toName;
+    private String toRevision;
+    private String toId;
+    private String toRelType;
+    private String toRelId;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        ObjectsRow row = (ObjectsRow) o;
+        ConnectionsRow row = (ConnectionsRow) o;
         return id.equals(row.id);
     }
 

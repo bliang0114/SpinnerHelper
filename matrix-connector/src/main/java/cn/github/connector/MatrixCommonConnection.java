@@ -1,17 +1,15 @@
 package cn.github.connector;
 
 import cn.github.driver.MQLException;
-import cn.github.driver.connection.MatrixConnection;
-import cn.github.driver.connection.MatrixStatement;
+import cn.github.driver.connection.*;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import matrix.db.Context;
-import matrix.db.Environment;
-import matrix.db.JPO;
+import matrix.db.*;
 import matrix.util.MatrixException;
+import matrix.util.StringList;
 
 import java.io.IOException;
-import java.util.Properties;
+import java.util.*;
 
 @Slf4j
 public class MatrixCommonConnection implements MatrixConnection {
@@ -28,8 +26,73 @@ public class MatrixCommonConnection implements MatrixConnection {
     }
 
     @Override
-    public void executeUpdate(String mql) throws MQLException {
-        log.info("executeUpdate: {}", mql);
+    public MatrixQueryResult queryObject(MatrixObjectQuery objectQuery, List<String> fields) throws MQLException {
+        var query = getObjectQuery(objectQuery);
+        var orderBy = StringList.asList("type", "name", "revision");
+        var queryFields = StringList.asList(fields);
+        try {
+            context.start(false);
+            List<Map<String, String>> data = new ArrayList<>();
+            try (var iter = query.getIterator(context, queryFields, (short) 0, orderBy)) {
+                for (var bws : iter) {
+                    Map<String, String> map = new HashMap<>();
+                    for (String field : fields) {
+                        map.put(field, bws.getSelectData(field));
+                    }
+                    data.add(map);
+                }
+            }
+            context.commit();
+            return new MatrixQueryResult(data);
+        } catch (MatrixException e) {
+            throw new MQLException(e);
+        }
+    }
+
+    @Override
+    public MatrixQueryResult queryConnection(MatrixConnectionQuery connectionQuery, List<String> fields) throws MQLException {
+        var query = getConnectionQuery(connectionQuery);
+        var orderBy = StringList.asList("type", "id");
+        var queryFields = StringList.asList(fields);
+        try {
+            context.start(false);
+            List<Map<String, String>> data = new ArrayList<>();
+            try (var iter = query.getIterator(context, queryFields, (short) 0, orderBy)) {
+                for (var bws : iter) {
+                    Map<String, String> map = new HashMap<>();
+                    for (String field : fields) {
+                        map.put(field, bws.getSelectData(field));
+                    }
+                    data.add(map);
+                }
+            }
+            context.commit();
+            return new MatrixQueryResult(data);
+        } catch (MatrixException e) {
+            throw new MQLException(e);
+        }
+    }
+
+    private static Query getObjectQuery(MatrixObjectQuery objectQuery) {
+        var query = new Query();
+        query.setBusinessObjectType(objectQuery.getType());
+        query.setBusinessObjectName(objectQuery.getName());
+        query.setBusinessObjectRevision(objectQuery.getRevision());
+        query.setWhereExpression(objectQuery.getWhereExpression());
+        query.setOwnerPattern(objectQuery.getOwner());
+        query.setVaultPattern(objectQuery.getVault());
+        query.setExpandType(objectQuery.isExpandType());
+        query.setObjectLimit(objectQuery.getLimit());
+        return query;
+    }
+
+    private static RelationshipQuery getConnectionQuery(MatrixConnectionQuery connectionQuery) {
+        var query = new RelationshipQuery();
+        query.setRelationshipType(connectionQuery.getType());
+        query.setWhereExpression(connectionQuery.getWhereExpression());
+        query.setVaultPattern(connectionQuery.getVault());
+        query.setObjectLimit(connectionQuery.getLimit());
+        return query;
     }
 
     @Override

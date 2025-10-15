@@ -11,7 +11,7 @@ public interface MatrixStatement {
      * 执行MQL查询
      *
      * @return {@link MatrixResultSet}
-     * @author xlwang
+     * @author zaydenwang
      */
     MatrixResultSet executeQuery() throws MQLException;
 }

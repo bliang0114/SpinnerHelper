@@ -5,6 +5,7 @@ import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
+import com.bol.spinner.util.MQLUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
@@ -32,7 +33,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implements Disposable {
+public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewComponent> implements Disposable {
     private final VirtualFile virtualFile;
     private SearchTextField searchTextField;
     private DefaultListModel<String> listModel;
@@ -42,13 +43,13 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private final List<String> rowList = new ArrayList<>();
     private final ScheduledExecutorService executor;
 
-    public TypeDataViewComponent(VirtualFile virtualFile) {
+    public RelationshipDataViewComponent(VirtualFile virtualFile) {
         this.virtualFile = virtualFile;
         executor = Executors.newSingleThreadScheduledExecutor();
         initComponents();
         setupListener();
         setupLayout();
-        loadType();
+        loadRelationship();
     }
 
     private void initComponents() {
@@ -69,17 +70,17 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         searchTextField.addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
-                filterType();
+                filterRelationship();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
-                filterType();
+                filterRelationship();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
-                filterType();
+                filterRelationship();
             }
         });
         uiList.addListSelectionListener(this::loadTypeInformation);
@@ -96,7 +97,7 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
                 BorderFactory.createEmptyBorder(0, 0, 0, 0)
         ));
         toolbarPanel.add(searchTextField, BorderLayout.WEST);
-        ActionToolbar uiListToolbar = ActionManager.getInstance().createActionToolbar("Type UI List Toolbar", uiListToolbarGroup, true);
+        ActionToolbar uiListToolbar = ActionManager.getInstance().createActionToolbar("Relationship UI List Toolbar", uiListToolbarGroup, true);
         uiListToolbar.setTargetComponent(uiList);
         toolbarPanel.add(uiListToolbar.getComponent(), BorderLayout.EAST);
 
@@ -111,28 +112,23 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         tabbedPane.add("Interfaces", new InterfacesTableComponent(virtualFile));
         tabbedPane.add("Relations", new RelationsTableComponent(virtualFile));
         tabbedPane.add("Triggers", new TriggersTableComponent(virtualFile));
-        tabbedPane.add("Policy Triggers", new PolicyTriggersTableComponent(virtualFile));
-        tabbedPane.add("Objects", new ObjectsTableComponent(virtualFile));
+        tabbedPane.add("Connections", new ConnectionsTableComponent(virtualFile));
         add(tabbedPane, BorderLayout.CENTER);
     }
 
-    private void loadType() {
+    private void loadRelationship() {
         rowList.clear();
         listModel.clear();
         if (SpinnerToken.connection == null) {
             uiList.setEmptyText("Connection is closed");
             return;
         }
-        uiList.setEmptyText("Loading Matrix type...");
+        uiList.setEmptyText("Loading Matrix Relationship...");
         executor.schedule(() -> {
             try {
-                MatrixStatement statement = SpinnerToken.connection.executeStatement("list type");
-                MatrixResultSet resultSet = statement.executeQuery();
-                if (!resultSet.isSuccess()) {
-                    throw new MQLException(resultSet.getMessage());
-                }
-                List<String> allTypes = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                rowList.addAll(allTypes.stream().filter(CharSequenceUtil::isNotBlank).sorted(String.CASE_INSENSITIVE_ORDER).toList());
+                var result = MQLUtil.execute("list relationship");
+                List<String> allRelationships = CharSequenceUtil.split(result, "\n");
+                rowList.addAll(allRelationships.stream().filter(CharSequenceUtil::isNotBlank).sorted(String.CASE_INSENSITIVE_ORDER).toList());
                 listModel.addAll(rowList);
                 uiList.setEmptyText("Nothing to show");
             } catch (MQLException e) {
@@ -141,7 +137,7 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         }, 100, TimeUnit.MILLISECONDS);
     }
 
-    private void filterType() {
+    private void filterRelationship() {
         String text = searchTextField.getText();
         List<String> filterList = rowList.stream().filter(item -> CharSequenceUtil.startWithIgnoreCase(item, text)).toList();
         listModel.removeAllElements();
@@ -158,12 +154,12 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         int selectedIndex = uiList.getSelectedIndex();
         if (selectedIndex < 0) return;
 
-        String type = listModel.elementAt(selectedIndex);
+        String relationship = listModel.elementAt(selectedIndex);
         int tabIndex = tabbedPane.getSelectedIndex();
         Component component = tabbedPane.getComponentAt(tabIndex);
         if (component instanceof AbstractDataViewTableComponent<?, ?> dataViewTableComponent) {
-            log.info("Loading type data for {}", type);
-            dataViewTableComponent.setName(type);
+            log.info("Loading relationship data for {}", relationship);
+            dataViewTableComponent.setName(relationship);
             dataViewTableComponent.reloadData();
         }
     }
@@ -182,7 +178,7 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
             searchTextField.reset();
             searchTextField.setText("");
-            loadType();
+            loadRelationship();
         }
     }
 }

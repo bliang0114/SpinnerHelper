@@ -12,7 +12,7 @@ public interface MatrixDriver {
      *
      * @param matrixDriverProperty 数据源信息
      * @return {@link MatrixConnection}
-     * @author xlwang
+     * @author zaydenwang
      */
     MatrixConnection connect(MatrixDriverProperty matrixDriverProperty) throws MQLException;
 
@@ -20,7 +20,7 @@ public interface MatrixDriver {
      * 获取 Matrix 版本
      *
      * @return {@link String}
-     * @author xlwang
+     * @author zaydenwang
      */
     String getVersion();
 }

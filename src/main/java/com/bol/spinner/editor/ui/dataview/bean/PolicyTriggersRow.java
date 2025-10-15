@@ -13,6 +13,11 @@ public class PolicyTriggersRow {
     private String override;
     private String action;
 
+    public PolicyTriggersRow(String policy, String state) {
+        this.policy = policy;
+        this.state = state;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

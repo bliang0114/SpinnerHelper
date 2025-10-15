@@ -158,7 +158,7 @@ public class MQLConsoleEditor extends UserDataHolderBase implements FileEditor {
      * 获取选中行的内容（支持多行选择）
 
      * @return {@link List}
-     * @author xlwang
+     * @author zaydenwang
      */
     public List<String> getSelectedLines() {
         List<String> selectedLines = new ArrayList<>();
