@@ -65,7 +65,7 @@ public String runScript(Context ctx, String[] args) throws Exception {
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
-
+    <depends>com.intellij.modules.java</depends> <!-- 添加这一行 -->
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij" >
@@ -76,7 +76,6 @@ public String runScript(Context ctx, String[] args) throws Exception {
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
         <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
         <applicationService serviceImplementation="com.bol.spinner.config.MatrixDriversConfig"/>
-
         <!-- MQL语言支持 -->
         <fileType name="MQL File"
                   implementationClass="com.bol.spinner.editor.MQLFileType"
@@ -96,6 +95,7 @@ public String runScript(Context ctx, String[] args) throws Exception {
         <colorSettingsPage implementation="com.bol.spinner.editor.highlights.MQLColorSettingsPage"/>
 
         <fileEditorProvider implementation="com.bol.spinner.editor.ui.MQLFileEditorProvider"/>
+        <fileEditorProvider implementation="com.bol.spinner.editor.ui.MatrixCommonViewProvider"/>
     </extensions>
     <actions>
         <action id="SpinnerDeploy" class="com.bol.spinner.action.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
@@ -111,6 +111,9 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.Remove"
                     class="com.bol.spinner.action.RemoveEnvAction"
                     icon="AllIcons.General.Remove"/>
+            <action id="Spinner Config.Copy"
+                    class="com.bol.spinner.action.CopyEnvAction"
+                    icon="AllIcons.Actions.Copy"/>
             <separator/>
             <action id="Spinner Config.Connect"
                     class="com.bol.spinner.action.ConnectAction"
@@ -125,9 +128,6 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.URLParser"
                     class="com.bol.spinner.action.URLParserAction"
                     icon="AllIcons.General.Web"/>
-            <action id="Spinner Config.MQLBox"
-                    class="com.bol.spinner.action.MQLBoxTbAction"
-                    icon="AllIcons.Nodes.DataTables"/>
             <action id="Spinner Config.MQLConsole"
                     class="com.bol.spinner.action.MQLConsoleAction"
                     icon="AllIcons.Nodes.Console"/>
@@ -136,6 +136,21 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.Dependencies"
                     class="com.bol.spinner.action.MatrixDriverSettingsAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>
+        </group>
+        <group id="Spinner Config.More" icon="AllIcons.Actions.MoreHorizontal" popup="true">
+            <add-to-group group-id="Spinner Config.Toolbar" anchor="after" relative-to-action="Spinner Config.MQLConsole"/>
+            <action id="Spinner Config.Program"
+                    class="com.bol.spinner.action.ProgramAction"
+                    icon="AllIcons.General.ProjectStructure"/>
+            <action id="Spinner Config.FormAndTableAction"
+                    class="com.bol.spinner.action.FormAndTableAction"
+                    icon="AllIcons.Nodes.DataTables"/>
+            <action id="Spinner Config.TypeView"
+                    class="com.bol.spinner.action.TypeViewAction"
+                    icon="AllIcons.General.ShowInfos"/>
+            <action id="Spinner Config.RelationshipView"
+                    class="com.bol.spinner.action.RelationshipViewAction"
+                    icon="AllIcons.General.ShowInfos"/>
         </group>
         <group id="MQL Editor.Toolbar">
             <action id="MQL Editor.Run"

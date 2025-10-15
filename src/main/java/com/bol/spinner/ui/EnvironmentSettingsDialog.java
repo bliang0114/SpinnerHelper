@@ -19,7 +19,6 @@ import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.components.fields.ExtendableTextComponent;
 import com.intellij.ui.components.fields.ExtendableTextField;
 import com.intellij.util.ui.FormBuilder;
-import ext.plantuml.com.google.zxing.qrcode.encoder.MatrixUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.Nullable;
 
@@ -106,6 +105,15 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                 .addTooltip("E.g., VPLMAdmin.Company Name.Common Space")
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
+    }
+
+    public void setValue(EnvironmentConfig environment) {
+        hostUrlField.setText(environment.getHostUrl());
+        usernameField.setText(environment.getUser());
+        passwordField.setText(environment.getPassword());
+        vaultField.setText(environment.getVault());
+        securityContextComboBox.setItem(environment.getSecurityContext());
+        driverComboBox.setItem(environment.getDriver());
     }
 
     private String getName() {

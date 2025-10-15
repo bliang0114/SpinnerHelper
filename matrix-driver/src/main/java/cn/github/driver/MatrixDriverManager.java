@@ -21,7 +21,7 @@ public class MatrixDriverManager {
      * 注册 Matrix 驱动
      *
      * @param driver Matrix 驱动
-     * @author xlwang
+     * @author zaydenwang
      */
     public static void registerDriver(MatrixDriver driver) {
         if (driver != null) {
@@ -35,7 +35,7 @@ public class MatrixDriverManager {
      * 确保驱动已经初始化
      *
      * @param classLoader 驱动所在的类加载器
-     * @author xlwang
+     * @author zaydenwang
      */
     private static void ensureDriversInitialized(@NonNull ClassLoader classLoader) {
         if (driversInitialized) {
@@ -65,7 +65,7 @@ public class MatrixDriverManager {
      * @param driver      Matrix 驱动
      * @param classLoader 驱动所在的类加载器
      * @return {@link boolean}
-     * @author xlwang
+     * @author zaydenwang
      */
     private static boolean isDriverAllowed(MatrixDriver driver, ClassLoader classLoader) {
         boolean result = false;
@@ -89,7 +89,7 @@ public class MatrixDriverManager {
      * @param vault       Vault
      * @param classLoader 类加载器
      * @return {@link MatrixConnection}
-     * @author xlwang
+     * @author zaydenwang
      */
     public static MatrixConnection getConnection(String url, String username, String password, String vault, ClassLoader classLoader) throws MQLException {
         return getConnection(url, username, password, vault, null, classLoader);
@@ -105,7 +105,7 @@ public class MatrixDriverManager {
      * @param role        安全上下文
      * @param classLoader 类加载器
      * @return {@link MatrixConnection}
-     * @author xlwang
+     * @author zaydenwang
      */
     public static MatrixConnection getConnection(String url, String username, String password, String vault, String role, ClassLoader classLoader) throws MQLException {
         if (url == null) {

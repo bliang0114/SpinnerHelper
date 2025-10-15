@@ -1,27 +1,36 @@
-package com.bol.spinner.action;
+package com.bol.spinner.action; // 请根据你的实际包名调整
 
 import com.bol.spinner.config.EnvironmentConfig;
-import com.bol.spinner.config.SpinnerToken;
+import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.bol.spinner.ui.EnvironmentToolWindow;
-import com.bol.spinner.ui.MQL;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
 
-public class MQLBoxTbAction extends AnAction {
+public class ProgramAction extends AnAction {
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return super.getActionUpdateThread();
+    }
+
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        if (SpinnerToken.connection == null) {
-            UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
-            return;
-        }
-        new MQL().main();
+        if (project == null) return;
+
+        // 创建一个虚拟文件用于标识编辑器
+        LightVirtualFile file = new LightVirtualFile("Program View");
+        file.setFileType(MatrixDataViewFileType.PROGRAM);
+        FileEditorManager.getInstance(project).openFile(file, true);
     }
 
+    // ... 你已有的 update 和 getActionUpdateThread 方法 ...
     @Override
     public void update(@NotNull AnActionEvent e) {
         Project project = e.getProject();
@@ -36,10 +45,5 @@ public class MQLBoxTbAction extends AnAction {
             return;
         }
         e.getPresentation().setEnabled(environment.isConnected());
-    }
-
-    @Override
-    public @NotNull ActionUpdateThread getActionUpdateThread() {
-        return super.getActionUpdateThread();
     }
 }

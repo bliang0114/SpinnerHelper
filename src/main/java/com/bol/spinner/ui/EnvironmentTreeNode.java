@@ -1,9 +1,11 @@
 package com.bol.spinner.ui;
 
 import com.bol.spinner.config.EnvironmentConfig;
+import lombok.Getter;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 
+@Getter
 public class EnvironmentTreeNode extends DefaultMutableTreeNode {
     private final EnvironmentConfig environment;
 
@@ -18,11 +20,9 @@ public class EnvironmentTreeNode extends DefaultMutableTreeNode {
         add(new DetailTreeNode("Security Context", environment.getSecurityContext()));
     }
 
-    public EnvironmentConfig getEnvironment() {
-        return environment;
-    }
 }
 
+@Getter
 class DetailTreeNode extends DefaultMutableTreeNode {
     private final String key;
     private final String value;
@@ -33,11 +33,4 @@ class DetailTreeNode extends DefaultMutableTreeNode {
         this.value = value;
     }
 
-    public String getKey() {
-        return key;
-    }
-
-    public String getValue() {
-        return value;
-    }
 }

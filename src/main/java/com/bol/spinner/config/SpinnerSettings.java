@@ -6,9 +6,6 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,14 +21,6 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
 
     public static SpinnerSettings getInstance(Project project){
         return project.getService(SpinnerSettings.class);
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class Dependency {
-        private String name;
-        private String path;
     }
 
     @Override

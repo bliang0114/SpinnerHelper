@@ -1,9 +1,7 @@
 package com.bol.spinner.ui;
 
 import cn.github.driver.MatrixDriver;
-import cn.github.driver.MatrixDriverManager;
 import com.bol.spinner.config.MatrixDriversConfig;
-import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.util.MatrixJarClassLoader;
 import com.bol.spinner.util.UIUtil;
 import com.intellij.CommonBundle;
@@ -11,7 +9,6 @@ import com.intellij.openapi.actionSystem.ActionToolbarPosition;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -29,15 +26,11 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
@@ -51,7 +44,7 @@ public class MatrixDriversDialog extends DialogWrapper {
     private JBTable driverTable;
     private ComboBox<String> driverClassComboBox;
     private JBTextField driverNameField;
-    private List<VirtualFile> existedJars = new ArrayList<>();
+    private final List<String> existedJars = new ArrayList<>();
 
     public MatrixDriversDialog(@Nullable Project project) {
         super(true); // 使用当前窗口作为父窗口
@@ -151,13 +144,12 @@ public class MatrixDriversDialog extends DialogWrapper {
                 .withTitle("Select Jar File");
         VirtualFile[] files = FileChooser.chooseFiles(descriptor, null, null);
         for (VirtualFile file : files) {
-            if (!existedJars.contains(file)) {
-                existedJars.add(file);
-                driverTableModel.addRow(new Object[]{file.getName(), file.getPath()});
+            if (!existedJars.contains(file.getCanonicalPath())) {
+                existedJars.add(file.getCanonicalPath());
+                driverTableModel.addRow(new Object[]{file.getName(), file.getCanonicalPath()});
             }
         }
-        List<String> implementations = getDriverImplementation();
-        implementations.forEach(driverClassComboBox::addItem);
+        reloadDriverImplementation();
     }
 
     /**
@@ -168,9 +160,11 @@ public class MatrixDriversDialog extends DialogWrapper {
         if (selectedRows.length > 0) {
             for (int i = selectedRows.length - 1; i >= 0; i--) {
                 int modelRow = driverTable.convertRowIndexToModel(selectedRows[i]);
-                existedJars.remove(modelRow);
+                String path = driverTableModel.getValueAt(modelRow, 1).toString();
+                existedJars.remove(path);
                 driverTableModel.removeRow(modelRow);
             }
+            reloadDriverImplementation();
         }
     }
 
@@ -188,6 +182,7 @@ public class MatrixDriversDialog extends DialogWrapper {
         driverClassComboBox.removeAllItems();
         driverClassComboBox.addItem("Not Specified");
         driverTableModel.setRowCount(0);
+        existedJars.clear();
 
         String driverName = driverListModel.elementAt(selectedIndex);
         driverNameField.setText(driverName);
@@ -195,13 +190,14 @@ public class MatrixDriversDialog extends DialogWrapper {
         if (driverInfo != null) {
             List<MatrixDriversConfig.DriverFile> driverFiles = driverInfo.getDriverFiles();
             for (MatrixDriversConfig.DriverFile driverFile : driverFiles) {
-                existedJars.add(VirtualFileManager.getInstance().findFileByNioPath(Path.of(driverFile.getPath())));
+                existedJars.add(driverFile.getPath());
                 driverTableModel.addRow(new Object[]{driverFile.getName(), driverFile.getPath()});
             }
 
+            reloadDriverImplementation();
+
             String driverClass = driverInfo.getDriverClass();
             if (driverClass != null && !driverClass.isEmpty()) {
-                driverClassComboBox.addItem(driverClass);
                 driverClassComboBox.setSelectedItem(driverClass);
             }
         }
@@ -229,7 +225,9 @@ public class MatrixDriversDialog extends DialogWrapper {
         }
     }
 
-    private List<String> getDriverImplementation() {
+    private void reloadDriverImplementation() {
+        driverClassComboBox.removeAllItems();
+        driverClassComboBox.addItem("Not Specified");
         int rowCount = driverTableModel.getRowCount();
         List<File> files = new ArrayList<>(rowCount);
         for (int i = 0; i < rowCount; i++) {
@@ -237,16 +235,15 @@ public class MatrixDriversDialog extends DialogWrapper {
             files.add(new File(path));
         }
         if (files.isEmpty()) {
-            return Collections.emptyList();
+            return;
         }
-
         List<String> implementations = new ArrayList<>();
         try (MatrixJarClassLoader classLoader = new MatrixJarClassLoader(files, this.getClass().getClassLoader())) {
             ServiceLoader<MatrixDriver> serviceLoader = ServiceLoader.load(MatrixDriver.class, classLoader);
             for (MatrixDriver implementation : serviceLoader) {
                 implementations.add(implementation.getClass().getName());
             }
-            return implementations;
+            implementations.stream().distinct().forEach(driverClassComboBox::addItem);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

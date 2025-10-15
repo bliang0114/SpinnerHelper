@@ -18,7 +18,7 @@ public class MatrixJarLoadManager {
      * @param jarFiles    驱动包
      * @param parent      父类加载器
      * @return {@link ClassLoader}
-     * @author xlwang
+     * @author zaydenwang
      */
     public static ClassLoader loadMatrixJars(String environment, List<File> jarFiles, ClassLoader parent) {
         MatrixJarClassLoader classLoader = environmentClassLoaders.get(environment);
