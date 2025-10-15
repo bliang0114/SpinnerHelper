@@ -22,7 +22,13 @@ public class AttributesTableComponent extends AbstractDataViewTableComponent<Att
     private JBCheckBox checkBox;
 
     public AttributesTableComponent(VirtualFile virtualFile) {
-        super(virtualFile, new Object[]{"Name", "Owner", "Type", "Default", "Range"}, new int[]{200, 150, 150, 150, 200}, "Attributes Table Toolbar");
+        super(virtualFile, new Object[]{"Name", "Owner", "Type", "Default", "Range"}, new int[]{260, 260, 100, 150, 500}, "Attributes Table Toolbar");
+    }
+
+    @Override
+    protected void initComponents() {
+        super.initComponents();
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     }
 
     @Override

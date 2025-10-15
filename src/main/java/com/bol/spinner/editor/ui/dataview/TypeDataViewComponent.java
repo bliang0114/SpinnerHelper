@@ -110,9 +110,9 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         tabbedPane.add("Properties", new PropertiesTableComponent(virtualFile));
         tabbedPane.add("Interfaces", new InterfacesTableComponent(virtualFile));
         tabbedPane.add("Relations", new RelationsTableComponent(virtualFile));
-        tabbedPane.add("Triggers", new JPanel());
-        tabbedPane.add("Policy Triggers", new JPanel());
-        tabbedPane.add("Objects", new JPanel());
+        tabbedPane.add("Triggers", new TriggersTableComponent(virtualFile));
+        tabbedPane.add("Policy Triggers", new PolicyTriggersTableComponent(virtualFile));
+        tabbedPane.add("Objects", new ObjectsTableComponent(virtualFile));
         add(tabbedPane, BorderLayout.CENTER);
     }
 

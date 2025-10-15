@@ -3,7 +3,6 @@ package com.bol.spinner.editor.ui.dataview;
 import cn.github.driver.MQLException;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
-import com.bol.spinner.editor.ui.dataview.bean.AttributesRow;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -59,18 +58,31 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
         setupLayout();
     }
 
-    private void initComponents() {
-        this.tableModel = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+    public AbstractDataViewTableComponent(VirtualFile virtualFile, @NotNull DefaultTableModel tableModel, int @NotNull [] columnWidths, String toolbarId) {
+        this.virtualFile = virtualFile;
+        this.executor = Executors.newSingleThreadScheduledExecutor();
+        this.tableModel = tableModel;
+        this.columnWidths = columnWidths;
+        this.toolbarId = toolbarId;
+        initComponents();
+        setupListener();
+        setupLayout();
+    }
 
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                return String.class;
-            }
-        };
+    protected void initComponents() {
+        if (this.tableModel == null) {
+            this.tableModel = new DefaultTableModel(columns, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+
+                @Override
+                public Class<?> getColumnClass(int columnIndex) {
+                    return String.class;
+                }
+            };
+        }
         table = new JBTable(tableModel);
         table.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
@@ -124,7 +136,10 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
         toolbarPanel.add(toolbar.getComponent(), BorderLayout.EAST);
 
         add(toolbarPanel, BorderLayout.NORTH);
-        add(ScrollPaneFactory.createScrollPane(table), BorderLayout.CENTER);
+        JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(table);
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        add(scrollPane, BorderLayout.CENTER);
     }
 
     protected JComponent getToolbarComponent() {

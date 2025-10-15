@@ -25,8 +25,14 @@ public class InterfacesTableComponent extends AbstractDataViewTableComponent<Int
     public InterfacesTableComponent(VirtualFile virtualFile) {
         super(virtualFile,
                 new Object[]{"Interface Name", "Attribute Name", "Attribute Owner", "Type", "Default", "Range"},
-                new int[]{200, 200, 200, 150, 150, 200},
+                new int[]{260, 260, 260, 150, 150, 500},
                 "Interfaces Table Toolbar");
+    }
+
+    @Override
+    protected void initComponents() {
+        super.initComponents();
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     }
 
     @Override
