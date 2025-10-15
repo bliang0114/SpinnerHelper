@@ -46,7 +46,7 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
     protected String name;
     protected String toolbarId;
     protected final List<T> rowList = new ArrayList<>();
-    private final ScheduledExecutorService executor;
+    protected final ScheduledExecutorService executor;
 
     public AbstractDataViewTableComponent(VirtualFile virtualFile, @NotNull Object[] columns, int @NotNull [] columnWidths, String toolbarId) {
         this.virtualFile = virtualFile;
@@ -87,7 +87,7 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
         toolbarActionGroup.add(new RefreshAction());
     }
 
-    private void setupListener() {
+    protected void setupListener() {
         searchTextField.addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {

@@ -3,7 +3,7 @@ package com.bol.spinner.editor.ui;
 import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.bol.spinner.editor.ui.dataview.TypeDataViewComponent;
 import com.bol.spinner.ui.FormsAndTablesView;
-import com.bol.spinner.ui.ProgramView;
+import com.bol.spinner.editor.ui.dataview.ProgramTableComponent;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorState;
@@ -35,7 +35,7 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
                 this.editorComponent = new TypeDataViewComponent(virtualFile);
                 break;
             case PROGRAM:
-                this.editorComponent = new ProgramView(project, virtualFile);
+                this.editorComponent = new ProgramTableComponent(project, virtualFile);
                 break;
             case FORM_TABLE:
                 this.editorComponent = new FormsAndTablesView(project, virtualFile);
