@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.bol"
-version = "V2.01"
+version = "V2.02"
 
 repositories {
 //    mavenCentral()
