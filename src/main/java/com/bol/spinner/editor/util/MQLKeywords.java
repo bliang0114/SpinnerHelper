@@ -70,6 +70,7 @@ public class MQLKeywords {
             "rechecksum",
             "recordsep",
             "recordseparator",
+            "recurse",
             "rehash",
             "remove",
             "resume",

@@ -3,10 +3,8 @@ package com.bol.spinner.editor.ui.dataview;
 import cn.github.driver.MQLException;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.editor.MQLLanguage;
-import com.bol.spinner.editor.ui.MQLConsoleManager;
 import com.bol.spinner.editor.ui.dataview.bean.ProgramsRow;
 import com.bol.spinner.util.MQLUtil;
-import com.bol.spinner.util.UIUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditor;
@@ -116,14 +114,8 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
                 mqlVirtualFile.setContent(programCode, programCode, true);
                 mqlVirtualFile.setWritable(true);
 
-                try {
-                    MQLConsoleManager consoleManager = MQLConsoleManager.getInstance(myProject);
-                    consoleManager.openOrFocusMQLConsole(mqlVirtualFile);
-                } catch (Exception ex) {
-                    UIUtil.showErrorNotification(myProject,
-                            "Failed to open MQL Editor: " + ex.getMessage(),
-                            "MQL Editor Error");
-                }
+                FileEditorManager.getInstance(myProject);
+                fileEditorManager.openFile(mqlVirtualFile, true);
             } else {
                 String fileExt = "JAVA".equals(programType) ? ".java" : ".txt";
                 String safeFileName = programName.replaceAll("[^a-zA-Z0-9_.-]", "_") + fileExt;

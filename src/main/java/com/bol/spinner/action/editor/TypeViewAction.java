@@ -1,4 +1,4 @@
-package com.bol.spinner.action;
+package com.bol.spinner.action.editor;
 
 import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.intellij.openapi.actionSystem.AnAction;

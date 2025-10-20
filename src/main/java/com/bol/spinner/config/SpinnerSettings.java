@@ -6,6 +6,7 @@ import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.xmlb.XmlSerializerUtil;
+import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,6 +19,12 @@ import java.util.Optional;
 public final class SpinnerSettings implements PersistentStateComponent<SpinnerSettings> {
     @Setter
     private List<EnvironmentConfig> environments;
+    @Getter
+    @Setter
+    public boolean keepMQLExecuteHistory = true;
+    @Getter
+    @Setter
+    public String lineDelimiter = "\\n";
 
     public static SpinnerSettings getInstance(Project project){
         return project.getService(SpinnerSettings.class);

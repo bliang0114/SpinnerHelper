@@ -1,4 +1,4 @@
-package com.bol.spinner.action; // 请根据你的实际包名调整
+package com.bol.spinner.action.editor; // 请根据你的实际包名调整
 
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.editor.MatrixDataViewFileType;

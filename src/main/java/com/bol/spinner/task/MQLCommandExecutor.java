@@ -3,6 +3,7 @@ package com.bol.spinner.task;
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
+import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.execution.MQLExecutorToolWindow;
 import com.bol.spinner.util.ConsoleManager;
@@ -49,6 +50,9 @@ public class MQLCommandExecutor extends Task.Backgroundable {
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         ConsoleManager consoleManager = toolWindow.getConsoleManager();
+        if (!SpinnerSettings.getInstance(project).isKeepMQLExecuteHistory()) {
+            consoleManager.clear();
+        }
         ApplicationManager.getApplication().invokeLater(() -> {
             ToolWindow window = UIUtil.getToolWindow(project, "MQLExecutor");
             window.show(() -> {

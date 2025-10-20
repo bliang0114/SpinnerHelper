@@ -1,4 +1,4 @@
-package com.bol.spinner.action;
+package com.bol.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
 import com.bol.spinner.config.SpinnerToken;
