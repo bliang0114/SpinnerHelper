@@ -1,4 +1,4 @@
-package com.bol.spinner.action;
+package com.bol.spinner.action.basic;
 
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerSettings;

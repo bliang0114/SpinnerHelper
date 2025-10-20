@@ -109,6 +109,7 @@ NUMBER         = ({DIGIT}+|{DIGIT}*\.{DIGIT}+)([eE][-+]?{DIGIT}+)? // 数值（�
     "rechecksum"           { return MQLTokenTypes.KEYWORD; }
     "recordsep"            { return MQLTokenTypes.KEYWORD; }
     "recordseparator"      { return MQLTokenTypes.KEYWORD; }
+    "recurse"              { return MQLTokenTypes.KEYWORD; }
     "rehash"               { return MQLTokenTypes.KEYWORD; }
     "remove"               { return MQLTokenTypes.KEYWORD; }
     "resume"               { return MQLTokenTypes.KEYWORD; }

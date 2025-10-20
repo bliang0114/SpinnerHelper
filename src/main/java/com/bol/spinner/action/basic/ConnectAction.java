@@ -1,4 +1,4 @@
-package com.bol.spinner.action;
+package com.bol.spinner.action.basic;
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnActionEvent;

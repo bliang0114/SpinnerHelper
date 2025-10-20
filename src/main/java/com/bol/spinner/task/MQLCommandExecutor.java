@@ -3,6 +3,7 @@ package com.bol.spinner.task;
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
+import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.execution.MQLExecutorToolWindow;
 import com.bol.spinner.util.ConsoleManager;
@@ -35,44 +36,48 @@ public class MQLCommandExecutor extends Task.Backgroundable {
 
     @Override
     public void run(@NotNull ProgressIndicator indicator) {
-        indicator.setIndeterminate(true);
         if (SpinnerToken.connection == null) {
             UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
             return;
         }
+
         MQLExecutorToolWindow toolWindow = UIUtil.getMQLExecutorToolWindow(project);
         log.info("toolWindow: {}", toolWindow);
         if (toolWindow == null) {
             UIUtil.showWarningNotification(project, "Wait for executor window initialize, 2 seconds", "");
             return;
         }
+
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         ConsoleManager consoleManager = toolWindow.getConsoleManager();
-
-        ToolWindow window = UIUtil.getToolWindow(project, "MQLExecutor");
-        for (int i = 0; i < commandList.size(); i++) {
-            String command = commandList.get(i);
-            long startTime = System.currentTimeMillis();
-            indicator.setText2("Processing " + (i + 1) + " / " + commandList.size());
-            invokeUI(() -> window.show(()  -> consoleManager.print("MQL>" + command)));
-            try {
-                MatrixStatement statement = SpinnerToken.connection.executeStatement(command);
-                MatrixResultSet resultSet = statement.executeQuery();
-                if (resultSet.isSuccess()) {
-                    invokeUI(() -> window.show(()  -> consoleManager.print(resultSet.getResult(), ConsoleViewContentType.LOG_INFO_OUTPUT)));
-                } else {
-                    invokeUI(() -> window.show(()  -> consoleManager.error(resultSet.getMessage())));
-                }
-            } catch (MQLException e) {
-                invokeUI(() -> window.show(()  -> consoleManager.error(e.getLocalizedMessage())));
-            }
-            long endTime = System.currentTimeMillis();
-            String formatStr = "Start Time: %s, End Time: %s, Duration: %dms";
-            invokeUI(() -> window.show(()  -> consoleManager.print(String.format(formatStr, dateFormat.format(new Date(startTime)), dateFormat.format(new Date(endTime)), endTime - startTime), ConsoleViewContentType.LOG_VERBOSE_OUTPUT)));
+        if (!SpinnerSettings.getInstance(project).isKeepMQLExecuteHistory()) {
+            consoleManager.clear();
         }
-    }
-
-    private void invokeUI(Runnable runnable) {
-        ApplicationManager.getApplication().invokeLater(runnable);
+        ApplicationManager.getApplication().invokeLater(() -> {
+            ToolWindow window = UIUtil.getToolWindow(project, "MQLExecutor");
+            window.show(() -> {
+                for (int i = 0; i < commandList.size(); i++) {
+                    String command = commandList.get(i);
+                    long startTime = System.currentTimeMillis();
+                    indicator.setText2("Processing " + (i + 1) + " / " + commandList.size());
+                    consoleManager.print("MQL>" + command);
+                    try {
+                        MatrixStatement statement = SpinnerToken.connection.executeStatement(command);
+                        MatrixResultSet resultSet = statement.executeQuery();
+                        if (resultSet.isSuccess()) {
+                            consoleManager.print(resultSet.getResult(), ConsoleViewContentType.LOG_INFO_OUTPUT);
+                        } else {
+                            consoleManager.error(resultSet.getMessage());
+                        }
+                    } catch (MQLException e) {
+                        consoleManager.error(e.getLocalizedMessage());
+                    }
+                    long endTime = System.currentTimeMillis();
+                    String formatStr = "Start Time: %s, End Time: %s, Duration: %dms";
+                    consoleManager.print("");
+                    consoleManager.print(String.format(formatStr, dateFormat.format(new Date(startTime)), dateFormat.format(new Date(endTime)), endTime - startTime), ConsoleViewContentType.LOG_VERBOSE_OUTPUT);
+                }
+            });
+        });
     }
 }
