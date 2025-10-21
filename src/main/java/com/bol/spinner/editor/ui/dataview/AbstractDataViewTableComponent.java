@@ -3,6 +3,7 @@ package com.bol.spinner.editor.ui.dataview;
 import cn.github.driver.MQLException;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
+import com.bol.spinner.customize.CellCopyTransferHandler;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -84,6 +85,7 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
             };
         }
         table = new JBTable(tableModel);
+        table.setTransferHandler(new CellCopyTransferHandler(table));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
         table.setBackground(JBColor.background());
