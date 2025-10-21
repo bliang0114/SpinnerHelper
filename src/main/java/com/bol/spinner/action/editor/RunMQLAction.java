@@ -40,7 +40,7 @@ public class RunMQLAction extends AnAction {
         if (StrUtil.isNotEmpty(selectedText)) {
             commandList = List.of(selectedText.split(spinnerSettings.getLineDelimiter()));
         }else{
-            commandList = List.of(EditorUtil.getLineContent(editor));
+            commandList = List.of(EditorUtil.getLineContent(editor).split(spinnerSettings.getLineDelimiter()));
         }
         // 去除注释行和空行
         commandList = commandList.stream()
