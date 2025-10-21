@@ -131,6 +131,10 @@ public String runScript(Context ctx, String[] args) throws Exception {
             <action id="Spinner Config.RelationshipView"
                     class="com.bol.spinner.action.editor.RelationshipViewAction"
                     icon="AllIcons.General.ShowInfos"/>
+
+            <action id="Spinner Config.MenuAndCommandAction"
+                    class="com.bol.spinner.action.editor.MenuAndCommandAction"
+                    icon="AllIcons.Nodes.NativeLibrariesFolder"/>
         </group>
         <action id="MQL Editor.Run"
                 class="com.bol.spinner.action.editor.RunMQLAction"

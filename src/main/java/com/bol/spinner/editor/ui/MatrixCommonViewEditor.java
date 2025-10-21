@@ -3,8 +3,9 @@ package com.bol.spinner.editor.ui;
 import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.bol.spinner.editor.ui.dataview.RelationshipDataViewComponent;
 import com.bol.spinner.editor.ui.dataview.TypeDataViewComponent;
-import com.bol.spinner.ui.FormsAndTablesView;
 import com.bol.spinner.editor.ui.dataview.ProgramTableComponent;
+import com.bol.spinner.ui.MenuAndCommandView;
+import com.bol.spinner.ui.FormsAndTablesView;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorState;
@@ -41,7 +42,10 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
                 this.editorComponent = new ProgramTableComponent(project, virtualFile);
                 break;
             case FORM_TABLE:
-                this.editorComponent = new FormsAndTablesView(project, virtualFile);
+                this.editorComponent =new FormsAndTablesView(project, virtualFile);
+                break;
+            case MENU_COMMAND:
+                this.editorComponent =new MenuAndCommandView();
                 break;
             default:
                 this.editorComponent = new JPanel();

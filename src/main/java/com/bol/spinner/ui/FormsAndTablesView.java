@@ -4,18 +4,19 @@ import cn.github.driver.MQLException;
 import com.bol.spinner.util.MQLUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.colors.EditorColorsManager;
 import com.intellij.openapi.editor.colors.EditorColorsScheme;
 import com.intellij.openapi.editor.colors.EditorFontType;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
-import com.intellij.ui.components.JBList;
-import com.intellij.ui.components.JBPanel;
-import com.intellij.ui.components.JBLabel;
-import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.components.*;
 import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -24,13 +25,35 @@ import javax.swing.event.DocumentListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.text.*;
 import java.awt.*;
-import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class FormsAndTablesView extends JBPanel {
+public class FormsAndTablesView extends JBPanel implements Disposable {
+    private static final Logger LOG = Logger.getInstance(FormsAndTablesView.class);
+    private static final int SPLIT_PANE_DIVIDER_LOCATION = 300;
+    private static final int LIST_PREFERRED_WIDTH = 300;
+    private static final int LIST_PREFERRED_HEIGHT = 400;
+    private static final String TYPE_PATTERN_REGEX = "\\((.*?)\\)";
+    private static final Pattern TYPE_PATTERN = Pattern.compile(TYPE_PATTERN_REGEX);
+    private static final Pattern KEYWORDS_PATTERN;
+    private static final Pattern STRING_PATTERN = Pattern.compile("\"[^\"]*\"|'[^']*'");
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("\\b\\d+\\b|\\b(true|false)\\b");
+
+    static {
+        String[] keywords = {
+                "form", "web", "field", "expressiontype", "multiline", "edit", "label",
+                "range", "setting", "value", "nothidden", "property", "created", "modified",
+                "businessobject", "autoheight", "autowidth", "editable", "hidden", "href",
+                "sorttype", "true", "false", "table", "column", "set", "name", "user",
+                "description", "inactive"
+        };
+        String keywordsRegex = "\\b(" + String.join("|", Arrays.stream(keywords).map(Pattern::quote).toArray(String[]::new)) + ")\\b";
+        KEYWORDS_PATTERN = Pattern.compile(keywordsRegex, Pattern.CASE_INSENSITIVE);
+    }
+
     private final Project myProject;
     private final VirtualFile myFile;
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
@@ -40,8 +63,7 @@ public class FormsAndTablesView extends JBPanel {
     private final JCheckBox formsCb = new JCheckBox("Forms", true);
     private final JCheckBox tablesCb = new JCheckBox("Tables", true);
     private final List<Item> allItems = new ArrayList<>();
-    private final static Pattern pattern = Pattern.compile("\\((.*?)\\)");
-    // 高亮样式
+    private final List<Disposable> disposables = new ArrayList<>();
     private final MutableAttributeSet normalAttr;
     private final MutableAttributeSet keywordAttr;
     private final MutableAttributeSet stringAttr;
@@ -60,20 +82,17 @@ public class FormsAndTablesView extends JBPanel {
     public FormsAndTablesView(Project project, VirtualFile file) {
         myProject = project;
         myFile = file;
-        // 初始化高亮样式
         normalAttr = new SimpleAttributeSet();
         keywordAttr = new SimpleAttributeSet();
         stringAttr = new SimpleAttributeSet();
         numberAttr = new SimpleAttributeSet();
 
-        // 设置样式属性
         StyleConstants.setForeground(normalAttr, JBColor.foreground());
         StyleConstants.setForeground(keywordAttr, new JBColor(new Color(86, 156, 214), new Color(78, 148, 206)));
         StyleConstants.setForeground(stringAttr, new JBColor(new Color(79, 163, 49), new Color(126, 198, 153)));
         StyleConstants.setForeground(numberAttr, new JBColor(new Color(61, 113, 26), new Color(184, 215, 163)));
-
-        // 设置关键字粗体
         StyleConstants.setBold(keywordAttr, true);
+
         setLayout(new BorderLayout(10, 10));
         setBorder(JBUI.Borders.empty(8));
         initComponents();
@@ -83,18 +102,15 @@ public class FormsAndTablesView extends JBPanel {
     }
 
     private void initComponents() {
-        // 顶部：过滤 + 查找区域
         JBPanel topPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT, 5, 5));
         topPanel.add(new JBLabel("Filter:"));
         topPanel.add(filterField);
         topPanel.add(Box.createHorizontalStrut(10));
         add(topPanel, BorderLayout.NORTH);
-        // 中间：左侧列表 + 右侧内容区
-        JBPanel centerPanel = new JBPanel<>(new BorderLayout());
 
-        // 左侧列表
+        JBPanel centerPanel = new JBPanel<>(new BorderLayout());
         JBScrollPane listScrollPane = new JBScrollPane(itemList);
-        listScrollPane.setPreferredSize(new Dimension(300, 400));
+        listScrollPane.setPreferredSize(new Dimension(LIST_PREFERRED_WIDTH, LIST_PREFERRED_HEIGHT));
 
         itemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         itemList.setCellRenderer(new DefaultListCellRenderer() {
@@ -103,30 +119,27 @@ public class FormsAndTablesView extends JBPanel {
                                                           boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (isSelected) {
-                    setBackground(new JBColor(new Color(63, 127, 191), new Color(63, 127, 191)));
-                    setForeground(JBColor.WHITE);
+                    setBackground(UIUtil.getListSelectionBackground());
+                    setForeground(UIUtil.getListSelectionForeground());
                 }
                 return this;
             }
         });
 
-        // 右侧内容区域
         contentPane.setEditable(false);
         contentPane.setContentType("text/plain");
-
         EditorColorsScheme scheme = EditorColorsManager.getInstance().getGlobalScheme();
         contentPane.setFont(scheme.getFont(EditorFontType.PLAIN));
         JBScrollPane contentScrollPane = new JBScrollPane(contentPane);
 
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, listScrollPane, contentScrollPane);
-        splitPane.setDividerLocation(300);
+        splitPane.setDividerLocation(SPLIT_PANE_DIVIDER_LOCATION);
         splitPane.setEnabled(true);
         splitPane.setDividerSize(3);
 
         centerPanel.add(splitPane, BorderLayout.CENTER);
         add(centerPanel, BorderLayout.CENTER);
 
-        // 底部：Forms/Tables 类型筛选
         JBPanel bottomPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT, 5, 5));
         bottomPanel.add(formsCb);
         bottomPanel.add(tablesCb);
@@ -146,6 +159,7 @@ public class FormsAndTablesView extends JBPanel {
                 }
                 ApplicationManager.getApplication().invokeLater(this::filterItems);
             } catch (MQLException e) {
+                LOG.error("Failed to load items", e);
                 ApplicationManager.getApplication().invokeLater(() ->
                         Messages.showErrorDialog(myProject, "Failed to load items: " + e.getMessage(), "Data Load Error"));
             }
@@ -168,26 +182,21 @@ public class FormsAndTablesView extends JBPanel {
     }
 
     private void setupListeners() {
-        filterField.getDocument().addDocumentListener(new DocumentListener() {
+        DocumentListener filterListener = new DocumentListener() {
             @Override
-            public void insertUpdate(DocumentEvent e) {
-                filterItems();
-            }
-
+            public void insertUpdate(DocumentEvent e) { filterItems(); }
             @Override
-            public void removeUpdate(DocumentEvent e) {
-                filterItems();
-            }
-
+            public void removeUpdate(DocumentEvent e) { filterItems(); }
             @Override
-            public void changedUpdate(DocumentEvent e) {
-                filterItems();
-            }
-        });
+            public void changedUpdate(DocumentEvent e) { filterItems(); }
+        };
+        filterField.getDocument().addDocumentListener(filterListener);
+        disposables.add(() -> filterField.getDocument().removeDocumentListener(filterListener));
 
         formsCb.addActionListener(e -> filterItems());
         tablesCb.addActionListener(e -> filterItems());
         itemList.addListSelectionListener(this::onListSelectionChanged);
+        disposables.add(() -> itemList.removeListSelectionListener(this::onListSelectionChanged));
     }
 
     private void onListSelectionChanged(ListSelectionEvent e) {
@@ -198,7 +207,7 @@ public class FormsAndTablesView extends JBPanel {
                 int bracketIndex = selectedText.indexOf(" (");
                 if (bracketIndex == -1) return;
                 String formOrTableName = selectedText.substring(0, bracketIndex);
-                Matcher typeMatch = pattern.matcher(selectedText);
+                Matcher typeMatch = TYPE_PATTERN.matcher(selectedText);
                 if (typeMatch.find()) {
                     String type = typeMatch.group(1);
                     ApplicationManager.getApplication().executeOnPooledThread(() -> {
@@ -219,6 +228,7 @@ public class FormsAndTablesView extends JBPanel {
                                 contentPane.setCaretPosition(0);
                             });
                         } catch (MQLException ex) {
+                            LOG.error("Failed to load content", ex);
                             ApplicationManager.getApplication().invokeLater(() ->
                                     Messages.showErrorDialog(myProject, "Failed to load content: " + ex.getMessage(), "Content Error"));
                         }
@@ -228,38 +238,21 @@ public class FormsAndTablesView extends JBPanel {
         }
     }
 
-
     private void applySyntaxHighlighting(String content) {
         StyledDocument doc = contentPane.getStyledDocument();
         try {
             doc.remove(0, doc.getLength());
             doc.insertString(0, content, normalAttr);
-            // 定义高亮关键字
-            String[] keywords = {
-                    "form", "web", "field", "expressiontype",
-                    "multiline", "edit", "label", "range",
-                    "setting", "value", "nothidden", "property", "created", "modified",
-                    "range", "businessobject", "autoheight", "autowidth", "editable", "hidden",
-                    "href", "sorttype", "true", "false", "table", "column", "set", "name","user","description","inactive"
-            };
-
-            for (String keyword : keywords) {
-                highlightPattern("\\b" + Pattern.quote(keyword) + "\\b", keywordAttr, content);
-            }
-            // 高亮字符串
-            highlightPattern("\"[^\"]*\"", stringAttr, content);
-            highlightPattern("'[^']*'", stringAttr, content);
-            // 高亮数字
-            highlightPattern("\\b\\d+\\b", numberAttr, content);
-            highlightPattern("\\b(true|false)\\b", numberAttr, content);
+            highlightPattern(KEYWORDS_PATTERN, keywordAttr, content);
+            highlightPattern(STRING_PATTERN, stringAttr, content);
+            highlightPattern(NUMBER_PATTERN, numberAttr, content);
         } catch (BadLocationException ex) {
-            // 忽略错误
+            LOG.warn("Failed to apply syntax highlighting", ex);
         }
     }
 
-    private void highlightPattern(String patternStr, AttributeSet attr, String content) {
+    private void highlightPattern(Pattern pattern, AttributeSet attr, String content) {
         try {
-            Pattern pattern = Pattern.compile(patternStr, Pattern.MULTILINE);
             Matcher matcher = pattern.matcher(content);
             StyledDocument doc = contentPane.getStyledDocument();
             while (matcher.find()) {
@@ -268,8 +261,13 @@ public class FormsAndTablesView extends JBPanel {
                 doc.setCharacterAttributes(start, end - start, attr, false);
             }
         } catch (Exception ex) {
-            // 忽略错误
+            LOG.warn("Highlight pattern failed", ex);
         }
     }
 
+    @Override
+    public void dispose() {
+        disposables.forEach(Disposer::dispose);
+        disposables.clear();
+    }
 }
