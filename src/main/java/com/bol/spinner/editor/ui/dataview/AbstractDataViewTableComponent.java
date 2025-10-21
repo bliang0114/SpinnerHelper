@@ -84,7 +84,7 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
             };
         }
         table = new JBTable(tableModel);
-        table.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
         table.setBackground(JBColor.background());
         table.setForeground(JBColor.foreground());

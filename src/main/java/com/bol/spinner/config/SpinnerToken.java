@@ -9,6 +9,7 @@ import java.io.IOException;
 public class SpinnerToken {
     public static MatrixConnection connection = null;
     public static String environmentName = null;
+    public static ObjectWhereExpression objectWhereExpression = null;
 
     public static void closeConnection() {
         try {

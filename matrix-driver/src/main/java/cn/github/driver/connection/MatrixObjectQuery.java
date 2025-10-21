@@ -7,7 +7,7 @@ public class MatrixObjectQuery {
     private String type = "*";
     private String name = "*";
     private String revision = "*";
-    private String whereExpression;
+    private String whereExpression = "";
     private String owner = "*";
     private String vault = "*";
     private short limit;

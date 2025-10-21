@@ -8,6 +8,7 @@ import com.bol.spinner.config.SpinnerToken;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
@@ -33,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implements Disposable {
+    private final Project project;
     private final VirtualFile virtualFile;
     private SearchTextField searchTextField;
     private DefaultListModel<String> listModel;
@@ -42,7 +44,8 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private final List<String> rowList = new ArrayList<>();
     private final ScheduledExecutorService executor;
 
-    public TypeDataViewComponent(VirtualFile virtualFile) {
+    public TypeDataViewComponent(Project project, VirtualFile virtualFile) {
+        this.project = project;
         this.virtualFile = virtualFile;
         executor = Executors.newSingleThreadScheduledExecutor();
         initComponents();
@@ -112,7 +115,7 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         tabbedPane.add("Relations", new RelationsTableComponent(virtualFile));
         tabbedPane.add("Triggers", new TriggersTableComponent(virtualFile));
         tabbedPane.add("Policy Triggers", new PolicyTriggersTableComponent(virtualFile));
-        tabbedPane.add("Objects", new ObjectsTableComponent(virtualFile));
+        tabbedPane.add("Objects", new ObjectsTableComponent(project, virtualFile));
         add(tabbedPane, BorderLayout.CENTER);
     }
 
