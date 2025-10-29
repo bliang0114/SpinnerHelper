@@ -135,7 +135,9 @@ public class MatrixCommonConnection implements MatrixConnection {
     @Override
     public void close() throws IOException {
         try {
-            this.context.shutdown();
+            if(this.context != null){
+                this.context.shutdown();
+            }
         } catch (MatrixException e) {
             throw new IOException(e);
         }
