@@ -1,9 +1,8 @@
 package com.bol.spinner.action.editor;
 
-import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.StrUtil;
 import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.config.SpinnerToken;
-import com.bol.spinner.editor.MQLFileType;
 import com.bol.spinner.task.MQLCommandExecutor;
 import com.bol.spinner.util.EditorUtil;
 import com.bol.spinner.util.UIUtil;
@@ -13,7 +12,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -39,10 +37,10 @@ public class RunMQLAction extends AnAction {
         log.info("Selected Text: {}", selectedText);
         List<String> commandList;
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
-        if (!selectedText.isEmpty()) {
+        if (StrUtil.isNotEmpty(selectedText)) {
             commandList = List.of(selectedText.split(spinnerSettings.getLineDelimiter()));
-        } else {
-            commandList = EditorUtil.getAllLines(editor);
+        }else{
+            commandList = List.of(EditorUtil.getLineContent(editor).split(spinnerSettings.getLineDelimiter()));
         }
         // 去除注释行和空行
         commandList = commandList.stream()

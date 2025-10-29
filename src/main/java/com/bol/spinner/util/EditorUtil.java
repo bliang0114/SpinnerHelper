@@ -3,6 +3,7 @@ package com.bol.spinner.util;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
+import com.intellij.openapi.util.TextRange;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +12,17 @@ public class EditorUtil {
 
     public static String getSelectedText(Editor editor) {
         return editor.getSelectionModel().getSelectedText();
+    }
+
+    public static String getLineContent(Editor editor){
+        int lineNumber = editor.getCaretModel().getCurrentCaret().getLogicalPosition().line;
+        if(lineNumber < 0){
+            return "";
+        }
+        return editor.getDocument().getText(new TextRange(
+                editor.getDocument().getLineStartOffset(lineNumber),
+                editor.getDocument().getLineEndOffset(lineNumber)
+        ));
     }
 
     /**
