@@ -1,4 +1,4 @@
-package com.bol.spinner.editor.util;
+package com.bol.spinner.editor;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -173,4 +173,36 @@ public class MQLKeywords {
             "vault",
             "webreport"
     ));
+
+    public static final Set<String> OPERATORS = new HashSet<>(Arrays.asList(
+            "(",
+            ")",
+            "[",
+            "]",
+            ";",
+            ",",
+            ".",
+            "|",
+            "==",
+            "!=",
+            "<",
+            ">",
+            "<=",
+            ">=",
+            "~~",
+            "!~~",
+            "~=",
+            "!~=",
+            "+",
+            "-",
+            "*",
+            "/",
+            "!",
+            "&&",
+            "||"
+    ));
+
+    public static final Set<String> TYPE_INSTANCES = new HashSet<>();
+
+    public static final Set<String> RELATIONSHIP_INSTANCES = new HashSet<>();
 }

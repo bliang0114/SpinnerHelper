@@ -34,9 +34,11 @@ public class MQLEditorNotificationProvider implements EditorNotificationProvider
         // 创建工具栏
         ActionManager actionManager = ActionManager.getInstance();
         AnAction runAction = actionManager.getAction("MQL Editor.Run");
+        AnAction loadDefinitionAction = actionManager.getAction("MQL Editor.LoadDefinition");
         AnAction settingsAction = actionManager.getAction("MQL Editor.Settings");
         DefaultActionGroup actionGroup = new DefaultActionGroup();
         actionGroup.add(runAction);
+        actionGroup.add(loadDefinitionAction);
         ActionToolbar toolbar = actionManager.createActionToolbar("MQLEditorToolbar", actionGroup, true);
         toolbar.setLayoutStrategy(ToolbarLayoutStrategy.AUTOLAYOUT_STRATEGY);
         toolbar.setTargetComponent(editor.getPreferredFocusedComponent());

@@ -162,6 +162,9 @@ public String runScript(Context ctx, String[] args) throws Exception {
                 icon="AllIcons.Actions.Execute">
             <keyboard-shortcut first-keystroke="alt e" keymap="$default"/>
         </action>
+        <action id="MQL Editor.LoadDefinition"
+                class="com.bol.spinner.action.editor.LoadDefinitionForMQLAction"
+                icon="AllIcons.Debugger.Db_db_object" />
         <action id="MQL Editor.Settings"
                 class="com.bol.spinner.action.editor.MQLEditorSettingsAction"
                 icon="AllIcons.General.Settings">
