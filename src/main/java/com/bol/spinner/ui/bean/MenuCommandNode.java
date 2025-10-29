@@ -4,6 +4,7 @@ import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
 import com.bol.spinner.util.MQLUtil;
 import com.bol.spinner.util.UIUtil;
+import com.intellij.openapi.project.Project;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -42,14 +43,14 @@ public class MenuCommandNode {
 
 
 
-    public void setInfo() {
+    public void setInfo(Project project) {
         try {
-            String[] commandInfoArray = MQLUtil.execute("print {} '{}' select description label  alt setting.name setting.value dump", this.getType().toLowerCase(), this.getName()).split(StrPool.COMMA);
+            String[] commandInfoArray = MQLUtil.execute(project, "print {} '{}' select description label  alt setting.name setting.value dump", this.getType().toLowerCase(), this.getName()).split(StrPool.COMMA);
             if (commandInfoArray.length >= 3) {
                 this.setDescription(commandInfoArray[0]);
                 this.setLabel(commandInfoArray[1]);
                 this.setAlt(commandInfoArray[2]);
-                this.setHref(MQLUtil.execute("print {} '{}' select href dump", this.getType().toLowerCase(), this.getName()).replaceAll("&=","\n&="));
+                this.setHref(MQLUtil.execute(project, "print {} '{}' select href dump", this.getType().toLowerCase(), this.getName()).replaceAll("&=","\n&="));
                 int settingCount = commandInfoArray.length - 3;
                 if (settingCount % 2 == 0) {
                     int offset = settingCount / 2;

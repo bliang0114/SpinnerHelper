@@ -1,6 +1,7 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixConnectionQuery;
 import cn.github.driver.connection.MatrixQueryResult;
 import cn.hutool.core.map.MapUtil;
@@ -8,11 +9,13 @@ import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.editor.ui.dataview.bean.ConnectionsRow;
 import com.bol.spinner.util.MQLUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -27,8 +30,8 @@ public class ConnectionsTableComponent extends AbstractDataViewTableComponent<Co
     private JBTextField limitField;
     private JBTextField totalField;
 
-    public ConnectionsTableComponent(VirtualFile virtualFile) {
-        super(virtualFile, new DefaultTableModel(new Object[]{"Type", "ID", "Path", "PhysicalID", "From Type", "From Name", "From Revision", "From Id", "From Rel Type", "From Rel Id", "To Type", "To Name", "To Revision", "To Id", "To Rel Type", "To Id"}, 0) {
+    public ConnectionsTableComponent(@NotNull Project project, VirtualFile virtualFile) {
+        super(project, virtualFile, new DefaultTableModel(new Object[]{"Type", "ID", "Path", "PhysicalID", "From Type", "From Name", "From Revision", "From Id", "From Rel Type", "From Rel Id", "To Type", "To Name", "To Revision", "To Id", "To Rel Type", "To Id"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -101,8 +104,8 @@ public class ConnectionsTableComponent extends AbstractDataViewTableComponent<Co
     }
 
     @Override
-    protected List<ConnectionsRow> loadDataFromMatrix() throws MQLException {
-        String result = MQLUtil.execute("query connection rel '{}' dump", name);
+    protected List<ConnectionsRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
+        String result = MQLUtil.execute(project, "query connection rel '{}' dump", name);
         String totalCount = "0";
         if (CharSequenceUtil.isNotBlank(result)) {
             totalCount = String.valueOf(result.split("\n").length);
@@ -111,7 +114,7 @@ public class ConnectionsTableComponent extends AbstractDataViewTableComponent<Co
         MatrixConnectionQuery connectionQuery = new MatrixConnectionQuery();
         connectionQuery.setType(name);
         connectionQuery.setLimit(Short.parseShort(limitField.getText()));
-        MatrixQueryResult queryResult = SpinnerToken.connection.queryConnection(connectionQuery, List.of("type", "id", "paths", "physicalid", "from.type", "from.name", "from.revision", "from.id", "fromrel.type", "fromrel.id", "to.type", "to.name", "to.revision", "to.id", "torel.type", "torel.id"));
+        MatrixQueryResult queryResult = connection.queryConnection(connectionQuery, List.of("type", "id", "paths", "physicalid", "from.type", "from.name", "from.revision", "from.id", "fromrel.type", "fromrel.id", "to.type", "to.name", "to.revision", "to.id", "torel.type", "torel.id"));
         List<ConnectionsRow> dataList = new ArrayList<>();
         if (!queryResult.isEmpty()) {
             for (Map<String, String> map : queryResult.getData()) {

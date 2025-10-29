@@ -1,13 +1,16 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.bol.spinner.editor.ui.dataview.bean.RelationsRow;
 import com.bol.spinner.editor.ui.dataview.bean.TriggersRow;
 import com.bol.spinner.util.MQLUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
@@ -18,8 +21,8 @@ import java.util.function.Function;
 @Slf4j
 public class TriggersTableComponent extends AbstractDataViewTableComponent<TriggersRow, TriggersTableComponent> {
 
-    public TriggersTableComponent(VirtualFile virtualFile) {
-        super(virtualFile, new DefaultTableModel(new Object[]{"Trigger Name", "Inherited", "Check", "Override", "Action"}, 0) {
+    public TriggersTableComponent(@NotNull Project project, VirtualFile virtualFile) {
+        super(project, virtualFile, new DefaultTableModel(new Object[]{"Trigger Name", "Inherited", "Check", "Override", "Action"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -46,7 +49,7 @@ public class TriggersTableComponent extends AbstractDataViewTableComponent<Trigg
     }
 
     @Override
-    protected List<TriggersRow> loadDataFromMatrix() throws MQLException {
+    protected List<TriggersRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
         MatrixDataViewFileType fileType = (MatrixDataViewFileType) virtualFile.getFileType();
         if (MatrixDataViewFileType.ViewType.TYPE == fileType.getViewType()) {
             var tiggerMQL = "print type '" + name + "' select trigger dump";
@@ -61,8 +64,8 @@ public class TriggersTableComponent extends AbstractDataViewTableComponent<Trigg
     }
 
     private List<TriggersRow> loadFromMatrix(String tiggerMQL, String derivedTiggerMQL) throws MQLException {
-        var result = MQLUtil.execute(tiggerMQL);
-        var derived = MQLUtil.execute(derivedTiggerMQL);
+        var result = MQLUtil.execute(project, tiggerMQL);
+        var derived = MQLUtil.execute(project, derivedTiggerMQL);
         var list = CharSequenceUtil.split(result, ",");
         list = list.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
         List<TriggersRow> dataList = new ArrayList<>();

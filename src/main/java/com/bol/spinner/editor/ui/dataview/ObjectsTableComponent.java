@@ -1,10 +1,12 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixObjectQuery;
 import cn.github.driver.connection.MatrixQueryResult;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.CharSequenceUtil;
+import com.bol.spinner.config.ObjectWhereExpression;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.editor.ui.dataview.bean.ObjectsRow;
 import com.bol.spinner.ui.ObjectWhereExpressionBuilderDialog;
@@ -15,6 +17,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -27,13 +30,12 @@ import java.util.function.Function;
 
 @Slf4j
 public class ObjectsTableComponent extends AbstractDataViewTableComponent<ObjectsRow, ObjectsTableComponent> {
-    private Project project;
     private JBTextField limitField;
     private JBTextField totalField;
     private JButton whereBtn;
 
-    public ObjectsTableComponent(Project project, VirtualFile virtualFile) {
-        super(virtualFile, new DefaultTableModel(new Object[]{"Type", "Name", "Revision", "ID", "Path", "PhysicalID", "Description", "Originated", "Modified", "Vault", "Policy", "Owner", "State", "Organization", "Collaborative Space"}, 0) {
+    public ObjectsTableComponent(@NotNull Project project, VirtualFile virtualFile) {
+        super(project, virtualFile, new DefaultTableModel(new Object[]{"Type", "Name", "Revision", "ID", "Path", "PhysicalID", "Description", "Originated", "Modified", "Vault", "Policy", "Owner", "State", "Organization", "Collaborative Space"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -47,7 +49,6 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
                 return String.class;
             }
         }, new int[]{200, 200, 100, 200, 60, 200, 200, 150, 100, 150, 200, 100, 100, 300}, "Objects Table Toolbar");
-        this.project = project;
     }
 
     @Override
@@ -66,7 +67,8 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
         whereBtn.addActionListener(e -> {
             ObjectWhereExpressionBuilderDialog dialog = new ObjectWhereExpressionBuilderDialog(project);
             if (dialog.showAndGet()) {
-                SpinnerToken.objectWhereExpression = dialog.getWhereExpression();
+                ObjectWhereExpression whereExpression = dialog.getWhereExpression();
+                SpinnerToken.putObjectWhereExpression(project, whereExpression);
                 String tooltip = CharSequenceUtil.format("""
                                 <table>
                                     <tr>
@@ -83,9 +85,9 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
                                     </tr>
                                 </table>
                                 """,
-                        SpinnerToken.objectWhereExpression.getName(),
-                        SpinnerToken.objectWhereExpression.getRevision(),
-                        SpinnerToken.objectWhereExpression.build());
+                        whereExpression.getName(),
+                        whereExpression.getRevision(),
+                        whereExpression.build());
                 whereBtn.setToolTipText(tooltip);
 
                 rowList.clear();
@@ -96,12 +98,13 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
                     try {
                         MatrixObjectQuery objectQuery = new MatrixObjectQuery();
                         objectQuery.setType(name);
-                        objectQuery.setName(SpinnerToken.objectWhereExpression.getName());
-                        objectQuery.setRevision(SpinnerToken.objectWhereExpression.getRevision());
+                        objectQuery.setName(whereExpression.getName());
+                        objectQuery.setRevision(whereExpression.getRevision());
                         objectQuery.setExpandType(true);
                         objectQuery.setLimit(Short.parseShort(limitField.getText()));
-                        objectQuery.setWhereExpression(SpinnerToken.objectWhereExpression.build());
-                        rowList.addAll(queryFromMatrix(objectQuery));
+                        objectQuery.setWhereExpression(whereExpression.build());
+                        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+                        rowList.addAll(queryFromMatrix(connection, objectQuery));
                         for (ObjectsRow row : rowList) {
                             addRow(row);
                         }
@@ -165,28 +168,28 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
     }
 
     @Override
-    protected List<ObjectsRow> loadDataFromMatrix() throws MQLException {
+    protected List<ObjectsRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
         MatrixObjectQuery objectQuery = new MatrixObjectQuery();
         objectQuery.setType(name);
         objectQuery.setExpandType(true);
         objectQuery.setLimit(Short.parseShort(limitField.getText()));
-        return queryFromMatrix(objectQuery);
+        return queryFromMatrix(connection, objectQuery);
     }
 
-    private List<ObjectsRow> queryFromMatrix(MatrixObjectQuery objectQuery) throws MQLException {
+    private List<ObjectsRow> queryFromMatrix(MatrixConnection connection, MatrixObjectQuery objectQuery) throws MQLException {
         String countQuery = CharSequenceUtil.format("eval expr 'count TRUE' on temp query bus '{}' '{}' '{}'", objectQuery.getType(), objectQuery.getName(), objectQuery.getRevision());
         String countQueryWithWhere = "";
         if (!objectQuery.getWhereExpression().isEmpty()) {
             countQueryWithWhere = countQuery + " where \"" + objectQuery.getWhereExpression() + "\"";
         }
-        String totalCount = MQLUtil.execute(countQuery);
+        String totalCount = MQLUtil.execute(project, countQuery);
         if (!countQueryWithWhere.isEmpty()) {
-            String withWhereCount = MQLUtil.execute(countQueryWithWhere);
+            String withWhereCount = MQLUtil.execute(project, countQueryWithWhere);
             totalField.setText(withWhereCount+ "(" + totalCount + ")");
         } else {
             totalField.setText(totalCount);
         }
-        MatrixQueryResult queryResult = SpinnerToken.connection.queryObject(objectQuery, List.of("type", "name", "revision", "id", "paths", "physicalid", "description", "originated", "modified", "lattice", "policy", "owner", "current", "organization", "project"));
+        MatrixQueryResult queryResult = connection.queryObject(objectQuery, List.of("type", "name", "revision", "id", "paths", "physicalid", "description", "originated", "modified", "lattice", "policy", "owner", "current", "organization", "project"));
         List<ObjectsRow> dataList = new ArrayList<>();
         if (!queryResult.isEmpty()) {
             for (Map<String, String> map : queryResult.getData()) {

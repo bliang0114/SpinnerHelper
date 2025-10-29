@@ -33,7 +33,7 @@ public class ObjectWhereExpressionBuilderDialog extends DialogWrapper {
     }
 
     private void setupValue() {
-        ObjectWhereExpression whereExpression = SpinnerToken.objectWhereExpression;
+        ObjectWhereExpression whereExpression = SpinnerToken.getObjectWhereExpression(project);
         if (whereExpression != null) {
             nameField.setText(whereExpression.getName());
             revisionField.setText(whereExpression.getRevision());

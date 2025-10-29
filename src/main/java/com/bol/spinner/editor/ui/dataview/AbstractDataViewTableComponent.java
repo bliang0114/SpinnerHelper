@@ -1,11 +1,13 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.customize.CellCopyTransferHandler;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
@@ -34,6 +36,7 @@ import java.util.function.Function;
 
 @Slf4j
 public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> extends JBPanel<E> {
+    protected final Project project;
     protected final VirtualFile virtualFile;
     protected JBTable table;
     protected DefaultTableModel tableModel;
@@ -48,7 +51,8 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
     protected final List<T> rowList = new ArrayList<>();
     protected final ScheduledExecutorService executor;
 
-    public AbstractDataViewTableComponent(VirtualFile virtualFile, @NotNull Object[] columns, int @NotNull [] columnWidths, String toolbarId) {
+    public AbstractDataViewTableComponent(@NotNull Project project, VirtualFile virtualFile, @NotNull Object[] columns, int @NotNull [] columnWidths, String toolbarId) {
+        this.project = project;
         this.virtualFile = virtualFile;
         this.executor = Executors.newSingleThreadScheduledExecutor();
         this.columns = columns;
@@ -59,7 +63,8 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
         setupLayout();
     }
 
-    public AbstractDataViewTableComponent(VirtualFile virtualFile, @NotNull DefaultTableModel tableModel, int @NotNull [] columnWidths, String toolbarId) {
+    public AbstractDataViewTableComponent(@NotNull Project project, VirtualFile virtualFile, @NotNull DefaultTableModel tableModel, int @NotNull [] columnWidths, String toolbarId) {
+        this.project = project;
         this.virtualFile = virtualFile;
         this.executor = Executors.newSingleThreadScheduledExecutor();
         this.tableModel = tableModel;
@@ -174,18 +179,15 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
     protected void reloadData() {
         rowList.clear();
         tableModel.setRowCount(0);
-        if (CharSequenceUtil.isBlank(name)) {
-            table.getEmptyText().setText("Error: Type or Relationship is empty");
-            return;
-        }
-        if (SpinnerToken.connection == null) {
+        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        if (connection == null || CharSequenceUtil.isBlank(name)) {
             table.getEmptyText().setText("Connection is closed");
             return;
         }
         table.getEmptyText().setText("Loading Data...");
         executor.schedule(() -> {
             try {
-                rowList.addAll(loadDataFromMatrix());
+                rowList.addAll(loadDataFromMatrix(connection));
                 for (T row : rowList) {
                     addRow(row);
                 }
@@ -201,7 +203,7 @@ public abstract class AbstractDataViewTableComponent<T, E extends JBPanel<E>> ex
 
     protected abstract void addRow(T row);
 
-    protected abstract List<T> loadDataFromMatrix() throws MQLException;
+    protected abstract List<T> loadDataFromMatrix(MatrixConnection connection) throws MQLException;
 
     @SafeVarargs
     public static <T> List<T> filter(Collection<T> collection, String searchStr, Function<T, String>... extractors) {

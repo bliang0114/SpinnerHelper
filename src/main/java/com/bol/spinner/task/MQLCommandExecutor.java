@@ -1,6 +1,7 @@
 package com.bol.spinner.task;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
 import com.bol.spinner.config.SpinnerSettings;
@@ -24,37 +25,37 @@ import java.util.List;
 
 @Slf4j
 public class MQLCommandExecutor extends Task.Backgroundable {
-    private final Project project;
     private final List<String> commandList;
 
     public MQLCommandExecutor(@Nullable Project project, @NotNull List<String> commandList) {
         super(project, "Executing MQL Command", true);
         setCancelText("Stop Execute");
-        this.project = project;
         this.commandList = commandList;
     }
 
     @Override
     public void run(@NotNull ProgressIndicator indicator) {
-        if (SpinnerToken.connection == null) {
-            UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
+        assert myProject != null;
+        MatrixConnection connection = SpinnerToken.getCurrentConnection(myProject);
+        if (connection == null) {
+            UIUtil.showWarningNotification(myProject, "Not Login, Please Login First", "");
             return;
         }
 
-        MQLExecutorToolWindow toolWindow = UIUtil.getMQLExecutorToolWindow(project);
+        MQLExecutorToolWindow toolWindow = UIUtil.getMQLExecutorToolWindow(myProject);
         log.info("toolWindow: {}", toolWindow);
         if (toolWindow == null) {
-            UIUtil.showWarningNotification(project, "Wait for executor window initialize, 2 seconds", "");
+            UIUtil.showWarningNotification(myProject, "Wait for executor window initialize, 2 seconds", "");
             return;
         }
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         ConsoleManager consoleManager = toolWindow.getConsoleManager();
-        if (!SpinnerSettings.getInstance(project).isKeepMQLExecuteHistory()) {
+        if (!SpinnerSettings.getInstance(myProject).isKeepMQLExecuteHistory()) {
             consoleManager.clear();
         }
         ApplicationManager.getApplication().invokeLater(() -> {
-            ToolWindow window = UIUtil.getToolWindow(project, "MQLExecutor");
+            ToolWindow window = UIUtil.getToolWindow(myProject, "MQLExecutor");
             window.show(() -> {
                 for (int i = 0; i < commandList.size(); i++) {
                     String command = commandList.get(i);
@@ -62,7 +63,7 @@ public class MQLCommandExecutor extends Task.Backgroundable {
                     indicator.setText2("Processing " + (i + 1) + " / " + commandList.size());
                     consoleManager.print("MQL>" + command);
                     try {
-                        MatrixStatement statement = SpinnerToken.connection.executeStatement(command);
+                        MatrixStatement statement = connection.executeStatement(command);
                         MatrixResultSet resultSet = statement.executeQuery();
                         if (resultSet.isSuccess()) {
                             consoleManager.print(resultSet.getResult(), ConsoleViewContentType.LOG_INFO_OUTPUT);

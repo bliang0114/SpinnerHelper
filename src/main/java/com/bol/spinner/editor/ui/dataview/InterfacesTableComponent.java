@@ -1,14 +1,17 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.bol.spinner.editor.ui.dataview.bean.AttributesRow;
 import com.bol.spinner.editor.ui.dataview.bean.InterfacesRow;
 import com.bol.spinner.util.MQLUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBCheckBox;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,8 +25,8 @@ import java.util.function.Function;
 public class InterfacesTableComponent extends AbstractDataViewTableComponent<InterfacesRow, InterfacesTableComponent> {
     private JBCheckBox checkBox;
 
-    public InterfacesTableComponent(VirtualFile virtualFile) {
-        super(virtualFile,
+    public InterfacesTableComponent(@NotNull Project project, VirtualFile virtualFile) {
+        super(project, virtualFile,
                 new Object[]{"Interface Name", "Attribute Name", "Attribute Owner", "Type", "Default", "Range"},
                 new int[]{260, 260, 260, 150, 150, 500},
                 "Interfaces Table Toolbar");
@@ -54,7 +57,7 @@ public class InterfacesTableComponent extends AbstractDataViewTableComponent<Int
     }
 
     @Override
-    protected List<InterfacesRow> loadDataFromMatrix() throws MQLException {
+    protected List<InterfacesRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
         boolean includeAutomatic = checkBox.isSelected();
         MatrixDataViewFileType fileType = (MatrixDataViewFileType) virtualFile.getFileType();
         if (MatrixDataViewFileType.ViewType.TYPE == fileType.getViewType()) {
@@ -71,11 +74,11 @@ public class InterfacesTableComponent extends AbstractDataViewTableComponent<Int
 
     private List<InterfacesRow> loadInterfacesFromMatrix(String whereExpression) throws MQLException {
         List<InterfacesRow> list = new ArrayList<>();
-        var result = MQLUtil.execute("list interface * where \"" + whereExpression + "\" select name dump");
+        var result = MQLUtil.execute(project, "list interface * where \"" + whereExpression + "\" select name dump");
         var interfaceList = CharSequenceUtil.split(result, "\n");
         interfaceList = interfaceList.stream().filter(CharSequenceUtil::isNotBlank).sorted(String.CASE_INSENSITIVE_ORDER).toList();
         for (var interfaceName : interfaceList) {
-            result = MQLUtil.execute("print interface '" + interfaceName + "' select attribute.owner attribute dump");
+            result = MQLUtil.execute(project, "print interface '" + interfaceName + "' select attribute.owner attribute dump");
             var attributes = CharSequenceUtil.split(result, ",");
             var midIndex = attributes.size() / 2;
             List<InterfacesRow> singleList = new ArrayList<>();
@@ -86,7 +89,7 @@ public class InterfacesTableComponent extends AbstractDataViewTableComponent<Int
         }
         for (InterfacesRow row : list) {
             var attribute = CharSequenceUtil.isNotBlank(row.getAttributeOwner()) ? row.getAttributeOwner() + "." + row.getAttributeName() : row.getAttributeName();
-            result = MQLUtil.execute("print attribute '" + attribute + "' select name owner type default multiline range dump");
+            result = MQLUtil.execute(project, "print attribute '" + attribute + "' select name owner type default multiline range dump");
             var s = result.split(",", 6);
             if (s[2].equals("string") && s[4].equalsIgnoreCase("TRUE")) {
                 s[2] = "string multiline";

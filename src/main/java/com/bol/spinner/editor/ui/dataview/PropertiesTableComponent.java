@@ -1,13 +1,16 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.bol.spinner.editor.ui.dataview.bean.PropertiesRow;
 import com.bol.spinner.util.MQLUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,8 +21,8 @@ import java.util.function.Function;
 @Slf4j
 public class PropertiesTableComponent extends AbstractDataViewTableComponent<PropertiesRow, PropertiesTableComponent> {
 
-    public PropertiesTableComponent(VirtualFile virtualFile) {
-        super(virtualFile, new Object[]{"Name", "Value"}, new int[]{200, 200}, "Properties Table Toolbar");
+    public PropertiesTableComponent(@NotNull Project project, VirtualFile virtualFile) {
+        super(project, virtualFile, new Object[]{"Name", "Value"}, new int[]{200, 200}, "Properties Table Toolbar");
     }
 
     @Override
@@ -33,7 +36,7 @@ public class PropertiesTableComponent extends AbstractDataViewTableComponent<Pro
     }
 
     @Override
-    protected List<PropertiesRow> loadDataFromMatrix() throws MQLException {
+    protected List<PropertiesRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
         MatrixDataViewFileType fileType = (MatrixDataViewFileType) virtualFile.getFileType();
         if (MatrixDataViewFileType.ViewType.TYPE == fileType.getViewType()) {
             var listPropertyMQL = "list type '" + name + "' select property dump";
@@ -46,7 +49,7 @@ public class PropertiesTableComponent extends AbstractDataViewTableComponent<Pro
     }
 
     private List<PropertiesRow> loadPropertiesFromMatrix(String listPropertyMQL) throws MQLException {
-        var result = MQLUtil.execute(listPropertyMQL);
+        var result = MQLUtil.execute(project, listPropertyMQL);
         var list = CharSequenceUtil.split(result, ",");
         list = list.stream().filter(CharSequenceUtil::isNotBlank).sorted(String.CASE_INSENSITIVE_ORDER).toList();
         List<PropertiesRow> dataList = new ArrayList<>();

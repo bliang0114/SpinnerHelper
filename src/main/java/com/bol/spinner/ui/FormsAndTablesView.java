@@ -149,11 +149,11 @@ public class FormsAndTablesView extends JBPanel implements Disposable {
     private void loadItemsAsync() {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
-                String[] tableArray = MQLUtil.execute("list table system").split("\n");
+                String[] tableArray = MQLUtil.execute(myProject, "list table system").split("\n");
                 for (String tableName : tableArray) {
                     allItems.add(new Item(tableName, "Table"));
                 }
-                String[] formArray = MQLUtil.execute("list form").split("\n");
+                String[] formArray = MQLUtil.execute(myProject, "list form").split("\n");
                 for (String formName : formArray) {
                     allItems.add(new Item(formName, "Form"));
                 }
@@ -214,9 +214,9 @@ public class FormsAndTablesView extends JBPanel implements Disposable {
                         try {
                             String content = "";
                             if (type.equals("Form")) {
-                                content = MQLUtil.execute("print {} {}", type, formOrTableName);
+                                content = MQLUtil.execute(myProject, "print {} {}", type, formOrTableName);
                             } else if (type.equals("Table")) {
-                                content = MQLUtil.execute("print {} {} system", type, formOrTableName);
+                                content = MQLUtil.execute(myProject, "print {} {} system", type, formOrTableName);
                             }
                             if (content.startsWith("\n")) {
                                 content = content.substring(1);

@@ -1,7 +1,9 @@
 package com.bol.spinner.ui;
 
+import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.ColoredText;
 import com.intellij.ui.ColoredTreeCellRenderer;
 import com.intellij.ui.SimpleTextAttributes;
@@ -11,6 +13,11 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 public class EnvironmentTreeCellRenderer extends ColoredTreeCellRenderer {
+    private final Project project;
+
+    public EnvironmentTreeCellRenderer(Project project) {
+        this.project = project;
+    }
 
     @Override
     public void customizeCellRenderer(@NotNull JTree tree, Object value,
@@ -31,8 +38,9 @@ public class EnvironmentTreeCellRenderer extends ColoredTreeCellRenderer {
                 // 普通字符串节点
                 setIcon(AllIcons.Nodes.AbstractClass);
                 append(userObject.toString(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
-                if (SpinnerToken.environmentName != null) {
-                    append(ColoredText.singleFragment(" - [" + SpinnerToken.environmentName + "]", SimpleTextAttributes.ERROR_ATTRIBUTES));
+                String environmentName = SpinnerToken.getEnvironmentName(project);
+                if (CharSequenceUtil.isNotEmpty(environmentName)) {
+                    append(ColoredText.singleFragment(" - [" + environmentName + "]", SimpleTextAttributes.ERROR_ATTRIBUTES));
                 }
             }
         }

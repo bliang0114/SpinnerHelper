@@ -7,6 +7,7 @@ import com.bol.spinner.ui.bean.MenuCommandNode;
 import com.bol.spinner.util.MQLUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.ui.*;
 import com.intellij.ui.components.*;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class MenuAndCommandView extends BorderLayoutPanel {
-
+    private final Project project;
     private Tree menuTree;
     private DefaultTreeModel treeModel;
     private JBList<MenuCommandNode> commandList;
@@ -62,8 +63,9 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         }
     }
 
-    public MenuAndCommandView() {
+    public MenuAndCommandView(Project project) {
         super();
+        this.project = project;
         setBorder(JBUI.Borders.empty(10));
         initComponents();
     }
@@ -258,7 +260,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
     }
 
     public void setMidArea(MenuCommandNode menuCommandNode) {
-        menuCommandNode.setInfo();
+        menuCommandNode.setInfo(project);
         descriptionField.setText(menuCommandNode.getDescription());
         labelField.setText(menuCommandNode.getLabel());
         hrefField.setText(menuCommandNode.getHref() != null ? menuCommandNode.getHref().replace("&", "\n&    ") : "");
@@ -271,13 +273,13 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         List<MenuCommandNode> rootChildren = new ArrayList<>();
         if (StrUtil.isNotEmpty(menuCommandNode.getName())) {
             try {
-                String[] menuArray = MQLUtil.execute("print menu '{}' select menu dump", menuCommandNode.getName()).split(StrPool.COMMA);
+                String[] menuArray = MQLUtil.execute(project, "print menu '{}' select menu dump", menuCommandNode.getName()).split(StrPool.COMMA);
                 for (String menuName : menuArray) {
                     if (StrUtil.isNotEmpty(menuName)) {
                         rootChildren.add(new MenuCommandNode(menuName.trim(), "Menu"));
                     }
                 }
-                String[] commandArray = MQLUtil.execute("print menu '{}' select command dump", menuCommandNode.getName()).split(StrPool.COMMA);
+                String[] commandArray = MQLUtil.execute(project, "print menu '{}' select command dump", menuCommandNode.getName()).split(StrPool.COMMA);
                 for (String commandName : commandArray) {
                     if (StrUtil.isNotEmpty(commandName)) {
                         rootChildren.add(new MenuCommandNode(commandName.trim(), "Command"));
@@ -471,7 +473,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
                 switch (actionCommand) {
                     case "Commands" -> {
                         if (commandCheckBox.isSelected() && commandsList.isEmpty()) {
-                            for (String command : MQLUtil.execute("list command").split("\n")) {
+                            for (String command : MQLUtil.execute(project, "list command").split("\n")) {
                                 if (StrUtil.isNotEmpty(command.trim())) {
                                     commandsList.add(new MenuCommandNode(command.trim(), "Command"));
                                 }
@@ -482,7 +484,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
                     }
                     case "Menus" -> {
                         if (menuCheckBox.isSelected() && menuList.isEmpty()) {
-                            for (String menu : MQLUtil.execute("list menu").split("\n")) {
+                            for (String menu : MQLUtil.execute(project, "list menu").split("\n")) {
                                 if (StrUtil.isNotEmpty(menu.trim())) {
                                     menuList.add(new MenuCommandNode(menu.trim(), "Menu"));
                                 }
@@ -493,7 +495,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
                     }
                     case "Channels" -> {
                         if (channelCheckBox.isSelected() && channelList.isEmpty()) {
-                            for (String channel : MQLUtil.execute("list channel").split("\n")) {
+                            for (String channel : MQLUtil.execute(project, "list channel").split("\n")) {
                                 if (StrUtil.isNotEmpty(channel.trim())) {
                                     channelList.add(new MenuCommandNode(channel.trim(), "Channel"));
                                 }
@@ -504,7 +506,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
                     }
                     case "Portals" -> {
                         if (portalCheckBox.isSelected() && portalList.isEmpty()) {
-                            for (String portal : MQLUtil.execute("list portal").split("\n")) {
+                            for (String portal : MQLUtil.execute(project, "list portal").split("\n")) {
                                 if (StrUtil.isNotEmpty(portal.trim())) {
                                     portalList.add(new MenuCommandNode(portal.trim(), "Portal"));
                                 }
@@ -567,14 +569,14 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         String target = "";
         String type = "";
         try {
-            target = MQLUtil.execute("print menu '{}' select name dump", searchText).trim();
+            target = MQLUtil.execute(project, "print menu '{}' select name dump", searchText).trim();
             type = "Menu";
             if (StrUtil.isEmpty(target)) {
                 throw new MQLException("Menu not found");
             }
         } catch (MQLException e) {
             try {
-                target = MQLUtil.execute("print command '{}' select name dump", searchText).trim();
+                target = MQLUtil.execute(project, "print command '{}' select name dump", searchText).trim();
                 type = "Command";
                 if (StrUtil.isEmpty(target)) {
                     throw new MQLException("Command not found");
@@ -587,7 +589,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
 
         if (StrUtil.isAllNotEmpty(target, type)) {
             MenuCommandNode menuCommandNode = new MenuCommandNode(target, type);
-            menuCommandNode.setInfo();
+            menuCommandNode.setInfo(project);
 
             DefaultMutableTreeNode newRoot = new CustomTreeNode(menuCommandNode);
             if ("Menu".equals(type)) {

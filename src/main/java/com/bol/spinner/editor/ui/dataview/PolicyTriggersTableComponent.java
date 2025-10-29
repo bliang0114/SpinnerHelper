@@ -1,14 +1,17 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.editor.MatrixDataViewFileType;
 import com.bol.spinner.editor.ui.dataview.bean.PolicyTriggersRow;
 import com.bol.spinner.editor.ui.dataview.bean.PropertiesRow;
 import com.bol.spinner.editor.ui.dataview.bean.TriggersRow;
 import com.bol.spinner.util.MQLUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,8 +22,8 @@ import java.util.function.Function;
 @Slf4j
 public class PolicyTriggersTableComponent extends AbstractDataViewTableComponent<PolicyTriggersRow, PolicyTriggersTableComponent> {
 
-    public PolicyTriggersTableComponent(VirtualFile virtualFile) {
-        super(virtualFile, new Object[]{"Policy", "State", "Trigger Name", "Check", "Override", "Action"}, new int[]{200, 100, 100, 300, 300, 300}, "Policy Triggers Table Toolbar");
+    public PolicyTriggersTableComponent(@NotNull Project project, VirtualFile virtualFile) {
+        super(project, virtualFile, new Object[]{"Policy", "State", "Trigger Name", "Check", "Override", "Action"}, new int[]{200, 100, 100, 300, 300, 300}, "Policy Triggers Table Toolbar");
     }
 
     @Override
@@ -34,18 +37,18 @@ public class PolicyTriggersTableComponent extends AbstractDataViewTableComponent
     }
 
     @Override
-    protected List<PolicyTriggersRow> loadDataFromMatrix() throws MQLException {
-        var policyResult = MQLUtil.execute("print type '{}' select policy dump", name);
+    protected List<PolicyTriggersRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
+        var policyResult = MQLUtil.execute(project, "print type '{}' select policy dump", name);
         var policies = CharSequenceUtil.split(policyResult, ",");
         policies = policies.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();
         List<PolicyTriggersRow> dataList = new ArrayList<>();
         for (String policy : policies) {
-            var stateResult = MQLUtil.execute("print policy '{}' select state dump", policy);
+            var stateResult = MQLUtil.execute(project, "print policy '{}' select state dump", policy);
             if (CharSequenceUtil.isBlank(stateResult)) continue;
 
             var states = CharSequenceUtil.split(stateResult, ",");
             for (var state : states) {
-                var result = MQLUtil.execute("print policy '{}' select state[{}].trigger dump", policy, state);
+                var result = MQLUtil.execute(project, "print policy '{}' select state[{}].trigger dump", policy, state);
                 if (CharSequenceUtil.isNotBlank(result)) {
                     var triggers = CharSequenceUtil.split(result, ",");
                     triggers = triggers.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();

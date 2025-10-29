@@ -1,5 +1,6 @@
 package com.bol.spinner.action.editor;
 
+import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.util.StrUtil;
 import com.bol.spinner.config.SpinnerSettings;
 import com.bol.spinner.config.SpinnerToken;
@@ -25,7 +26,8 @@ public class RunMQLAction extends AnAction {
         Project project = e.getProject();
         if  (project == null) return;
 
-        if (SpinnerToken.connection == null) {
+        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        if (connection == null) {
             UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
             return;
         }
@@ -60,7 +62,8 @@ public class RunMQLAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return ;
         }
-        if (SpinnerToken.connection == null) {
+        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        if (connection == null) {
             e.getPresentation().setEnabled(false);
             return;
         }

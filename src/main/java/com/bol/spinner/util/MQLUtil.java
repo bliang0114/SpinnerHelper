@@ -6,11 +6,13 @@ import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 
 public class MQLUtil {
 
-    public static String execute(String mql) throws MQLException {
-        MatrixConnection connection = SpinnerToken.connection;
+    public static String execute(Project project, String mql) throws MQLException {
+        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
         MatrixStatement matrixStatement = connection.executeStatement(mql);
         MatrixResultSet matrixResultSet = matrixStatement.executeQuery();
         if (!matrixResultSet.isSuccess()) {
@@ -24,6 +26,11 @@ public class MQLUtil {
     }
 
     public static String execute(String format, Object... args) throws MQLException {
-        return execute(CharSequenceUtil.format(format, args));
+        Project project = ProjectManager.getInstance().getDefaultProject();
+        return execute(project, CharSequenceUtil.format(format, args));
+    }
+
+    public static String execute(Project project, String format, Object... args) throws MQLException {
+        return execute(project, CharSequenceUtil.format(format, args));
     }
 }

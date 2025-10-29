@@ -1,6 +1,7 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
 import cn.hutool.core.text.CharSequenceUtil;
@@ -9,6 +10,7 @@ import com.bol.spinner.util.MQLUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
@@ -34,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewComponent> implements Disposable {
+    private final Project project;
     private final VirtualFile virtualFile;
     private SearchTextField searchTextField;
     private DefaultListModel<String> listModel;
@@ -43,7 +46,8 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
     private final List<String> rowList = new ArrayList<>();
     private final ScheduledExecutorService executor;
 
-    public RelationshipDataViewComponent(VirtualFile virtualFile) {
+    public RelationshipDataViewComponent(@NotNull Project project, VirtualFile virtualFile) {
+        this.project = project;
         this.virtualFile = virtualFile;
         executor = Executors.newSingleThreadScheduledExecutor();
         initComponents();
@@ -107,26 +111,27 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
         uiListPanel.add(ScrollPaneFactory.createScrollPane(uiList), BorderLayout.CENTER);
         add(uiListPanel, BorderLayout.WEST);
 
-        tabbedPane.add("Attributes", new AttributesTableComponent(virtualFile));
-        tabbedPane.add("Properties", new PropertiesTableComponent(virtualFile));
-        tabbedPane.add("Interfaces", new InterfacesTableComponent(virtualFile));
-        tabbedPane.add("Relations", new RelationsTableComponent(virtualFile));
-        tabbedPane.add("Triggers", new TriggersTableComponent(virtualFile));
-        tabbedPane.add("Connections", new ConnectionsTableComponent(virtualFile));
+        tabbedPane.add("Attributes", new AttributesTableComponent(project, virtualFile));
+        tabbedPane.add("Properties", new PropertiesTableComponent(project, virtualFile));
+        tabbedPane.add("Interfaces", new InterfacesTableComponent(project, virtualFile));
+        tabbedPane.add("Relations", new RelationsTableComponent(project, virtualFile));
+        tabbedPane.add("Triggers", new TriggersTableComponent(project, virtualFile));
+        tabbedPane.add("Connections", new ConnectionsTableComponent(project, virtualFile));
         add(tabbedPane, BorderLayout.CENTER);
     }
 
     private void loadRelationship() {
         rowList.clear();
         listModel.clear();
-        if (SpinnerToken.connection == null) {
+        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        if (connection == null) {
             uiList.setEmptyText("Connection is closed");
             return;
         }
         uiList.setEmptyText("Loading Matrix Relationship...");
         executor.schedule(() -> {
             try {
-                var result = MQLUtil.execute("list relationship");
+                var result = MQLUtil.execute(project, "list relationship");
                 List<String> allRelationships = CharSequenceUtil.split(result, "\n");
                 rowList.addAll(allRelationships.stream().filter(CharSequenceUtil::isNotBlank).sorted(String.CASE_INSENSITIVE_ORDER).toList());
                 listModel.addAll(rowList);

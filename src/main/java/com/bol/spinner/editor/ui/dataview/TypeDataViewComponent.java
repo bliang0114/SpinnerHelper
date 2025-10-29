@@ -1,6 +1,7 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
 import cn.hutool.core.text.CharSequenceUtil;
@@ -44,7 +45,7 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private final List<String> rowList = new ArrayList<>();
     private final ScheduledExecutorService executor;
 
-    public TypeDataViewComponent(Project project, VirtualFile virtualFile) {
+    public TypeDataViewComponent(@NotNull Project project, VirtualFile virtualFile) {
         this.project = project;
         this.virtualFile = virtualFile;
         executor = Executors.newSingleThreadScheduledExecutor();
@@ -109,12 +110,12 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         uiListPanel.add(ScrollPaneFactory.createScrollPane(uiList), BorderLayout.CENTER);
         add(uiListPanel, BorderLayout.WEST);
 
-        tabbedPane.add("Attributes", new AttributesTableComponent(virtualFile));
-        tabbedPane.add("Properties", new PropertiesTableComponent(virtualFile));
-        tabbedPane.add("Interfaces", new InterfacesTableComponent(virtualFile));
-        tabbedPane.add("Relations", new RelationsTableComponent(virtualFile));
-        tabbedPane.add("Triggers", new TriggersTableComponent(virtualFile));
-        tabbedPane.add("Policy Triggers", new PolicyTriggersTableComponent(virtualFile));
+        tabbedPane.add("Attributes", new AttributesTableComponent(project, virtualFile));
+        tabbedPane.add("Properties", new PropertiesTableComponent(project, virtualFile));
+        tabbedPane.add("Interfaces", new InterfacesTableComponent(project, virtualFile));
+        tabbedPane.add("Relations", new RelationsTableComponent(project, virtualFile));
+        tabbedPane.add("Triggers", new TriggersTableComponent(project, virtualFile));
+        tabbedPane.add("Policy Triggers", new PolicyTriggersTableComponent(project, virtualFile));
         tabbedPane.add("Objects", new ObjectsTableComponent(project, virtualFile));
         add(tabbedPane, BorderLayout.CENTER);
     }
@@ -122,14 +123,15 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private void loadType() {
         rowList.clear();
         listModel.clear();
-        if (SpinnerToken.connection == null) {
+        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        if (connection == null) {
             uiList.setEmptyText("Connection is closed");
             return;
         }
         uiList.setEmptyText("Loading Matrix type...");
         executor.schedule(() -> {
             try {
-                MatrixStatement statement = SpinnerToken.connection.executeStatement("list type");
+                MatrixStatement statement = connection.executeStatement("list type");
                 MatrixResultSet resultSet = statement.executeQuery();
                 if (!resultSet.isSuccess()) {
                     throw new MQLException(resultSet.getMessage());

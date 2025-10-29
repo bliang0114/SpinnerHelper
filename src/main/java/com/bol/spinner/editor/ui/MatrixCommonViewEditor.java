@@ -33,7 +33,7 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
         MatrixDataViewFileType fileType = (MatrixDataViewFileType) virtualFile.getFileType();
         switch (fileType.getViewType()) {
             case RELATIONSHIP:
-                this.editorComponent = new RelationshipDataViewComponent(virtualFile);
+                this.editorComponent = new RelationshipDataViewComponent(project, virtualFile);
                 break;
             case TYPE:
                 this.editorComponent = new TypeDataViewComponent(project, virtualFile);
@@ -45,7 +45,7 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
                 this.editorComponent =new FormsAndTablesView(project, virtualFile);
                 break;
             case MENU_COMMAND:
-                this.editorComponent =new MenuAndCommandView();
+                this.editorComponent =new MenuAndCommandView(project);
                 break;
             default:
                 this.editorComponent = new JPanel();

@@ -38,6 +38,8 @@ public class SpinnerDeployAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getData(CommonDataKeys.PROJECT);
+        if (project == null) return;
+
         try {
             logger.info("Deploy Action start");
             PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
@@ -52,7 +54,7 @@ public class SpinnerDeployAction extends AnAction {
                 return;
             }
             String fileName = file.getName();
-            MatrixConnection connection = SpinnerToken.connection;
+            MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
             if (connection== null) {
                 UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
                 return;

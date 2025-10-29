@@ -1,5 +1,6 @@
 package com.bol.spinner.task;
 
+import cn.github.driver.connection.MatrixConnection;
 import com.bol.spinner.config.EnvironmentConfig;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.ui.EnvironmentToolWindow;
@@ -24,9 +25,11 @@ public class Disconnect3DETask extends Task.Backgroundable {
 
     @Override
     public void run(@NotNull ProgressIndicator progressIndicator) {
-        SpinnerToken.closeConnection();
+        assert myProject != null;
+        MatrixConnection connection = SpinnerToken.getCurrentConnection(myProject);
+        SpinnerToken.closeConnection(connection);
         environment.setConnected(false);
-        SpinnerToken.environmentName = null;
+        SpinnerToken.putEnvironmentName(myProject, "");
         SwingUtilities.invokeLater(toolWindow::repaint);
     }
 }

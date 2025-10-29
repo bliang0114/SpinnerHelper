@@ -1,6 +1,7 @@
 package com.bol.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.editor.MQLLanguage;
 import com.bol.spinner.editor.ui.dataview.bean.ProgramsRow;
@@ -16,6 +17,7 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.testFramework.LightVirtualFile;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -29,15 +31,13 @@ import java.util.function.Function;
 
 
 public class ProgramTableComponent extends AbstractDataViewTableComponent<ProgramsRow, ProgramTableComponent> implements Disposable {
-    private final Project myProject;
     private final List<File> tempJavaFiles = new ArrayList<>();
     private static final Object[] TABLE_COLUMNS = {"名称", "创建时间", "修改时间"};
     private static final int[] TABLE_COLUMN_WIDTHS = {300, 180, 180};
     private static final String TOOLBAR_ID = "ProgramView.Toolbar";
 
-    public ProgramTableComponent(Project project, VirtualFile file) {
-        super(file, TABLE_COLUMNS, TABLE_COLUMN_WIDTHS, TOOLBAR_ID);
-        this.myProject = project;
+    public ProgramTableComponent(@NotNull Project project, VirtualFile file) {
+        super(project, file, TABLE_COLUMNS, TABLE_COLUMN_WIDTHS, TOOLBAR_ID);
         setupBusinessListener();
         setName(TOOLBAR_ID);
         reloadData();
@@ -69,10 +69,10 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
 
 
     @Override
-    protected List<ProgramsRow> loadDataFromMatrix() throws MQLException {
+    protected List<ProgramsRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
         List<ProgramsRow> programDataList = new ArrayList<>();
         try {
-            String allProgram = MQLUtil.execute("list prog select name Originated Modified dump");
+            String allProgram = MQLUtil.execute(project, "list prog select name Originated Modified dump");
             if (CharSequenceUtil.isBlank(allProgram)) {
                 programDataList.add(new ProgramsRow("No programs found", "", ""));
                 return programDataList;
@@ -92,7 +92,7 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
         } catch (MQLException e) {
             String errorMsg = "Failed to load programs: " + e.getMessage();
             programDataList.add(new ProgramsRow());
-            Messages.showWarningDialog(myProject, errorMsg, "Program List Load Error");
+            Messages.showWarningDialog(project, errorMsg, "Program List Load Error");
             throw e;
         }
         return programDataList;
@@ -104,17 +104,17 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
             String programCode = generateJavaCode(programName);
             String programType = getProgType(programName);
             if (programCode.contains("the program is empty")) {
-                Messages.showInfoMessage(myProject, programCode, "Empty Program");
+                Messages.showInfoMessage(project, programCode, "Empty Program");
                 return;
             }
-            FileEditorManager fileEditorManager = FileEditorManager.getInstance(myProject);
+            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
             if ("MQL".equals(programType)) {
                 LightVirtualFile mqlVirtualFile = new LightVirtualFile(programName);
                 mqlVirtualFile.setLanguage(MQLLanguage.INSTANCE); // 语言关联（业务配置，非UI）
                 mqlVirtualFile.setContent(programCode, programCode, true);
                 mqlVirtualFile.setWritable(true);
 
-                FileEditorManager.getInstance(myProject);
+                FileEditorManager.getInstance(project);
                 fileEditorManager.openFile(mqlVirtualFile, true);
             } else {
                 String fileExt = "JAVA".equals(programType) ? ".java" : ".txt";
@@ -142,19 +142,19 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
                 }
             }
         } catch (IOException | MQLException e) {
-            Messages.showErrorDialog(myProject, "Open failed: " + e.getMessage(), "Error");
+            Messages.showErrorDialog(project, "Open failed: " + e.getMessage(), "Error");
         }
     }
 
 
-    private static String generateJavaCode(String programName) throws MQLException {
-        String content = MQLUtil.execute("list prog {} select code dump", programName);
+    private String generateJavaCode(String programName) throws MQLException {
+        String content = MQLUtil.execute(project, "list prog {} select code dump", programName);
         return StringUtils.isEmpty(content.trim()) ? "the program is empty!" : content.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
     }
 
 
-    private static String getProgType(String programName) throws MQLException {
-        String[] typeArray = MQLUtil.execute("list prog {} select ismqlprogram isjavaprogram dump", programName).split(",");
+    private String getProgType(String programName) throws MQLException {
+        String[] typeArray = MQLUtil.execute(project, "list prog {} select ismqlprogram isjavaprogram dump", programName).split(",");
         if (typeArray.length == 2) {
             if (typeArray[0].trim().equalsIgnoreCase("TRUE")) return "MQL";
             if (typeArray[1].trim().equalsIgnoreCase("TRUE")) return "JAVA";
