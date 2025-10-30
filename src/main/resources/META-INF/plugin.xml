@@ -70,6 +70,7 @@ public String runScript(Context ctx, String[] args) throws Exception {
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij" >
         <toolWindow id="SpinnerConfig" factoryClass="com.bol.spinner.ui.SpinnerUIFactory" anchor="right" icon="AllIcons.RunConfigurations.Remote"/>
+        <toolWindow id="SpinnerDataView" factoryClass="com.bol.spinner.ui.SpinnerSettingFactory" anchor="right" icon="AllIcons.RunConfigurations.Remote"/>
         <toolWindow id="MQLExecutor" factoryClass="com.bol.spinner.execution.MQLExecutorToolWindowFactory" icon="AllIcons.General.LayoutEditorPreview"
                     canCloseContents="true" anchor="bottom" doNotActivateOnStart="true" />
         <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
@@ -101,6 +102,9 @@ public String runScript(Context ctx, String[] args) throws Exception {
     <actions>
         <action id="SpinnerDeploy" class="com.bol.spinner.action.editor.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </action>
+        <action id="SpinnerDataViewAction" class="com.bol.spinner.action.editor.SpinnerDataViewAction" text="SpinnerDataView" icon="AllIcons.Actions.Show">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="SpinnerDeploy"/>
         </action>
         <group id="Spinner Config.Toolbar">
             <action id="Spinner Config.New"
