@@ -83,7 +83,7 @@ public class SpinnerDeployAction extends AnAction {
                         editor.getDocument().getLineStartOffset(startLine),
                         editor.getDocument().getLineEndOffset(endLine)
                 ));
-                importSpinnerFile(connection, project, filePath, firstLineText + "\n" + selectLineContent);
+                WorkspaceUtil.importSpinnerFile(connection, project, filePath, firstLineText + "\n" + selectLineContent);
             } else if(fileName.endsWith(".properties")){
                 if(parent.getName().equals("PageFiles")){
                     importPageFile(connection, project, file);
@@ -191,43 +191,6 @@ public class SpinnerDeployAction extends AnAction {
                     try {
                         //编译JPO
                         String res = WorkspaceUtil.runJPOImport(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath, jpoName);
-                        if (res == null || res.isEmpty()) {
-                            res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
-                        }
-                        UIUtil.showNotification(project, "Deploy Result",res);
-                    } catch (Exception e) {
-                        UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
-                    }
-                }
-            });
-        } catch (Exception e) {
-            logger.error("Deploy Error", e);
-            JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void importSpinnerFile(MatrixConnection connection, Project project, String filePath, String content) {
-        try {
-            File spinnerFile = new File(filePath);
-            if (!spinnerFile.exists()) {
-                throw new RuntimeException("File not found.");
-            }
-            String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
-            String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
-            String remoteSpinnerDir = "spinner" + new Random().nextInt();
-            String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
-            //创建目录
-            WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
-            //上传文件
-            WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, spinnerFile.getName(), content);
-            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    indicator.setIndeterminate(false);
-                    indicator.setText("Starting deployment...");
-                    try {
-                        //编译JPO
-                        String res = WorkspaceUtil.runSpinnerImport(connection, remoteBaseDir + "/" + remoteSpinnerDir);
                         if (res == null || res.isEmpty()) {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
                         }
