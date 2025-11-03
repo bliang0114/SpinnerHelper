@@ -3,15 +3,22 @@ package com.bol.spinner.editor.spinner;
 import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.StrUtil;
 import com.bol.spinner.config.SpinnerToken;
 import com.bol.spinner.ui.ComboBoxWithFilter;
 import com.bol.spinner.util.UIUtil;
 import com.bol.spinner.util.WorkspaceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.command.WriteCommandAction;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiManager;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBTextField;
@@ -22,6 +29,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
@@ -163,12 +171,7 @@ public class SpinnerDataRecordBuilder {
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
-            String value = getValue();
-            log.info("Value: {}", value);
-            List<String> lines = FileUtil.readLines(INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset());
-            lines.set(INSTANCE.modelRowIndex + 1, value);
-            FileUtil.writeLines(lines, INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset(), false);
-            INSTANCE.spinnerViewComponent.reloadValue(INSTANCE.modelRowIndex, value);
+            apply();
         }
 
         @Override
@@ -179,18 +182,12 @@ public class SpinnerDataRecordBuilder {
 
     public class DeployAction extends AnAction {
         public DeployAction() {
-            super("Apply & Deploy", "Apply & Deploy", AllIcons.Nodes.Deploy);
+            super("Apply && Deploy", "Apply && Deploy", AllIcons.Nodes.Deploy);
         }
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
-            String value = getValue();
-            log.info("Value: {}", value);
-            List<String> lines = FileUtil.readLines(INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset());;
-            lines.set(INSTANCE.modelRowIndex + 1, value);
-            FileUtil.writeLines(lines, INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset(), false);
-            INSTANCE.spinnerViewComponent.reloadValue(INSTANCE.modelRowIndex, value);
-
+           String finalValue = apply();
             if (INSTANCE.project == null) {
                 UIUtil.showWarningNotification(null, "Spinner Data View", "project is null, deploy failure");
                 return;
@@ -200,7 +197,8 @@ public class SpinnerDataRecordBuilder {
                 UIUtil.showWarningNotification(null, "Spinner Data View", "connection is null, deploy failure");
                 return;
             }
-            WorkspaceUtil.importSpinnerFile(connection, INSTANCE.project, INSTANCE.virtualFile.getPath(), lines.getFirst() + "\n" + value);
+            List<String> lines = FileUtil.readLines(INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset());
+            WorkspaceUtil.importSpinnerFile(connection, INSTANCE.project, INSTANCE.virtualFile.getPath(), lines.getFirst() + "\n" + finalValue);
         }
 
         @Override
@@ -208,4 +206,34 @@ public class SpinnerDataRecordBuilder {
             return super.getActionUpdateThread();
         }
     }
+
+    public String apply(){
+        String value = getValue();
+        log.info("Value: {}", value);
+        int lineNumber = modelRowIndex + 1;
+        PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
+        if (psiFile == null) return null;
+        Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
+        if (document == null) return null;
+        if (lineNumber >= document.getLineCount()) return null;
+        int startOffset = document.getLineStartOffset(lineNumber);
+        int endOffset = document.getLineEndOffset(lineNumber);
+        String lineValue = document.getText(new TextRange(document.getLineStartOffset(lineNumber), document.getLineEndOffset(lineNumber)));
+        String[] valueArr = value.split("\t", -1);
+        String[] lineValueArr = lineValue.split("\t", -1);
+        boolean notNeedRefactor = valueArr.length <= lineValueArr.length || Arrays.stream(valueArr, lineValueArr.length, valueArr.length).anyMatch(StrUtil::isNotEmpty);
+        if (!notNeedRefactor) {
+            String[] newValueArr = Arrays.copyOf(valueArr, lineValueArr.length);
+            value = String.join("\t", newValueArr);
+        }
+        String finalValue = value;
+        WriteCommandAction.runWriteCommandAction(project, () -> {
+            document.replaceString(startOffset, endOffset, finalValue);
+            PsiDocumentManager.getInstance(project).commitDocument(document);
+        });
+        INSTANCE.spinnerViewComponent.reloadValue(INSTANCE.modelRowIndex, finalValue);
+        return finalValue;
+    }
+
+
 }
