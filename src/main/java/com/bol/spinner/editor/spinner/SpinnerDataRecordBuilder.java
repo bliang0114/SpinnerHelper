@@ -4,6 +4,7 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.bol.spinner.config.SpinnerToken;
+import com.bol.spinner.ui.ComboBoxWithFilter;
 import com.bol.spinner.util.UIUtil;
 import com.bol.spinner.util.WorkspaceUtil;
 import com.intellij.icons.AllIcons;
@@ -70,13 +71,12 @@ public class SpinnerDataRecordBuilder {
             if (CharSequenceUtil.containsAny(headers[i], "Setting Name")) {
                 label = label.replace(" Names ", " Names \\& Values ");
                 label = label.replace(" Name ", " Name \\& Value ");
-                INSTANCE.components[i] = new SpinnerSettingsComponent(value, values.elementAt(i + 1));
+                INSTANCE.components[i] = new SpinnerSettingsComponent(spinnerType, value, values.elementAt(i + 1));
             } else if (CharSequenceUtil.containsAny(label, "Setting Value")) {
                 continue;
             } else if (spinnerType == SpinnerType.ATTRIBUTE && "Type".equals(label)) {
-                ComboBox<String> comboBox = new ComboBox<>(new String[]{ "binary", "boolean", "enum", "integer", "real", "string", "timestamp" });
-                comboBox.setEditable(true);
-                comboBox.setSelectedItem(value);
+                List<String> items = List.of("binary", "boolean", "enum", "integer", "real", "string", "timestamp");
+                ComboBoxWithFilter<String> comboBox = new ComboBoxWithFilter<>(items, value);
                 INSTANCE.components[i] = comboBox;
             } else if (spinnerType == SpinnerType.ATTRIBUTE && CharSequenceUtil.containsAny(label, "Ranges")) {
                 INSTANCE.components[i] = new SpinnerMultiTextFieldComponent(label, value);
@@ -160,10 +160,10 @@ public class SpinnerDataRecordBuilder {
         public void actionPerformed(@NotNull AnActionEvent e) {
             String value = getValue();
             log.info("Value: {}", value);
-            List<String> lines = FileUtil.readLines(INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset());;
+            List<String> lines = FileUtil.readLines(INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset());
             lines.set(INSTANCE.modelRowIndex + 1, value);
             FileUtil.writeLines(lines, INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset(), false);
-            INSTANCE.spinnerViewComponent.reloadValue();
+            INSTANCE.spinnerViewComponent.reloadValue(INSTANCE.modelRowIndex, value);
         }
 
         @Override
@@ -184,7 +184,7 @@ public class SpinnerDataRecordBuilder {
             List<String> lines = FileUtil.readLines(INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset());;
             lines.set(INSTANCE.modelRowIndex + 1, value);
             FileUtil.writeLines(lines, INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset(), false);
-            INSTANCE.spinnerViewComponent.reloadValue();
+            INSTANCE.spinnerViewComponent.reloadValue(INSTANCE.modelRowIndex, value);
 
             if (INSTANCE.project == null) {
                 UIUtil.showWarningNotification(null, "Spinner Data View", "project is null, deploy failure");

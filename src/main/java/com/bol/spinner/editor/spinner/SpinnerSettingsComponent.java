@@ -1,5 +1,6 @@
 package com.bol.spinner.editor.spinner;
 
+import com.bol.spinner.ui.ComboBoxWithFilter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.ui.components.JBTextField;
@@ -12,13 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SpinnerSettingsComponent extends JPanel {
+    private final SpinnerType spinnerType;
     private final String settingName;
     private final String settingValue;
     private DefaultActionGroup actionGroup;
     private List<JComponent> settingNameComponents;
     private List<JComponent> settingValueComponents;
 
-    public SpinnerSettingsComponent(String settingName, String settingValue) {
+    public SpinnerSettingsComponent(SpinnerType spinnerType, String settingName, String settingValue) {
+        this.spinnerType = spinnerType;
         this.settingName = settingName;
         this.settingValue = settingValue;
         initComponents();
@@ -30,8 +33,10 @@ public class SpinnerSettingsComponent extends JPanel {
         String[] settingValues = this.settingValue.split("\\|");
         settingNameComponents =  new ArrayList<>(settingNames.length);
         settingValueComponents =  new ArrayList<>(settingNames.length);
+        List<String> settingNameItems = SpinnerSettingNameConfig.getSettingNames(this.spinnerType);
         for (int i = 0; i < settingNames.length; i++) {
-            settingNameComponents.add(new JBTextField(settingNames[i]));
+            ComboBoxWithFilter<String> comboBox = new ComboBoxWithFilter<>(settingNameItems, settingNames[i]);
+            settingNameComponents.add(comboBox);
             String value = i >= settingValues.length ? "" : settingValues[i];
             settingValueComponents.add(new JBTextField(value));
         }
@@ -82,10 +87,14 @@ public class SpinnerSettingsComponent extends JPanel {
 
     private void getComponentValue(StringBuilder value, List<JComponent> settingValueComponents) {
         for (JComponent component : settingValueComponents) {
-            JBTextField textField = (JBTextField) component;
-            String text = textField.getText();
+            String text = "";
+            if (component instanceof JBTextField textField) {
+                text = textField.getText();
+            } else if (component instanceof ComboBoxWithFilter<?> comboBox) {
+                text = comboBox.getItem().toString();
+            }
             if (!text.isEmpty()) {
-                value.append(textField.getText()).append("|");
+                value.append(text).append("|");
             }
         }
         if (!value.isEmpty()) {
@@ -103,7 +112,8 @@ public class SpinnerSettingsComponent extends JPanel {
             String place = e.getPlace();
             place = place.replace("Spinner Setting.ActionGroup", "");
             int index = Integer.parseInt(place);
-            settingNameComponents.add(index + 1, new JBTextField());
+            List<String> settingNameItems = SpinnerSettingNameConfig.getSettingNames(spinnerType);
+            settingNameComponents.add(index + 1, new ComboBoxWithFilter<>(settingNameItems, ""));
             settingValueComponents.add(index + 1, new JBTextField());
 
             removeAll();

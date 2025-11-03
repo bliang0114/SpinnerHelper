@@ -191,11 +191,14 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         }
     }
 
-    public void reloadValue() {
-        List<String> lines = FileUtil.readLines(virtualFile.getPath(), virtualFile.getCharset());
-        lines.removeFirst();
-        dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
-        setValue();
+    public void reloadValue(int rowIndex, String line) {
+        int columnCount = tableModel.getColumnCount();
+        String[] values = line.split("\t");
+        dataList.set(rowIndex, values);
+        for (int i = 0; i < columnCount; i++) {
+            String value = i >= values.length ? "" : values[i];
+            tableModel.setValueAt(value, rowIndex, i);
+        }
     }
 
     protected void readFile() throws Exception {
