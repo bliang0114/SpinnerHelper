@@ -16,6 +16,7 @@ import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.FormBuilder;
+import com.intellij.util.ui.JBUI;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -126,7 +127,11 @@ public class SpinnerDataRecordBuilder {
         toolbarPanel.add(toolbar.getComponent(), BorderLayout.WEST);
         panel.add(toolbarPanel, BorderLayout.NORTH);
 
-        JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(formBuilder.getPanel());
+        // 创建包装面板，使用BorderLayout确保顶部对齐
+        JPanel wrapperPanel = new JPanel(new BorderLayout());
+        wrapperPanel.add(formBuilder.getPanel(), BorderLayout.NORTH); // 关键：使用NORTH而不是CENTER
+        JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(wrapperPanel);
+        scrollPane.setBorder(JBUI.Borders.empty());
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         panel.add(scrollPane, BorderLayout.CENTER);

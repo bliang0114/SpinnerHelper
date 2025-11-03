@@ -1,11 +1,18 @@
 package com.bol.spinner.editor.spinner;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.NumberUtil;
 import com.bol.spinner.customize.CellCopyTransferHandler;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.event.DocumentEvent;
+import com.intellij.openapi.editor.event.DocumentListener;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.FilterComponent;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.ScrollPaneFactory;
@@ -18,14 +25,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
-import javax.swing.table.TableCellRenderer;
+import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @Slf4j
 public abstract class AbstractSpinnerViewComponent extends JPanel {
@@ -37,6 +44,8 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
     protected RecordPaneVisibleAction recordPaneVisibleAction;
     protected JBTabbedPane recordPane;
     protected String[] headers;
+    private TableRowSorter<TableModel> sorter;
+    private FilterComponent filterComponent;
     protected final List<String[]> dataList = new ArrayList<>();
 
     public AbstractSpinnerViewComponent(@NotNull Project project, @NotNull VirtualFile virtualFile) {
@@ -103,6 +112,16 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
                 return c;
             }
         };
+        sorter = new TableRowSorter<>(table.getModel());
+        table.setRowSorter(sorter);
+        // 创建筛选组件
+        filterComponent = new FilterComponent("TABLE_FILTER_HISTORY", 10) {
+            @Override
+            public void filter() {
+                applyProfessionalFilter();
+            }
+        };
+        filterComponent.reset();
         recordPane = new JBTabbedPane();
         recordPane.add("Record", new JPanel());
         toolbarActionGroup = new DefaultActionGroup();
@@ -127,10 +146,32 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
             if (e.getValueIsAdjusting()) return;
 
             int selectedRow = table.getSelectedRow();
+            if (selectedRow < 0) return;
+
             int modelRowIndex = table.convertRowIndexToModel(selectedRow);
+            if (modelRowIndex < 0) return;
             JComponent component = SpinnerDataRecordBuilder.createBuilder(this.virtualFile, modelRowIndex, AbstractSpinnerViewComponent.this)
                     .setProject(project).build(headers, tableModel.getDataVector().get(modelRowIndex));
             recordPane.setComponentAt(0, component);
+        });
+        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
+        assert document != null;
+        document.addDocumentListener(new DocumentListener() {
+            @Override
+            public void documentChanged(@NotNull DocumentEvent event) {
+                tableModel.setRowCount(0);
+                dataList.clear();
+                String text = event.getDocument().getText();
+                if (text.contains("\n")) {
+                    List<String> lines = CharSequenceUtil.split(text, "\n");
+                    if (!lines.isEmpty()) {
+                        lines.removeFirst();
+                    }
+                    dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
+                    setValue();
+                    repaint();
+                }
+            }
         });
     }
 
@@ -142,7 +183,9 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         ));
         ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("Spinner Data View.Toolbar", toolbarActionGroup, true);
         toolbar.setTargetComponent(table);
-        toolbarPanel.add(toolbar.getComponent(), BorderLayout.WEST);
+        filterComponent.setPreferredSize(JBUI.size(260, filterComponent.getHeight()));
+        toolbarPanel.add(filterComponent, BorderLayout.WEST);
+        toolbarPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
         return toolbarPanel;
     }
 
@@ -152,7 +195,6 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         for (int i = 1; i < tableModel.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(240);
         }
-//        TableColumnAutoResizer.autoResizeAllColumns(table);
         // 设置表头
         JBFont font = JBUI.Fonts.create("JetBrains Mono", 14);
         JTableHeader header = table.getTableHeader();
@@ -219,6 +261,65 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         headers = header.split("\t");
         lines.removeFirst();
         dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
+    }
+
+    private void applyProfessionalFilter() {
+        String filterText = filterComponent.getFilter();
+        if (filterText == null || filterText.isEmpty()) {
+            sorter.setRowFilter(null);
+            return;
+        }
+
+        try {
+            // 支持高级筛选语法
+            if (filterText.contains(":")) {
+                // 按列筛选 例如: "name:test type:file"
+                applyColumnSpecificFilter(filterText);
+            } else {
+                // 全局筛选
+                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(filterText)));
+            }
+        } catch (Exception e) {
+            // 筛选语法错误时使用全局筛选
+            try {
+                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(filterText)));
+            } catch (PatternSyntaxException ex) {
+                sorter.setRowFilter(null);
+            }
+        }
+    }
+
+    private void applyColumnSpecificFilter(String filterText) {
+        String[] conditions = filterText.split("\\s+");
+        List<RowFilter<Object, Object>> filters = new ArrayList<>();
+        for (String condition : conditions) {
+            String[] parts = condition.split(":", 2);
+            if (parts.length == 2) {
+                String columnIndexStr = parts[0].trim();
+                String value = parts[1].trim();
+                // 查找列索引
+                int columnIndex = NumberUtil.isInteger(columnIndexStr) ? Integer.parseInt(columnIndexStr) : 1;
+                if (columnIndex >= 0 && !value.isEmpty()) {
+                    RowFilter<Object, Object> filter = RowFilter.regexFilter("(?i)" + Pattern.quote(value), columnIndex);
+                    filters.add(filter);
+                }
+            }
+        }
+        if (!filters.isEmpty()) {
+            sorter.setRowFilter(RowFilter.andFilter(filters));
+        } else {
+            sorter.setRowFilter(null);
+        }
+    }
+
+    private int findColumnIndex(String columnName) {
+        TableModel model = table.getModel();
+        for (int i = 0; i < model.getColumnCount(); i++) {
+            if (columnName.equalsIgnoreCase(model.getColumnName(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public class RecordPaneVisibleAction extends ToggleAction {
