@@ -217,7 +217,6 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         setLayout(new BorderLayout());
         JComponent toolbarPanel = getToolbarComponent();
         add(toolbarPanel, BorderLayout.NORTH);
-
         JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(table);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
