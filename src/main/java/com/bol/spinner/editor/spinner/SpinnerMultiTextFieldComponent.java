@@ -152,7 +152,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
             String place = e.getPlace();
-            place = place.replace("Spinner Setting.ActionGroup", "");
+            place = place.replace("Spinner " + header + ".ActionGroup", "");
             int index = Integer.parseInt(place);
             JBTextField component = components.get(index);
             String text = component.getText();
