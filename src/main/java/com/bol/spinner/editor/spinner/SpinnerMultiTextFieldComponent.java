@@ -1,6 +1,7 @@
 package com.bol.spinner.editor.spinner;
 
 import cn.hutool.core.text.CharSequenceUtil;
+import com.bol.spinner.ui.ComboBoxWithFilter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.ui.components.JBTextField;
@@ -17,7 +18,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
     private final String value;
     private final String separator;
     private DefaultActionGroup actionGroup;
-    private List<JComponent> components;
+    private List<JBTextField> components;
 
     public SpinnerMultiTextFieldComponent(String header, String value) {
         this(header, value, "|");
@@ -40,6 +41,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new AddValueAction());
         actionGroup.add(new RemoveValueAction());
+        actionGroup.add(new CommentAction());
     }
 
     private void setupLayout() {
@@ -134,6 +136,35 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
             if (components.isEmpty() || components.size() == 1) {
                 e.getPresentation().setEnabledAndVisible(false);
             }
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return super.getActionUpdateThread();
+        }
+    }
+
+    public class CommentAction extends AnAction {
+        public CommentAction() {
+            super("Comment", "Comment", AllIcons.Actions.RefactoringBulb);
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            String place = e.getPlace();
+            place = place.replace("Spinner Setting.ActionGroup", "");
+            int index = Integer.parseInt(place);
+            JBTextField component = components.get(index);
+            String text = component.getText();
+            if (text == null || text.isEmpty()) return;
+
+            int originLength = text.length();
+            text = text.replace("<<", "");
+            text = text.replace(">>", "");
+            if  (originLength == text.length()) {
+                text = "<<" + text + ">>";
+            }
+            component.setText(text);
         }
 
         @Override

@@ -118,7 +118,7 @@ public class SpinnerDataRecordBuilder {
             } else if (spinnerType == SpinnerType.FORM_FIELD && CharSequenceUtil.containsAny(label, "Users")) {
                 INSTANCE.components[i] = new SpinnerMultiTextFieldComponent(label, value);
             } else {
-                INSTANCE.components[i] = new JBTextField(value);
+                INSTANCE.components[i] = new SpinnerTextFieldComponent(label, value);
             }
             formBuilder.addLabeledComponent(label, INSTANCE.components[i]).addSeparator();
         }
@@ -150,8 +150,8 @@ public class SpinnerDataRecordBuilder {
         StringBuilder value = new StringBuilder();
         if (INSTANCE.components != null) {
             for (JComponent component : INSTANCE.components) {
-                if (component instanceof JBTextField textField) {
-                    value.append(textField.getText()).append("\t");
+                if (component instanceof SpinnerTextFieldComponent textFieldComponent) {
+                    value.append(textFieldComponent.getValue()).append("\t");
                 } else if (component instanceof ComboBox<?> comboBox) {
                     value.append(comboBox.getItem()).append("\t");
                 } else if (component instanceof SpinnerSettingsComponent settingsComponent) {
@@ -166,7 +166,7 @@ public class SpinnerDataRecordBuilder {
 
     public class ApplyAction extends AnAction {
         public ApplyAction() {
-            super("Apply", "Apply", AllIcons.Diff.ApplyNotConflictsLeft);
+            super("Apply", "Apply", AllIcons.General.GreenCheckmark);
         }
 
         @Override
