@@ -213,7 +213,6 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         table.setFont(font);
         recordPane.setPreferredSize(JBUI.size(300, -1));
         recordPane.setVisible(false);
-
         setLayout(new BorderLayout());
         JComponent toolbarPanel = getToolbarComponent();
         add(toolbarPanel, BorderLayout.NORTH);
