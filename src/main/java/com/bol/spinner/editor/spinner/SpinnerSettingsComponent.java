@@ -91,7 +91,7 @@ public class SpinnerSettingsComponent extends JPanel {
             if (component instanceof JBTextField textField) {
                 text = textField.getText();
             } else if (component instanceof ComboBoxWithFilter<?> comboBox) {
-                text = comboBox.getItem().toString();
+                text = String.valueOf(comboBox.getItem());
             }
             if (!text.isEmpty()) {
                 value.append(text).append("|");
