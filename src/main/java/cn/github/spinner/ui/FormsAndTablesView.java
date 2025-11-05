@@ -117,8 +117,8 @@ public class FormsAndTablesView extends JBPanel implements Disposable {
                                                           boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (isSelected) {
-                    setBackground(UIUtil.getListSelectionBackground());
-                    setForeground(UIUtil.getListSelectionForeground());
+                    setBackground(UIUtil.getListSelectionBackground(true));
+                    setForeground(UIUtil.getListSelectionForeground(true));
                 }
                 return this;
             }
