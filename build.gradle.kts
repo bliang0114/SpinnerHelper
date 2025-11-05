@@ -5,8 +5,8 @@ plugins {
     id("org.jetbrains.grammarkit") version "2022.3.2.2"
 }
 
-group = "com.bol"
-version = "V2.06"
+group = "cn.github.spinner"
+version = "2.0.6"
 
 repositories {
 //    mavenCentral()
@@ -40,11 +40,15 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "241"
+            sinceBuild = "251"
         }
         changeNotes = """
       Initial version
     """.trimIndent()
+    }
+    publishing {
+        token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
+        version = "2.0.6"
     }
 }
 
@@ -63,8 +67,8 @@ sourceSets {
 tasks {
     // Set the JVM compatibility versions
     generateLexer {
-        sourceFile.set(file("src/main/java/com/bol/spinner/editor/highlights/MQL.flex"))
-        targetOutputDir.set(file("gen/com/bol/spinner/editor/highlights/"))
+        sourceFile.set(file("src/main/java/cn/github/spinner/editor/highlights/MQL.flex"))
+        targetOutputDir.set(file("gen/cn/github/spinner/editor/highlights/"))
         purgeOldFiles = true
     }
 
@@ -73,5 +77,9 @@ tasks {
         targetCompatibility = "21"
         options.encoding = "UTF-8"
         dependsOn(generateLexer)
+    }
+    publishPlugin {
+        token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
+        version = "2.0.6"
     }
 }

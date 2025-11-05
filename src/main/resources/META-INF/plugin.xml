@@ -1,66 +1,56 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
-    <id>com.bol.SpinnerHelper</id>
+    <id>cn.github.SpinnerHelper</id>
 
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
     <name>SpinnerHelper</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.bing.com">Bol</vendor>
+    <vendor url="https://gitee.com/bliang0114/SpinnerHelper">BD Team One</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
-    <description><![CDATA[
-<h2>SpinnerHelper - 3DE开发效率提升插件</h2>
-<p><code>SpinnerHelper</code> 是一款专为 IntelliJ IDEA 设计的专业级插件，致力于优化 3DE 开发体验。通过智能化的部署流程和丰富的辅助工具集，显著提升开发效率与便捷性。</p>
+    <description>
+        SpinnerHelper is a plugin for 3DE development efficiency.
 
-<h3>🚀 核心功能</h3>
+        SpinnerHelper 是一款专为 IntelliJ IDEA 设计的专业级插件，致力于优化 3DE 开发体验。通过智能化的部署流程和丰富的辅助工具集，显著提升开发效率与便捷性。
 
-<h4>多环境管理</h4>
-<ul>
-  <li><strong>多版本支持</strong>：灵活配置不同 3DE 版本环境</li>
-  <li><strong>环境切换</strong>：一键实现在不同开发环境间的无缝切换</li>
-</ul>
+        核心功能：
+        1. 多环境管理
+        - 多版本支持：灵活配置不同 3DE 版本环境
+        - 环境切换：一键实现在不同开发环境间的无缝切换
 
-<h4>快速部署</h4>
-<ul>
-  <li><strong>Spinner 文件部署</strong>：通过右键菜单快速执行配置文件的增量或全量部署</li>
-  <li><strong>JPO 文件部署</strong>：提供完整的 JPO 文件部署支持</li>
-</ul>
+        2. 快速部署
+        - Spinner 文件部署：通过右键菜单快速执行配置文件的增量或全量部署
+        - JPO 文件部署：提供完整的 JPO 文件部署支持
 
-<h4>实用工具集</h4>
-<ul>
-  <li><strong>MQL Console</strong>：集成化控制台，直接执行 MQL 命令</li>
-  <li><strong>URL Parameter Parse</strong>：便捷的 URL 参数解析功能</li>
-</ul>
+        3. 实用工具集
+        - MQL Console：集成化控制台，直接执行 MQL 命令
+        - URL Parameter Parse：便捷的 URL 参数解析功能
 
-<h3>⚙️ 技术特性</h3>
-<p>优化了 <code>EnoBrowserJPO</code> 的 <code>runScript</code> 方法，以获得更好的日志反馈：</p>
-<pre><code>
-public String runScript(Context ctx, String[] args) throws Exception {
-    if (adminOnly)
+        技术特性：
+        优化了 EnoBrowserJPO 的 runScript 方法，以获得更好的日志反馈：
+        public String runScript(Context ctx, String[] args) throws Exception {
+        if (adminOnly)
         checkAdmin(ctx);
-    String[] cmdarray = Arrays.copyOf(args, args.length - 2);
-    String dir = args[args.length - 2];
-    String output = args[args.length - 1];
-    ProcessBuilder pb = new ProcessBuilder(cmdarray);
-    pb.directory(new File(dir));
-    pb.redirectErrorStream(true);
-    Process p = pb.start();
-    StreamWriter sw = new StreamWriter(p.getInputStream(), output);
-    sw.run();
-    return readFile(ctx, new String[]{output});
-}
-</code></pre>
+        String[] cmdarray = Arrays.copyOf(args, args.length - 2);
+        String dir = args[args.length - 2];
+        String output = args[args.length - 1];
+        ProcessBuilder pb = new ProcessBuilder(cmdarray);
+        pb.directory(new File(dir));
+        pb.redirectErrorStream(true);
+        Process p = pb.start();
+        StreamWriter sw = new StreamWriter(p.getInputStream(), output);
+        sw.run();
+        return readFile(ctx, new String[]{output});
+        }
 
-<h3>📋 配置要求</h3>
-<ul>
-  <li><strong>IDEA 版本</strong>：仅支持 IntelliJ IDEA 2024.2 及以上版本</li>
-  <li><strong>依赖准备</strong>：需自行准备对应 3DE 版本的依赖包</li>
-</ul>
-]]></description>
+        配置要求：
+        - IDEA 版本：仅支持 IntelliJ IDEA 2025.1 及以上版本
+        - 依赖准备：需自行准备对应 3DE 版本的依赖包
+    </description>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
@@ -68,110 +58,113 @@ public String runScript(Context ctx, String[] args) throws Exception {
     <depends>com.intellij.modules.java</depends> <!-- 添加这一行 -->
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
-    <extensions defaultExtensionNs="com.intellij" >
-        <toolWindow id="SpinnerConfig" factoryClass="com.bol.spinner.ui.SpinnerUIFactory" anchor="right" icon="AllIcons.RunConfigurations.Remote"/>
-<!--        <toolWindow id="SpinnerDataView" factoryClass="com.bol.spinner.ui.SpinnerSettingFactory" anchor="right" icon="AllIcons.RunConfigurations.Remote"/>-->
-        <toolWindow id="MQLExecutor" factoryClass="com.bol.spinner.execution.MQLExecutorToolWindowFactory" icon="AllIcons.General.LayoutEditorPreview"
-                    canCloseContents="true" anchor="bottom" doNotActivateOnStart="true" />
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="SpinnerConfig" factoryClass="cn.github.spinner.ui.SpinnerUIFactory" anchor="right"
+                    icon="AllIcons.RunConfigurations.Remote"/>
+        <!--        <toolWindow id="SpinnerDataView" factoryClass="ui.cn.gitee.spinner.SpinnerSettingFactory" anchor="right" icon="AllIcons.RunConfigurations.Remote"/>-->
+        <toolWindow id="MQLExecutor" factoryClass="cn.github.spinner.execution.MQLExecutorToolWindowFactory"
+                    icon="AllIcons.General.LayoutEditorPreview"
+                    canCloseContents="true" anchor="bottom" doNotActivateOnStart="true"/>
         <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
-        <applicationService serviceImplementation="com.bol.spinner.config.SpinnerSettings"/>
-        <applicationService serviceImplementation="com.bol.spinner.config.MatrixDriversConfig"/>
+        <applicationService serviceImplementation="cn.github.spinner.config.SpinnerSettings"/>
+        <applicationService serviceImplementation="cn.github.spinner.config.MatrixDriversConfig"/>
         <!-- MQL语言支持 -->
         <fileType name="MQL File"
-                  implementationClass="com.bol.spinner.editor.MQLFileType"
+                  implementationClass="cn.github.spinner.editor.MQLFileType"
                   fieldName="INSTANCE"
                   language="MQL"
                   extensions="mql"/>
 
         <lang.parserDefinition language="MQL"
-                               implementationClass="com.bol.spinner.editor.parser.MQLParserDefinition"/>
+                               implementationClass="cn.github.spinner.editor.parser.MQLParserDefinition"/>
 
         <lang.syntaxHighlighterFactory language="MQL"
-                                       implementationClass="com.bol.spinner.editor.highlights.MQLSyntaxHighlighterFactory"/>
+                                       implementationClass="cn.github.spinner.editor.highlights.MQLSyntaxHighlighterFactory"/>
 
         <completion.contributor language="MQL"
-                                implementationClass="com.bol.spinner.editor.completion.MQLCompletionContributor"/>
+                                implementationClass="cn.github.spinner.editor.completion.MQLCompletionContributor"/>
 
-        <colorSettingsPage implementation="com.bol.spinner.editor.highlights.MQLColorSettingsPage"/>
+        <colorSettingsPage implementation="cn.github.spinner.editor.highlights.MQLColorSettingsPage"/>
 
-<!--        <fileEditorProvider implementation="com.bol.spinner.editor.ui.MQLFileEditorProvider"/>-->
-        <fileEditorProvider implementation="com.bol.spinner.editor.ui.MatrixCommonViewProvider"/>
-        <fileEditorProvider implementation="com.bol.spinner.editor.spinner.SpinnerDataViewProvider"/>
-        <editorNotificationProvider implementation="com.bol.spinner.editor.MQLEditorNotificationProvider"/>
+        <fileEditorProvider implementation="cn.github.spinner.editor.ui.MatrixCommonViewProvider"/>
+        <fileEditorProvider implementation="cn.github.spinner.editor.spinner.SpinnerDataViewProvider"/>
+        <editorNotificationProvider implementation="cn.github.spinner.editor.MQLEditorNotificationProvider"/>
     </extensions>
     <actions>
-        <action id="SpinnerDeploy" class="com.bol.spinner.action.editor.SpinnerDeployAction" text="SpinnerDeploy" icon="AllIcons.Actions.Upload">
+        <action id="SpinnerDeploy" class="cn.github.spinner.action.editor.SpinnerDeployAction" text="SpinnerDeploy"
+                icon="AllIcons.Actions.Upload">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
-<!--        <action id="SpinnerDataViewAction" class="com.bol.spinner.action.editor.SpinnerDataViewAction" text="SpinnerDataView" icon="AllIcons.Actions.Show">-->
-<!--            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="SpinnerDeploy"/>-->
-<!--        </action>-->
+        <!--        <action id="SpinnerDataViewAction" class="editor.action.cn.gitee.spinner.SpinnerDataViewAction" text="SpinnerDataView" icon="AllIcons.Actions.Show">-->
+        <!--            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="SpinnerDeploy"/>-->
+        <!--        </action>-->
         <group id="Spinner Config.Toolbar">
             <action id="Spinner Config.New"
-                    class="com.bol.spinner.action.basic.NewEnvAction"
+                    class="cn.github.spinner.action.basic.NewEnvAction"
                     icon="AllIcons.General.Add"/>
             <action id="Spinner Config.Edit"
-                    class="com.bol.spinner.action.basic.EditEnvAction"
+                    class="cn.github.spinner.action.basic.EditEnvAction"
                     icon="AllIcons.Actions.Edit"/>
             <action id="Spinner Config.Remove"
-                    class="com.bol.spinner.action.basic.RemoveEnvAction"
+                    class="cn.github.spinner.action.basic.RemoveEnvAction"
                     icon="AllIcons.General.Remove"/>
             <action id="Spinner Config.Copy"
-                    class="com.bol.spinner.action.basic.CopyEnvAction"
+                    class="cn.github.spinner.action.basic.CopyEnvAction"
                     icon="AllIcons.Actions.Copy"/>
             <separator/>
             <action id="Spinner Config.Connect"
-                    class="com.bol.spinner.action.basic.ConnectAction"
+                    class="cn.github.spinner.action.basic.ConnectAction"
                     icon="AllIcons.Toolwindows.ToolWindowRun"/>
             <action id="Spinner Config.ReConnect"
-                    class="com.bol.spinner.action.basic.ReConnectAction"
+                    class="cn.github.spinner.action.basic.ReConnectAction"
                     icon="AllIcons.Actions.Rerun"/>
             <action id="Spinner Config.Disconnect"
-                    class="com.bol.spinner.action.basic.DisconnectAction"
+                    class="cn.github.spinner.action.basic.DisconnectAction"
                     icon="AllIcons.Debugger.KillProcess"/>
             <separator/>
             <action id="Spinner Config.URLParser"
-                    class="com.bol.spinner.action.basic.URLParserAction"
+                    class="cn.github.spinner.action.basic.URLParserAction"
                     icon="AllIcons.General.Web"/>
             <action id="Spinner Config.MQLConsole"
-                    class="com.bol.spinner.action.basic.MQLConsoleAction"
+                    class="cn.github.spinner.action.basic.MQLConsoleAction"
                     icon="AllIcons.Nodes.Console"/>
         </group>
         <group id="Spinner Config.RightToolbar">
             <action id="Spinner Config.Dependencies"
-                    class="com.bol.spinner.action.basic.MatrixDriverSettingsAction"
+                    class="cn.github.spinner.action.basic.MatrixDriverSettingsAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>
         </group>
         <group id="Spinner Config.More" icon="AllIcons.Actions.MoreHorizontal" popup="true">
-            <add-to-group group-id="Spinner Config.Toolbar" anchor="after" relative-to-action="Spinner Config.MQLConsole"/>
+            <add-to-group group-id="Spinner Config.Toolbar" anchor="after"
+                          relative-to-action="Spinner Config.MQLConsole"/>
             <action id="Spinner Config.Program"
-                    class="com.bol.spinner.action.editor.ProgramAction"
+                    class="cn.github.spinner.action.editor.ProgramAction"
                     icon="AllIcons.General.ProjectStructure"/>
             <action id="Spinner Config.FormAndTableAction"
-                    class="com.bol.spinner.action.editor.FormAndTableAction"
+                    class="cn.github.spinner.action.editor.FormAndTableAction"
                     icon="AllIcons.Nodes.DataTables"/>
             <action id="Spinner Config.TypeView"
-                    class="com.bol.spinner.action.editor.TypeViewAction"
+                    class="cn.github.spinner.action.editor.TypeViewAction"
                     icon="AllIcons.General.ShowInfos"/>
             <action id="Spinner Config.RelationshipView"
-                    class="com.bol.spinner.action.editor.RelationshipViewAction"
+                    class="cn.github.spinner.action.editor.RelationshipViewAction"
                     icon="AllIcons.General.ShowInfos"/>
 
             <action id="Spinner Config.MenuAndCommandAction"
-                    class="com.bol.spinner.action.editor.MenuAndCommandAction"
+                    class="cn.github.spinner.action.editor.MenuAndCommandAction"
                     icon="AllIcons.Nodes.NativeLibrariesFolder"/>
         </group>
         <action id="MQL Editor.Run"
-                class="com.bol.spinner.action.editor.RunMQLAction"
+                class="cn.github.spinner.action.editor.RunMQLAction"
                 icon="AllIcons.Actions.Execute">
             <keyboard-shortcut first-keystroke="alt e" keymap="$default"/>
         </action>
         <action id="MQL Editor.LoadDefinition"
-                class="com.bol.spinner.action.editor.LoadDefinitionForMQLAction"
-                icon="AllIcons.Debugger.Db_db_object" />
+                class="cn.github.spinner.action.editor.LoadDefinitionForMQLAction"
+                icon="AllIcons.Debugger.Db_db_object"/>
         <action id="MQL Editor.Settings"
-                class="com.bol.spinner.action.editor.MQLEditorSettingsAction"
+                class="cn.github.spinner.action.editor.MQLEditorSettingsAction"
                 icon="AllIcons.General.Settings">
         </action>
     </actions>
