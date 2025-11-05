@@ -3,6 +3,7 @@ package com.bol.spinner.ui;
 import com.intellij.openapi.ui.ComboBox;
 import lombok.extern.slf4j.Slf4j;
 import org.jdesktop.swingx.autocomplete.AutoCompleteDecorator;
+import org.jdesktop.swingx.autocomplete.ObjectToStringConverter;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -23,7 +24,15 @@ public class ComboBoxWithFilter<E> extends ComboBox<E> {
         }
         setModel(comboBoxModel);
         setEditable(true);
-        AutoCompleteDecorator.decorate(this);
+        AutoCompleteDecorator.decorate(this, new ObjectToStringConverter() {
+            @Override
+            public String getPreferredStringForItem(Object o) {
+                if (o instanceof String str) {
+                    return str.trim();
+                }
+                return String.valueOf(o);
+            }
+        });
         if (defaultValue != null) {
             if (itemList.contains(defaultValue)) {
                 setSelectedItem(defaultValue);

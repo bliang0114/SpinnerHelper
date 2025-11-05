@@ -17,8 +17,8 @@ public class SpinnerSettingsComponent extends JPanel {
     private final String settingName;
     private final String settingValue;
     private DefaultActionGroup actionGroup;
-    private List<JComponent> settingNameComponents;
-    private List<JComponent> settingValueComponents;
+    private List<ComboBoxWithFilter<String>> settingNameComponents;
+    private List<JBTextField> settingValueComponents;
 
     public SpinnerSettingsComponent(SpinnerType spinnerType, String settingName, String settingValue) {
         this.spinnerType = spinnerType;
@@ -43,6 +43,7 @@ public class SpinnerSettingsComponent extends JPanel {
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new AddSettingAction());
         actionGroup.add(new RemoveSettingAction());
+        actionGroup.add(new CommentAction());
     }
 
     private void setupLayout() {
@@ -85,13 +86,13 @@ public class SpinnerSettingsComponent extends JPanel {
         return value.toString();
     }
 
-    private void getComponentValue(StringBuilder value, List<JComponent> settingValueComponents) {
-        for (JComponent component : settingValueComponents) {
+    private void getComponentValue(StringBuilder value, List<?> settingValueComponents) {
+        for (Object component : settingValueComponents) {
             String text = "";
             if (component instanceof JBTextField textField) {
                 text = textField.getText();
             } else if (component instanceof ComboBoxWithFilter<?> comboBox) {
-                text = comboBox.getItem().toString();
+                text = String.valueOf(comboBox.getItem());
             }
             if (!text.isEmpty()) {
                 value.append(text).append("|");
@@ -153,6 +154,35 @@ public class SpinnerSettingsComponent extends JPanel {
             if (settingNameComponents.isEmpty() || settingNameComponents.size() == 1) {
                 e.getPresentation().setEnabledAndVisible(false);
             }
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return super.getActionUpdateThread();
+        }
+    }
+
+    public class CommentAction extends AnAction {
+        public CommentAction() {
+            super("Comment", "Comment", AllIcons.Actions.RefactoringBulb);
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            String place = e.getPlace();
+            place = place.replace("Spinner Setting.ActionGroup", "");
+            int index = Integer.parseInt(place);
+            ComboBoxWithFilter<String> component = settingNameComponents.get(index);
+            String text = component.getItem();
+            if (text == null || text.isEmpty()) return;
+
+            int originLength = text.length();
+            text = text.replace("<<", "");
+            text = text.replace(">>", "");
+            if  (originLength == text.length()) {
+                text = "<<" + text + ">>";
+            }
+            component.setItem(text);
         }
 
         @Override

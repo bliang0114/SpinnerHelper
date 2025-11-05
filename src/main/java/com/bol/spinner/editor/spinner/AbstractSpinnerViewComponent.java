@@ -159,18 +159,19 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         document.addDocumentListener(new DocumentListener() {
             @Override
             public void documentChanged(@NotNull DocumentEvent event) {
-                tableModel.setRowCount(0);
-                dataList.clear();
-                String text = event.getDocument().getText();
-                if (text.contains("\n")) {
-                    List<String> lines = CharSequenceUtil.split(text, "\n");
-                    if (!lines.isEmpty()) {
-                        lines.removeFirst();
+                SwingUtilities.invokeLater(() -> {
+                    tableModel.setRowCount(0);
+                    dataList.clear();
+                    String text = event.getDocument().getText();
+                    if (text.contains("\n")) {
+                        List<String> lines = CharSequenceUtil.split(text, "\n");
+                        if (!lines.isEmpty()) {
+                            lines.removeFirst();
+                        }
+                        dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
+                        setValue();
                     }
-                    dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
-                    setValue();
-                    repaint();
-                }
+                });
             }
         });
     }
@@ -213,11 +214,9 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         table.setFont(font);
         recordPane.setPreferredSize(JBUI.size(300, -1));
         recordPane.setVisible(false);
-
         setLayout(new BorderLayout());
         JComponent toolbarPanel = getToolbarComponent();
         add(toolbarPanel, BorderLayout.NORTH);
-
         JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(table);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
