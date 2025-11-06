@@ -311,16 +311,6 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         }
     }
 
-    private int findColumnIndex(String columnName) {
-        TableModel model = table.getModel();
-        for (int i = 0; i < model.getColumnCount(); i++) {
-            if (columnName.equalsIgnoreCase(model.getColumnName(i))) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     public class RecordPaneVisibleAction extends ToggleAction {
         public RecordPaneVisibleAction() {
             super("Show / Hide Record View", "Show / Hide Record View", AllIcons.Nodes.Record);
