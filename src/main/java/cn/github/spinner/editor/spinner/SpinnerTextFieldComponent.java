@@ -1,5 +1,6 @@
 package cn.github.spinner.editor.spinner;
 
+import cn.github.spinner.ui.URLFormatterDialog;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
@@ -27,6 +28,7 @@ public class SpinnerTextFieldComponent extends JPanel {
         textField = new JBTextField(this.value);
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new CommentAction());
+        actionGroup.add(new URLParserAction());
     }
 
     private void setupLayout() {
@@ -78,6 +80,41 @@ public class SpinnerTextFieldComponent extends JPanel {
                 text = "<<" + text + ">>";
             }
             textField.setText(text);
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return super.getActionUpdateThread();
+        }
+    }
+
+    public class URLParserAction extends AnAction {
+        public URLParserAction() {
+            super("URL Parser", "URL Parser", AllIcons.General.Web);
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            String text = textField.getText().trim();
+            if (text.isEmpty()) return;
+
+            URLFormatterDialog urlFormatterDialog = new URLFormatterDialog();
+            urlFormatterDialog.getTextField().setText(text);
+            urlFormatterDialog.show();
+        }
+
+        @Override
+        public void update(@NotNull AnActionEvent e) {
+            if (!CharSequenceUtil.equalsAnyIgnoreCase(header, "href", "range")) {
+                e.getPresentation().setVisible(false);
+                return;
+            }
+            String text = textField.getText().trim();
+            if (text.isEmpty()) {
+                e.getPresentation().setEnabled(false);
+                return;
+            }
+            super.update(e);
         }
 
         @Override
