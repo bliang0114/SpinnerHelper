@@ -222,7 +222,7 @@ public class URLFormatterDialog extends DialogWrapper {
      * @param queryString URL参数
      * @param nestedUrls  参数中的URL
      * @return {@link String}
-     * @author xlwang
+     * @author zaydengwang
      */
     private String extractNestedUrls(String queryString, List<String> nestedUrls) {
         // 使用正则表达式匹配包含?的参数
@@ -255,7 +255,7 @@ public class URLFormatterDialog extends DialogWrapper {
      * @param queryString    URL参数
      * @param startParamName 起始参数名
      * @return {@link String}
-     * @author xlwang
+     * @author zaydengwang
      */
     private String findCompleteParam(String queryString, String startParamName) {
         String[] params = queryString.split("&");
@@ -287,7 +287,7 @@ public class URLFormatterDialog extends DialogWrapper {
      *
      * @param queryString URL参数
      * @return {@link Map<String,String>}
-     * @author xlwang
+     * @author zaydengwang
      */
     private Map<String, String> parseQueryString(String queryString) {
         Map<String, String> params = new LinkedHashMap<>();
@@ -311,7 +311,7 @@ public class URLFormatterDialog extends DialogWrapper {
      *
      * @param nestedParam 嵌套URL
      * @param result      结果
-     * @author xlwang
+     * @author zaydengwang
      */
     private void parseNestedUrlParam(String nestedParam, Map<String, Map<String, String>> result) {
         // 首先分离出参数名和完整值
@@ -340,7 +340,7 @@ public class URLFormatterDialog extends DialogWrapper {
      * @param nestedQueryString 嵌套URL参数
      * @param questionMarkIndex 起始?索引
      * @return {@link Map<String,String>}
-     * @author xlwang
+     * @author zaydengwang
      */
     private @NotNull Map<String, String> extractNestedParams(String nestedQueryString, int questionMarkIndex) {
         String mainUrl = nestedQueryString.substring(0, questionMarkIndex);
