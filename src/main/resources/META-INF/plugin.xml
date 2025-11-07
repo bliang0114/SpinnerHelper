@@ -105,6 +105,13 @@
                 icon="AllIcons.Actions.Upload">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
+       <!--   todo-fzhang 批量部署,暂时注释
+        <action id="SpinnerBatchDeploy"
+                class="cn.github.spinner.action.editor.SpinnerBatchDeployAction"
+                text="SpinnerDeploy"
+                icon="AllIcons.Actions.Upload">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+        </action>-->
         <!--        <action id="SpinnerDataViewAction" class="editor.action.cn.gitee.spinner.SpinnerDataViewAction" text="SpinnerDataView" icon="AllIcons.Actions.Show">-->
         <!--            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="SpinnerDeploy"/>-->
         <!--        </action>-->
