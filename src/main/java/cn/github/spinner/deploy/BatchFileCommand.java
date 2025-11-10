@@ -1,0 +1,52 @@
+package cn.github.spinner.deploy;
+
+import cn.github.spinner.constant.FileConstant;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiElement;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * @author fzhang
+ * @date 2025/11/10
+ */
+public class BatchFileCommand implements FileOperationCommand{
+    private static final Logger LOGGER = Logger.getInstance(BatchFileCommand.class);
+    private final List <PsiElement> files;
+    private final FileOperationContext context;
+    public BatchFileCommand( FileOperationContext context,List<PsiElement> files) {
+        this.files = files;
+        this.context = context;
+    }
+    @Override
+    public void deploy() {
+        Map<String, List<PsiElement>> typeFilesMap =  files.stream()
+                .filter(file -> file.getContainingFile().getVirtualFile().getExtension() != null)
+                .collect(HashMap::new,
+                        (map, file) -> {
+                            String ext = file.getContainingFile().getVirtualFile().getExtension();
+                            String name = file.getContainingFile().getName();
+                            if(FileConstant.SUFFIX_JAVA.equals(ext) && !name.contains(FileConstant.SUFFIX_JPO)) {
+                                return;
+                            }
+                            map.computeIfAbsent(ext, k -> new ArrayList<>()).add(file);
+                        },
+                        HashMap::putAll);
+
+        for (Map.Entry<String, List<PsiElement>> entry : typeFilesMap.entrySet()) {
+            PsiElement virtualFile = entry.getValue().getFirst();
+            FileOperationStrategy strategy = FileOperationStrategyFactory.getStrategy(virtualFile);
+            if(strategy != null) {
+                strategy.processBatchFiles(context,entry.getValue());
+            } else {
+                LOGGER.debug("批量部署不支持的文件类型：{}", entry.getKey());
+            }
+        }
+
+    }
+}
