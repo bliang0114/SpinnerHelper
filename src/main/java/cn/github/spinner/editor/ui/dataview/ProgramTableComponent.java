@@ -2,10 +2,10 @@ package cn.github.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
-import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.editor.MQLLanguage;
 import cn.github.spinner.editor.ui.dataview.bean.ProgramsRow;
 import cn.github.spinner.util.MQLUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditor;
@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 
 public class ProgramTableComponent extends AbstractDataViewTableComponent<ProgramsRow, ProgramTableComponent> implements Disposable {
@@ -54,19 +53,10 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
         });
     }
 
-
-    @Override
-    protected List<Function<ProgramsRow, String>> getFilterFunctions() {
-        return List.of(ProgramsRow::getName);
-    }
-
-
     @Override
     protected void addRow(ProgramsRow rowData) {
         tableModel.addRow(new Object[]{rowData.getName(), rowData.getCreateTime(),rowData.getUpdateTime()});
-
     }
-
 
     @Override
     protected List<ProgramsRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
@@ -97,7 +87,6 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
         }
         return programDataList;
     }
-
 
     private void openProgramInNativeEditor(String programName) {
         try {
