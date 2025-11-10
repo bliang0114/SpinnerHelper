@@ -1,6 +1,6 @@
 package cn.github.spinner.editor.spinner;
 
-import cn.github.spinner.ui.ComboBoxWithFilter;
+import cn.github.spinner.components.ComboBoxWithFilter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.ui.components.JBTextField;

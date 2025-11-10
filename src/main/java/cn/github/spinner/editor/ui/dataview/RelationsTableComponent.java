@@ -2,10 +2,10 @@ package cn.github.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
-import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.editor.MatrixDataViewFileType;
 import cn.github.spinner.editor.ui.dataview.bean.RelationsRow;
 import cn.github.spinner.util.MQLUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
@@ -14,18 +14,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 
 @Slf4j
 public class RelationsTableComponent extends AbstractDataViewTableComponent<RelationsRow, RelationsTableComponent> {
+    private static final Object[] COLUMNS = new Object[]{"Relationship", "Direction", "Type / Relationship"};
+    private static final int[] COLUMN_WIDTHS = new int[]{200, 50, 400};
 
     public RelationsTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, new Object[]{"Relationship", "Direction", "Type / Relationship"}, new int[]{200, 50, 400}, "Relations Table Toolbar");
-    }
-
-    @Override
-    protected List<Function<RelationsRow, String>> getFilterFunctions() {
-        return List.of(RelationsRow::getRelationship, RelationsRow::getDirection, RelationsRow::getTypeOrRelationship);
+        super(project, virtualFile, COLUMNS, COLUMN_WIDTHS, "Relations Table Toolbar");
     }
 
     @Override

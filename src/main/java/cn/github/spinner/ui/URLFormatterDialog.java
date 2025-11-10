@@ -1,19 +1,11 @@
 package cn.github.spinner.ui;
 
-import cn.github.spinner.customize.CellCopyTransferHandler;
-import cn.hutool.core.util.NumberUtil;
-import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionToolbar;
+import cn.github.spinner.components.FilterTable;
+import cn.github.spinner.components.RowNumberTableModel;
 import com.intellij.openapi.ui.DialogWrapper;
-import com.intellij.ui.FilterComponent;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.JBSplitter;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBTextField;
-import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.FormBuilder;
-import com.intellij.util.ui.JBFont;
-import com.intellij.util.ui.JBUI;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -23,9 +15,6 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
-import javax.swing.table.TableModel;
-import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -33,16 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 public class URLFormatterDialog extends DialogWrapper {
     @Getter
     @Setter
     private JBTextField textField;
-    private JBTable table;
+    private FilterTable table;
     private DefaultTableModel tableModel;
-    private TableRowSorter<TableModel> sorter;
-    private FilterComponent filterComponent;
 
     public URLFormatterDialog() {
         super(true);
@@ -57,16 +43,7 @@ public class URLFormatterDialog extends DialogWrapper {
     private void initComponents() {
         textField = new JBTextField();
         tableModel = new DefaultTableModel(new String[]{"Parameter Name", "Parameter Value"}, 0);
-        sorter = new TableRowSorter<>(tableModel);
-        table = new JBTable(tableModel);
-        table.setRowSorter(sorter);
-        filterComponent = new FilterComponent("TABLE_FILTER_HISTORY", 10) {
-            @Override
-            public void filter() {
-                applyProfessionalFilter();
-            }
-        };
-        filterComponent.reset();
+        table = new FilterTable(tableModel);
     }
 
     private void setupListener() {
@@ -88,98 +65,19 @@ public class URLFormatterDialog extends DialogWrapper {
         });
     }
 
-    protected JComponent getToolbarComponent() {
-        JPanel toolbarPanel = new JPanel(new BorderLayout());
-        toolbarPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
-                BorderFactory.createEmptyBorder(0, 0, 0, 0)
-        ));
-        filterComponent.setPreferredSize(JBUI.size(260, filterComponent.getHeight()));
-        toolbarPanel.add(filterComponent, BorderLayout.WEST);
-        return toolbarPanel;
-    }
-
     @Override
     protected @Nullable JComponent createCenterPanel() {
         table.getColumnModel().getColumn(0).setPreferredWidth(200);
         table.getColumnModel().getColumn(1).setPreferredWidth(400);
-        // 设置表头
-        JBFont font = JBUI.Fonts.create("JetBrains Mono", 14);
-        JTableHeader header = table.getTableHeader();
-        header.setPreferredSize(JBUI.size(-1, 30));
-        header.setReorderingAllowed(false);
-        header.setBackground(JBColor.background());
-        header.setFont(font);
-        table.setTransferHandler(new CellCopyTransferHandler(table));
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        table.setBackground(JBColor.background());
-        table.setForeground(JBColor.foreground());
-        table.setShowGrid(true);
-        table.setRowHeight(28);
-        table.setGridColor(JBColor.border());
-        table.setFont(font);
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
-        panel.add(FormBuilder.createFormBuilder().addLabeledComponent("URL", textField).addComponent(filterComponent).getPanel(), BorderLayout.NORTH);
-//        JPanel tablePanel = new JPanel();
-//        tablePanel.setLayout(new BorderLayout());
-//        JComponent toolbarPanel = getToolbarComponent();
-//        tablePanel.add(toolbarPanel, BorderLayout.NORTH);
+        panel.add(FormBuilder.createFormBuilder().addLabeledComponent("URL", textField).addComponent(table.getFilterComponent()).getPanel(), BorderLayout.NORTH);
         JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(table);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-//        tablePanel.add(scrollPane, BorderLayout.CENTER);
         panel.add(scrollPane, BorderLayout.CENTER);
         return panel;
-    }
-
-    private void applyProfessionalFilter() {
-        String filterText = filterComponent.getFilter();
-        if (filterText == null || filterText.isEmpty()) {
-            sorter.setRowFilter(null);
-            return;
-        }
-        try {
-            // 支持高级筛选语法
-            if (filterText.contains(":")) {
-                // 按列筛选 例如: "name:test type:file"
-                applyColumnSpecificFilter(filterText);
-            } else {
-                // 全局筛选
-                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(filterText)));
-            }
-        } catch (Exception e) {
-            // 筛选语法错误时使用全局筛选
-            try {
-                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(filterText)));
-            } catch (PatternSyntaxException ex) {
-                sorter.setRowFilter(null);
-            }
-        }
-    }
-
-    private void applyColumnSpecificFilter(String filterText) {
-        String[] conditions = filterText.split("\\s+");
-        List<RowFilter<Object, Object>> filters = new ArrayList<>();
-        for (String condition : conditions) {
-            String[] parts = condition.split(":", 2);
-            if (parts.length == 2) {
-                String columnIndexStr = parts[0].trim();
-                String value = parts[1].trim();
-                // 查找列索引
-                int columnIndex = NumberUtil.isInteger(columnIndexStr) ? Integer.parseInt(columnIndexStr) : 1;
-                if (columnIndex >= 0 && !value.isEmpty()) {
-                    RowFilter<Object, Object> filter = RowFilter.regexFilter("(?i)" + Pattern.quote(value), columnIndex);
-                    filters.add(filter);
-                }
-            }
-        }
-        if (!filters.isEmpty()) {
-            sorter.setRowFilter(RowFilter.andFilter(filters));
-        } else {
-            sorter.setRowFilter(null);
-        }
     }
 
     private void parseUrl(String url) {
