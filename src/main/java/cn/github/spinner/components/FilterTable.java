@@ -41,12 +41,13 @@ public class FilterTable extends JBTable {
         filterComponent.reset();
         filterComponent.setPreferredSize(JBUI.size(300, 30));
         // 设置表头
-        JBFont font = JBUI.Fonts.create("JetBrains Mono", 14);
+        initFont();
+//        JBFont font = JBUI.Fonts.create("JetBrains Mono", 14);
         JTableHeader header = getTableHeader();
         header.setPreferredSize(JBUI.size(-1, 30));
         header.setReorderingAllowed(false);
         header.setBackground(JBColor.background());
-        header.setFont(font);
+//        header.setFont(font);
         setTransferHandler(new CellCopyTransferHandler(this));
         setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         setBackground(JBColor.background());
@@ -54,7 +55,7 @@ public class FilterTable extends JBTable {
         setShowGrid(true);
         setRowHeight(28);
         setGridColor(JBColor.border());
-        setFont(font);
+//        setFont(font);
     }
 
     @Override
@@ -121,6 +122,34 @@ public class FilterTable extends JBTable {
             sorter.setRowFilter(RowFilter.andFilter(filters));
         } else {
             sorter.setRowFilter(null);
+        }
+    }
+
+    private void initFont() {
+        // 优先使用 JetBrains Mono 显示英文/数字/符号，中文自动 fallback 到系统字体
+        Font codeFont = new Font("JetBrains Mono", Font.PLAIN, 12);
+        // 验证中文支持（JetBrains Mono 会返回 false，触发系统字体 fallback）
+        if (!codeFont.canDisplay('中')) {
+            // 手动指定中文备用字体（适配不同系统）
+            String systemFontName = getSystemDefaultChineseFont();
+            Font mixedFont = new Font(systemFontName, Font.PLAIN, 12);
+            setFont(mixedFont);
+            getTableHeader().setFont(mixedFont.deriveFont(Font.BOLD));
+        } else {
+            setFont(codeFont);
+            getTableHeader().setFont(codeFont.deriveFont(Font.BOLD));
+        }
+    }
+
+    // 获取系统默认中文字体（适配 Windows/macOS/Linux）
+    private String getSystemDefaultChineseFont() {
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
+            return "Microsoft YaHei"; // Windows 系统
+        } else if (os.contains("mac")) {
+            return "PingFang SC"; // macOS 系统
+        } else {
+            return "Noto Sans CJK SC"; // Linux 系统（需安装思源黑体）
         }
     }
 }

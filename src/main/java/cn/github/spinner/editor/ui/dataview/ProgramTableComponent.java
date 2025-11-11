@@ -29,14 +29,12 @@ import java.util.List;
 import java.util.Objects;
 
 
-public class ProgramTableComponent extends AbstractDataViewTableComponent<ProgramsRow, ProgramTableComponent> implements Disposable {
+public class ProgramTableComponent extends AbstractDataViewTableComponent<ProgramsRow> implements Disposable {
     private final List<File> tempJavaFiles = new ArrayList<>();
-    private static final Object[] TABLE_COLUMNS = {"名称", "创建时间", "修改时间"};
-    private static final int[] TABLE_COLUMN_WIDTHS = {300, 180, 180};
-    private static final String TOOLBAR_ID = "ProgramView.Toolbar";
+    private static final String TOOLBAR_ID = "ProgramView Table";
 
     public ProgramTableComponent(@NotNull Project project, VirtualFile file) {
-        super(project, file, TABLE_COLUMNS, TABLE_COLUMN_WIDTHS, TOOLBAR_ID);
+        super(project, file, new ProgramsRow(), TOOLBAR_ID);
         setupBusinessListener();
         setName(TOOLBAR_ID);
         reloadData();
@@ -51,11 +49,6 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
             if (programName.startsWith("Failed") || programName.startsWith("No ")) return;
             openProgramInNativeEditor(programName);
         });
-    }
-
-    @Override
-    protected void addRow(ProgramsRow rowData) {
-        tableModel.addRow(new Object[]{rowData.getName(), rowData.getCreateTime(),rowData.getUpdateTime()});
     }
 
     @Override
@@ -74,7 +67,7 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
                 if (CharSequenceUtil.isBlank(trimmedRow)) continue;
 
                 String[] rowColumns = trimmedRow.split(",");
-                ProgramsRow item = new ProgramsRow( rowColumns.length > 0 ? rowColumns[0] : "",rowColumns.length > 1 ? rowColumns[1] : "",rowColumns.length > 2 ? rowColumns[2] : "");
+                ProgramsRow item = new ProgramsRow(rowColumns.length > 0 ? rowColumns[0] : "", rowColumns.length > 1 ? rowColumns[1] : "", rowColumns.length > 2 ? rowColumns[2] : "");
                 programDataList.add(item);
             }
             programDataList.sort(Comparator.comparing(ProgramsRow::getName));

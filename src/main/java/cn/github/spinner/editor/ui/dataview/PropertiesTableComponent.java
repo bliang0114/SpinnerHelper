@@ -16,17 +16,9 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-public class PropertiesTableComponent extends AbstractDataViewTableComponent<PropertiesRow, PropertiesTableComponent> {
-    private static final Object[] COLUMNS = new Object[]{"Name", "Value"};
-    private static final int[] COLUMN_WIDTHS = new int[]{200, 200};
-
+public class PropertiesTableComponent extends AbstractDataViewTableComponent<PropertiesRow> {
     public PropertiesTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, COLUMNS, COLUMN_WIDTHS, "Properties Table Toolbar");
-    }
-
-    @Override
-    protected void addRow(PropertiesRow row) {
-        tableModel.addRow(new Object[]{row.getName(), row.getValue()});
+        super(project, virtualFile, new PropertiesRow(), "Properties Table");
     }
 
     @Override

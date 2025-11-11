@@ -156,6 +156,13 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private void loadTypeInformation(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
+        int tabCount = tabbedPane.getTabCount();
+        for (int i = 0; i < tabCount; i++) {
+            Component component = tabbedPane.getTabComponentAt(i);
+            if (component instanceof AbstractDataViewTableComponent<?> tableComponent) {
+                tableComponent.setLoaded(false);
+            }
+        }
         loadTabData();
     }
 
@@ -166,10 +173,10 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         String type = listModel.elementAt(selectedIndex);
         int tabIndex = tabbedPane.getSelectedIndex();
         Component component = tabbedPane.getComponentAt(tabIndex);
-        if (component instanceof AbstractDataViewTableComponent<?, ?> dataViewTableComponent) {
+        if (component instanceof AbstractDataViewTableComponent<?> tableComponent) {
             log.info("Loading type data for {}", type);
-            dataViewTableComponent.setName(type);
-            dataViewTableComponent.reloadData();
+            tableComponent.setName(type);
+            tableComponent.reloadData();
         }
     }
 

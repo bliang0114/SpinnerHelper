@@ -1,11 +1,14 @@
 package cn.github.spinner.editor.ui.dataview.bean;
 
+import cn.github.spinner.components.bean.TableRowBean;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Objects;
 
 @Data
-public class PolicyTriggersRow {
+@NoArgsConstructor
+public class PolicyTriggersRow implements TableRowBean {
     private String policy;
     private String state;
     private String triggerName;
@@ -34,5 +37,25 @@ public class PolicyTriggersRow {
     @Override
     public int hashCode() {
         return Objects.hash(policy, state, triggerName, check, override, action);
+    }
+
+    @Override
+    public String[] headers() {
+        return new String[]{"Policy", "State", "Trigger Name", "Check", "Override", "Action"};
+    }
+
+    @Override
+    public int[] widths() {
+        return new int[]{200, 100, 100, 300, 300, 300};
+    }
+
+    @Override
+    public Object[] rowValues() {
+        return new Object[]{policy, state, triggerName, check, override, action};
+    }
+
+    @Override
+    public Class<?>[] columnTypes() {
+        return new Class[]{String.class, String.class, String.class, String.class, String.class, String.class};
     }
 }
