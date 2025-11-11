@@ -4,13 +4,14 @@ import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixObjectQuery;
 import cn.github.driver.connection.MatrixQueryResult;
-import cn.hutool.core.map.MapUtil;
-import cn.hutool.core.text.CharSequenceUtil;
+import cn.github.spinner.components.RowNumberTableModel;
 import cn.github.spinner.config.ObjectWhereExpression;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.editor.ui.dataview.bean.ObjectsRow;
 import cn.github.spinner.ui.ObjectWhereExpressionBuilderDialog;
 import cn.github.spinner.util.MQLUtil;
+import cn.hutool.core.map.MapUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBLabel;
@@ -26,29 +27,25 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 @Slf4j
 public class ObjectsTableComponent extends AbstractDataViewTableComponent<ObjectsRow, ObjectsTableComponent> {
+    private static final Object[] COLUMNS = new Object[]{"Type", "Name", "Revision", "ID", "Path", "PhysicalID", "Description", "Originated", "Modified", "Vault", "Policy", "Owner", "State", "Organization", "Collaborative Space"};
+    private static final int[] COLUMN_WIDTHS = new int[]{200, 200, 100, 200, 60, 200, 200, 150, 100, 150, 200, 100, 100, 300};
     private JBTextField limitField;
     private JBTextField totalField;
     private JButton whereBtn;
 
     public ObjectsTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, new DefaultTableModel(new Object[]{"Type", "Name", "Revision", "ID", "Path", "PhysicalID", "Description", "Originated", "Modified", "Vault", "Policy", "Owner", "State", "Organization", "Collaborative Space"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-
+        super(project, virtualFile, new RowNumberTableModel(COLUMNS, 0) {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 4) {
+                if (columnIndex == 5) {
                     return Boolean.class;
                 }
                 return String.class;
             }
-        }, new int[]{200, 200, 100, 200, 60, 200, 200, 150, 100, 150, 200, 100, 100, 300}, "Objects Table Toolbar");
+        }, COLUMN_WIDTHS, "Objects Table Toolbar");
     }
 
     @Override
@@ -119,8 +116,7 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
     }
 
     @Override
-    protected JComponent getToolbarComponent() {
-        JComponent toolbarComponent = super.getToolbarComponent();
+    protected Component[] createToolbarComponent() {
         JPanel container = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -140,27 +136,9 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
         gbc.gridx = 4;
         panel.add(whereBtn);
         container.add(panel);
-        toolbarComponent.add(container, BorderLayout.CENTER);
-        return toolbarComponent;
+        return new Component[] { table.getFilterComponent(), container };
     }
 
-    @Override
-    protected List<Function<ObjectsRow, String>> getFilterFunctions() {
-        return List.of(ObjectsRow::getType,
-                ObjectsRow::getName,
-                ObjectsRow::getRevision,
-                ObjectsRow::getId,
-                ObjectsRow::getPhysicalId,
-                ObjectsRow::getDescription,
-                ObjectsRow::getOriginated,
-                ObjectsRow::getModified,
-                ObjectsRow::getVault,
-                ObjectsRow::getPolicy,
-                ObjectsRow::getOwner,
-                ObjectsRow::getState,
-                ObjectsRow::getOrganization,
-                ObjectsRow::getCollaborativeSpace);
-    }
 
     @Override
     protected void addRow(ObjectsRow row) {
@@ -185,7 +163,7 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
         String totalCount = MQLUtil.execute(project, countQuery);
         if (!countQueryWithWhere.isEmpty()) {
             String withWhereCount = MQLUtil.execute(project, countQueryWithWhere);
-            totalField.setText(withWhereCount+ "(" + totalCount + ")");
+            totalField.setText(withWhereCount + "(" + totalCount + ")");
         } else {
             totalField.setText(totalCount);
         }

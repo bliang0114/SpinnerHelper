@@ -53,10 +53,10 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
         for (int i = 0; i < components.size(); i++) {
             gbc.gridy = i;
             gbc.gridx = 0;
-            gbc.weightx = 0.95;
+            gbc.weightx = 0.9;
             panel.add(components.get(i), gbc);
             gbc.gridx = 1;
-            gbc.weightx = 0.05;
+            gbc.weightx = 0.1;
             ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("Spinner " + header + ".ActionGroup" + i, actionGroup, true);
             toolbar.setTargetComponent(panel);
             panel.add(toolbar.getComponent(), gbc);

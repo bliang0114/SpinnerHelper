@@ -1,6 +1,6 @@
 package cn.github.spinner.editor.spinner;
 
-import cn.github.spinner.ui.ComboBoxWithFilter;
+import cn.github.spinner.components.ComboBoxWithFilter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.ui.components.JBTextField;
@@ -29,8 +29,8 @@ public class SpinnerSettingsComponent extends JPanel {
     }
 
     private void initComponents() {
-        String[] settingNames = this.settingName.split("\\|");
-        String[] settingValues = this.settingValue.split("\\|");
+        String[] settingNames = this.settingName.split("(?<!\\|)\\|(?!\\|)");
+        String[] settingValues = this.settingValue.split("(?<!\\|)\\|(?!\\|)");
         settingNameComponents =  new ArrayList<>(settingNames.length);
         settingValueComponents =  new ArrayList<>(settingNames.length);
         List<String> settingNameItems = SpinnerSettingNameConfig.getSettingNames(this.spinnerType);
@@ -56,13 +56,13 @@ public class SpinnerSettingsComponent extends JPanel {
         for (int i = 0; i < settingNameComponents.size(); i++) {
             gbc.gridy = i;
             gbc.gridx = 0;
-            gbc.weightx = 0.47;
+            gbc.weightx = 0.3;
             panel.add(settingNameComponents.get(i), gbc);
             gbc.gridx = 1;
-            gbc.weightx = 0.48;
+            gbc.weightx = 0.6;
             panel.add(settingValueComponents.get(i), gbc);
             gbc.gridx = 2;
-            gbc.weightx = 0.05;
+            gbc.weightx = 0.1;
             ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("Spinner Setting.ActionGroup" + i, actionGroup, true);
             toolbar.setTargetComponent(panel);
             panel.add(toolbar.getComponent(), gbc);

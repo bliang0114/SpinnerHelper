@@ -1,4 +1,4 @@
-package cn.github.spinner.ui;
+package cn.github.spinner.components;
 
 import com.intellij.openapi.ui.ComboBox;
 import lombok.extern.slf4j.Slf4j;

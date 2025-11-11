@@ -2,10 +2,10 @@ package cn.github.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
-import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.editor.MatrixDataViewFileType;
 import cn.github.spinner.editor.ui.dataview.bean.TriggersRow;
 import cn.github.spinner.util.MQLUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
@@ -15,31 +15,22 @@ import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 
 @Slf4j
 public class TriggersTableComponent extends AbstractDataViewTableComponent<TriggersRow, TriggersTableComponent> {
+    private static final Object[] COLUMNS = new Object[]{"Trigger Name", "Inherited", "Check", "Override", "Action"};
+    private static final int[] COLUMN_WIDTHS = new int[]{200, 100, 300, 300, 300};
 
     public TriggersTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, new DefaultTableModel(new Object[]{"Trigger Name", "Inherited", "Check", "Override", "Action"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-
+        super(project, virtualFile, new DefaultTableModel(COLUMNS, 0) {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 1) {
+                if (columnIndex == 2) {
                     return Boolean.class;
                 }
                 return String.class;
             }
-        }, new int[]{200, 100, 300, 300, 300}, "Triggers Table Toolbar");
-    }
-
-    @Override
-    protected List<Function<TriggersRow, String>> getFilterFunctions() {
-        return List.of(TriggersRow::getTriggerName, TriggersRow::getCheck, TriggersRow::getOverride, TriggersRow::getAction);
+        }, COLUMN_WIDTHS, "Triggers Table Toolbar");
     }
 
     @Override

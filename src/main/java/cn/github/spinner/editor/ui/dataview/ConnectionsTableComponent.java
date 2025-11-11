@@ -4,10 +4,11 @@ import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixConnectionQuery;
 import cn.github.driver.connection.MatrixQueryResult;
-import cn.hutool.core.map.MapUtil;
-import cn.hutool.core.text.CharSequenceUtil;
+import cn.github.spinner.components.RowNumberTableModel;
 import cn.github.spinner.editor.ui.dataview.bean.ConnectionsRow;
 import cn.github.spinner.util.MQLUtil;
+import cn.hutool.core.map.MapUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBLabel;
@@ -22,28 +23,24 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 @Slf4j
 public class ConnectionsTableComponent extends AbstractDataViewTableComponent<ConnectionsRow, ConnectionsTableComponent> {
+    private static final Object[] COLUMNS = new Object[]{"Type", "ID", "Path", "PhysicalID", "From Type", "From Name", "From Revision", "From Id", "From Rel Type", "From Rel Id", "To Type", "To Name", "To Revision", "To Id", "To Rel Type", "To Id"};
+    private static final int[] COLUMN_WIDTHS = new int[]{200, 200, 100, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200};
     private JBTextField limitField;
     private JBTextField totalField;
 
     public ConnectionsTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, new DefaultTableModel(new Object[]{"Type", "ID", "Path", "PhysicalID", "From Type", "From Name", "From Revision", "From Id", "From Rel Type", "From Rel Id", "To Type", "To Name", "To Revision", "To Id", "To Rel Type", "To Id"}, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-
+        super(project, virtualFile, new RowNumberTableModel(COLUMNS, 0) {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 2) {
+                if (columnIndex == 3) {
                     return Boolean.class;
                 }
                 return String.class;
             }
-        }, new int[]{200, 200, 100, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200}, "Connections Table Toolbar");
+        }, COLUMN_WIDTHS, "Connections Table Toolbar");
     }
 
     @Override
@@ -56,8 +53,7 @@ public class ConnectionsTableComponent extends AbstractDataViewTableComponent<Co
     }
 
     @Override
-    protected JComponent getToolbarComponent() {
-        JComponent toolbarComponent = super.getToolbarComponent();
+    protected Component[] createToolbarComponent() {
         JPanel container = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -74,27 +70,7 @@ public class ConnectionsTableComponent extends AbstractDataViewTableComponent<Co
         gbc.gridx = 3;
         panel.add(totalField);
         container.add(panel);
-        toolbarComponent.add(container, BorderLayout.CENTER);
-        return toolbarComponent;
-    }
-
-    @Override
-    protected List<Function<ConnectionsRow, String>> getFilterFunctions() {
-        return List.of(ConnectionsRow::getType,
-                ConnectionsRow::getId,
-                ConnectionsRow::getPhysicalId,
-                ConnectionsRow::getFromType,
-                ConnectionsRow::getFromName,
-                ConnectionsRow::getFromRevision,
-                ConnectionsRow::getFromId,
-                ConnectionsRow::getFromRelType,
-                ConnectionsRow::getFromRelId,
-                ConnectionsRow::getToType,
-                ConnectionsRow::getToName,
-                ConnectionsRow::getToRevision,
-                ConnectionsRow::getToId,
-                ConnectionsRow::getToRelType,
-                ConnectionsRow::getToRelId);
+        return new Component[] { table.getFilterComponent(), container };
     }
 
     @Override

@@ -1,9 +1,9 @@
 package cn.github.spinner.editor.spinner;
 
+import cn.github.spinner.components.FilterTable;
+import cn.github.spinner.components.RowNumberTableModel;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.NumberUtil;
-import cn.github.spinner.customize.CellCopyTransferHandler;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.editor.Document;
@@ -12,40 +12,33 @@ import com.intellij.openapi.editor.event.DocumentListener;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.ui.FilterComponent;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.ScrollPaneFactory;
+import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBTabbedPane;
-import com.intellij.ui.table.JBTable;
-import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.UIUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.table.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 @Slf4j
 public abstract class AbstractSpinnerViewComponent extends JPanel {
     protected final Project project;
     protected final VirtualFile virtualFile;
-    protected JBTable table;
+    protected FilterTable table;
     protected DefaultTableModel tableModel;
-    protected DefaultActionGroup toolbarActionGroup;
+    protected DefaultActionGroup actionGroup;
     protected RecordPaneVisibleAction recordPaneVisibleAction;
     protected JBTabbedPane recordPane;
     protected String[] headers;
-    private TableRowSorter<TableModel> sorter;
-    private FilterComponent filterComponent;
     protected final List<String[]> dataList = new ArrayList<>();
 
     public AbstractSpinnerViewComponent(@NotNull Project project, @NotNull VirtualFile virtualFile) {
@@ -58,75 +51,19 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
             setupLayout();
             setValue();
         } catch (Exception e) {
-            table = new JBTable();
+            table = new FilterTable();
             table.getEmptyText().setText(e.getMessage());
             add(table);
         }
     }
 
     protected void initComponents() {
-        tableModel = new DefaultTableModel(headers, 0){
-            @Override
-            public int getColumnCount() {
-                return super.getColumnCount() + 1;
-            }
-
-            @Override
-            public String getColumnName(int column) {
-                if (column == 0) {
-                    return "";
-                }
-                return super.getColumnName(column - 1);
-            }
-
-            @Override
-            public Object getValueAt(int row, int column) {
-                if (column == 0) {
-                    return row + 1;
-                }
-                return super.getValueAt(row, column - 1);
-            }
-
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        table = new JBTable(tableModel) {
-            @Override
-            public @NotNull Component prepareRenderer(@NotNull TableCellRenderer renderer, int row, int column) {
-                Component c = super.prepareRenderer(renderer, row, column);
-
-                if (column == 0) { // 行号列特殊处理
-                    if (c instanceof JLabel label) {
-                        label.setHorizontalAlignment(SwingConstants.LEFT);
-                        if (isRowSelected(row)) {
-                            label.setBackground(getSelectionBackground());
-                            label.setForeground(getSelectionForeground());
-                        } else {
-                            label.setBackground(row % 2 == 0 ? UIUtil.getTableBackground() : UIUtil.getDecoratedRowColor());
-                            label.setForeground(UIUtil.getLabelForeground());
-                        }
-                    }
-                }
-                return c;
-            }
-        };
-        sorter = new TableRowSorter<>(table.getModel());
-        table.setRowSorter(sorter);
-        // 创建筛选组件
-        filterComponent = new FilterComponent("TABLE_FILTER_HISTORY", 10) {
-            @Override
-            public void filter() {
-                applyProfessionalFilter();
-            }
-        };
-        filterComponent.reset();
+        tableModel = new RowNumberTableModel(headers, 0);
+        table = new FilterTable(tableModel);
         recordPane = new JBTabbedPane();
         recordPane.add("Record", new JPanel());
-        toolbarActionGroup = new DefaultActionGroup();
         recordPaneVisibleAction = new RecordPaneVisibleAction();
-        toolbarActionGroup.add(recordPaneVisibleAction);
+        actionGroup = new DefaultActionGroup();
     }
 
     protected void setupListener() {
@@ -176,17 +113,22 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         });
     }
 
-    protected JComponent getToolbarComponent() {
-        JPanel toolbarPanel = new JPanel(new BorderLayout());
+    protected AnAction[] createToolbarAction() {
+        return new AnAction[] {new RecordPaneVisibleAction()};
+    }
+
+    private JComponent getToolbarComponent() {
+        JPanel toolbarPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         toolbarPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, JBColor.border()),
                 BorderFactory.createEmptyBorder(0, 0, 0, 0)
         ));
-        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("Spinner Data View.Toolbar", toolbarActionGroup, true);
+        toolbarPanel.add(table.getFilterComponent());
+        AnAction[] actions = createToolbarAction();
+        actionGroup.addAll(actions);
+        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("Spinner Data View.Toolbar", actionGroup, true);
         toolbar.setTargetComponent(table);
-        filterComponent.setPreferredSize(JBUI.size(260, filterComponent.getHeight()));
-        toolbarPanel.add(filterComponent, BorderLayout.WEST);
-        toolbarPanel.add(toolbar.getComponent(), BorderLayout.CENTER);
+        toolbarPanel.add(toolbar.getComponent());
         return toolbarPanel;
     }
 
@@ -196,22 +138,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         for (int i = 1; i < tableModel.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(240);
         }
-        // 设置表头
-        JBFont font = JBUI.Fonts.create("JetBrains Mono", 14);
-        JTableHeader header = table.getTableHeader();
-        header.setPreferredSize(JBUI.size(-1, 30));
-        header.setReorderingAllowed(false);
-        header.setBackground(JBColor.background());
-        header.setFont(font);
-        table.setTransferHandler(new CellCopyTransferHandler(table));
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        table.setBackground(JBColor.background());
-        table.setForeground(JBColor.foreground());
-        table.setShowGrid(true);
-        table.setRowHeight(28);
-        table.setGridColor(JBColor.border());
-        table.setFont(font);
         recordPane.setPreferredSize(JBUI.size(300, -1));
         recordPane.setVisible(false);
         setLayout(new BorderLayout());
@@ -260,55 +187,6 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
         headers = header.split("\t");
         lines.remove(0);
         dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
-    }
-
-    private void applyProfessionalFilter() {
-        String filterText = filterComponent.getFilter();
-        if (filterText == null || filterText.isEmpty()) {
-            sorter.setRowFilter(null);
-            return;
-        }
-
-        try {
-            // 支持高级筛选语法
-            if (filterText.contains(":")) {
-                // 按列筛选 例如: "name:test type:file"
-                applyColumnSpecificFilter(filterText);
-            } else {
-                // 全局筛选
-                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(filterText)));
-            }
-        } catch (Exception e) {
-            // 筛选语法错误时使用全局筛选
-            try {
-                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(filterText)));
-            } catch (PatternSyntaxException ex) {
-                sorter.setRowFilter(null);
-            }
-        }
-    }
-
-    private void applyColumnSpecificFilter(String filterText) {
-        String[] conditions = filterText.split("\\s+");
-        List<RowFilter<Object, Object>> filters = new ArrayList<>();
-        for (String condition : conditions) {
-            String[] parts = condition.split(":", 2);
-            if (parts.length == 2) {
-                String columnIndexStr = parts[0].trim();
-                String value = parts[1].trim();
-                // 查找列索引
-                int columnIndex = NumberUtil.isInteger(columnIndexStr) ? Integer.parseInt(columnIndexStr) : 1;
-                if (columnIndex >= 0 && !value.isEmpty()) {
-                    RowFilter<Object, Object> filter = RowFilter.regexFilter("(?i)" + Pattern.quote(value), columnIndex);
-                    filters.add(filter);
-                }
-            }
-        }
-        if (!filters.isEmpty()) {
-            sorter.setRowFilter(RowFilter.andFilter(filters));
-        } else {
-            sorter.setRowFilter(null);
-        }
     }
 
     public class RecordPaneVisibleAction extends ToggleAction {

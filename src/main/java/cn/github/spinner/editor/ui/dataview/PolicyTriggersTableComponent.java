@@ -2,9 +2,9 @@ package cn.github.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
-import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.editor.ui.dataview.bean.PolicyTriggersRow;
 import cn.github.spinner.util.MQLUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
@@ -12,18 +12,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 @Slf4j
 public class PolicyTriggersTableComponent extends AbstractDataViewTableComponent<PolicyTriggersRow, PolicyTriggersTableComponent> {
+    private static final Object[] COLUMNS = new Object[]{"Policy", "State", "Trigger Name", "Check", "Override", "Action"};
+    private static final int[] COLUMN_WIDTHS = new int[]{200, 100, 100, 300, 300, 300};
 
     public PolicyTriggersTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, new Object[]{"Policy", "State", "Trigger Name", "Check", "Override", "Action"}, new int[]{200, 100, 100, 300, 300, 300}, "Policy Triggers Table Toolbar");
-    }
-
-    @Override
-    protected List<Function<PolicyTriggersRow, String>> getFilterFunctions() {
-        return List.of(PolicyTriggersRow::getPolicy, PolicyTriggersRow::getState, PolicyTriggersRow::getTriggerName, PolicyTriggersRow::getCheck, PolicyTriggersRow::getOverride, PolicyTriggersRow::getAction);
+        super(project, virtualFile, COLUMNS, COLUMN_WIDTHS, "Policy Triggers Table Toolbar");
     }
 
     @Override

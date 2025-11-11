@@ -2,10 +2,10 @@ package cn.github.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
-import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.editor.MatrixDataViewFileType;
 import cn.github.spinner.editor.ui.dataview.bean.AttributesRow;
 import cn.github.spinner.util.MQLUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.components.JBCheckBox;
@@ -18,14 +18,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.function.Function;
 
 @Slf4j
 public class AttributesTableComponent extends AbstractDataViewTableComponent<AttributesRow, AttributesTableComponent> {
+    private static final Object[] COLUMNS = new Object[]{"Name", "Owner", "Type", "Default", "Range"};
+    private static final int[] COLUMN_WIDTHS = new int[]{260, 260, 100, 150, 500};
     private JBCheckBox checkBox;
 
     public AttributesTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, new Object[]{"Name", "Owner", "Type", "Default", "Range"}, new int[]{260, 260, 100, 150, 500}, "Attributes Table Toolbar");
+        super(project, virtualFile, COLUMNS, COLUMN_WIDTHS, "Attributes Table Toolbar");
     }
 
     @Override
@@ -35,16 +36,9 @@ public class AttributesTableComponent extends AbstractDataViewTableComponent<Att
     }
 
     @Override
-    protected JComponent getToolbarComponent() {
+    protected Component[] createToolbarComponent() {
         checkBox = new JBCheckBox("Include non-automatic interface");
-        JComponent toolbarComponent = super.getToolbarComponent();
-        toolbarComponent.add(checkBox, BorderLayout.CENTER);
-        return toolbarComponent;
-    }
-
-    @Override
-    protected List<Function<AttributesRow, String>> getFilterFunctions() {
-        return List.of(AttributesRow::getName, AttributesRow::getOwner, AttributesRow::getType, AttributesRow::getDefaultValue, AttributesRow::getRange);
+        return new Component[] { table.getFilterComponent(), checkBox };
     }
 
     @Override

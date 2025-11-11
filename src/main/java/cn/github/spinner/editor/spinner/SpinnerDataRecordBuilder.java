@@ -5,7 +5,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.github.spinner.config.SpinnerToken;
-import cn.github.spinner.ui.ComboBoxWithFilter;
+import cn.github.spinner.components.ComboBoxWithFilter;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
 import com.intellij.icons.AllIcons;
