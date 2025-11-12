@@ -1,26 +1,11 @@
 package cn.github.spinner.deploy;
 
 import cn.github.driver.connection.MatrixConnection;
-import cn.github.spinner.action.editor.SpinnerBatchDeployAction;
 import cn.github.spinner.constant.FileConstant;
-import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
-import cn.hutool.core.text.CharSequenceUtil;
-import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiElement;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * @author fzhang

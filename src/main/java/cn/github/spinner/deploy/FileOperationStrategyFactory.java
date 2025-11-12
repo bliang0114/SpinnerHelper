@@ -1,7 +1,5 @@
 package cn.github.spinner.deploy;
 
-import cn.github.spinner.constant.FileConstant;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 
 import java.util.HashMap;

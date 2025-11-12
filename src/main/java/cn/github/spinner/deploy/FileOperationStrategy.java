@@ -1,6 +1,5 @@
 package cn.github.spinner.deploy;
 
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 
 import java.util.List;

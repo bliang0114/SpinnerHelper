@@ -2,10 +2,8 @@ package cn.github.spinner.deploy;
 
 import cn.github.driver.connection.MatrixConnection;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 /**
  * @author fzhang
