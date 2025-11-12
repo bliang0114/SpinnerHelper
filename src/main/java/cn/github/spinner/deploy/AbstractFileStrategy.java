@@ -87,7 +87,7 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
     }
 
     /**
-     * 执行部署任务（带进度提示）
+     * 执行部署任务
      */
     protected void executeDeployTask(Project project, MatrixConnection connection, String remoteBaseDir,
                                      String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) {
