@@ -105,7 +105,6 @@
                 icon="AllIcons.Actions.Upload">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
-       <!--   todo-fzhang 批量部署,暂时注释 -->
         <action id="SpinnerBatchDeploy"
                 class="cn.github.spinner.action.editor.SpinnerBatchDeployAction"
                 text="SpinnerDeploy"
