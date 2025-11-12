@@ -36,6 +36,7 @@ public class XlsFileStrategy extends AbstractFileStrategy {
 
     @Override
     protected String executeDeployCommand(MatrixConnection connection, String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
+         // todo-fzhang 使用阳光部署方式
         return WorkspaceUtil.runSpinnerImport(connection, remoteSpinnerDir);
     }
 }
