@@ -46,4 +46,4 @@ bin/
 gradlew
 gradlew.bat
 .intellijPlatform
-.log
+/*.log
