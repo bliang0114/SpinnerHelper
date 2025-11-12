@@ -148,4 +148,19 @@ public class WorkspaceUtil {
         return connection.invokeJPOMethod("EnoBrowserJPO", "runScript", cmdArray, String.class);
     }
 
+    public static String runPageImportBatch(MatrixConnection connection, String spinnerBaseDir, String filePath, List<String> fileNames) throws Exception {
+        String script = "mql";
+        String output = spinnerBaseDir + "/spinner.log";
+
+        StringBuilder cmdBuild = new StringBuilder();
+        cmdBuild.append("set context user creator;");
+        for (String fileName : fileNames) {
+            cmdBuild.append("mod page ").append(fileName).append("fileName").append(filePath).append(fileName).append(";");
+        }
+        cmdBuild.append("print context;quit;");
+
+        String[] cmdArray = new String[]{script, "-c", cmdBuild.toString(), spinnerBaseDir, output};
+        return connection.invokeJPOMethod("EnoBrowserJPO", "runScript", cmdArray, String.class);
+    }
+
 }

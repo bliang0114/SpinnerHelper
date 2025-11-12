@@ -27,69 +27,21 @@ import java.util.Random;
  * @date 2025/11/10
  */
 @Slf4j
-public class JpoFileStrategy implements FileOperationStrategy {
-
-    @Override
-    public void processSingleFile(FileOperationContext context, PsiElement file) {
-
-    }
-
-    @Override
-    public void processBatchFiles(FileOperationContext context, List<PsiElement> psiElementList) {
-        Project project = context.getProject();
-        MatrixConnection connection = context.getMatrixConnection();
-        log.info("处理 jpo.......");
-        String filePath = psiElementList.getFirst().getContainingFile().getVirtualFile().getPath();
-        try {
-            String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
-            String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
-            String remoteSpinnerDir = "spinner" + new Random().nextInt();
-            String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
-            log.info("spinnerPath==>{}", spinnerPath);
-            log.info("remoteBaseDir==>{}", remoteBaseDir);
-            log.info("remoteSpinnerDir==>{}", remoteSpinnerDir);
-            log.info("remoteRelativePath==>{}", remoteRelativePath);
-            // 创建目录
-            WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
-            List<String> fileNames = new ArrayList<>();
-            for (PsiElement psiElement : psiElementList) {
-                String path = psiElement.getContainingFile().getVirtualFile().getPath();
-                File jpoFile = new File(path);
-                // 上传文件
-                WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, jpoFile.getName(), psiElement.getContainingFile().getText());
-                String fileName = psiElement.getContainingFile().getName();
-                fileNames.add(fileName);
-            }
-            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    indicator.setIndeterminate(false);
-                    indicator.setText("Starting deployment...");
-                    try {
-                        // 编译JPO
-                        String res = WorkspaceUtil.runJPOImportBath(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath, fileNames);
-                        log.info("res==>{}", res);
-                        if (CharSequenceUtil.isEmpty(res)|| (!res.contains("Error") && !res.contains("failed"))) {
-                            res = "Deploy success.";
-                            // 删除临时目录
-                            WorkspaceUtil.deleteRemoteTempDir(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir );
-                        } else {
-                            res = "Deploy failed, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
-                        }
-                        UIUtil.showNotification(project, "Deploy Result", res);
-                    } catch (Exception e) {
-                        UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
-                    }
-                }
-            });
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
+public class JpoFileStrategy extends AbstractFileStrategy {
 
 
     @Override
     public String getSupportedFileExtension() {
         return FileConstant.SUFFIX_JAVA;
+    }
+
+    @Override
+    protected String buildRemoteRelativePath(String remoteSpinnerDir, String spinnerPath) {
+        return remoteSpinnerDir + "/" + spinnerPath;
+    }
+
+    @Override
+    protected String executeDeployCommand(MatrixConnection connection, String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
+        return WorkspaceUtil.runJPOImportBath(connection, remoteSpinnerDir, remoteRelativePath, fileNames);
     }
 }
