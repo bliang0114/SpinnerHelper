@@ -2,7 +2,6 @@ package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.SpinnerToken;
-import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.deploy.BatchFileCommand;
 import cn.github.spinner.deploy.FileOperationCommand;
 import cn.github.spinner.deploy.FileOperationContext;
@@ -10,7 +9,6 @@ import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiElement;
 import com.intellij.util.ObjectUtils;
