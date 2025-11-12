@@ -1,11 +1,12 @@
 package cn.github.spinner.editor.ui.dataview.bean;
 
+import cn.github.spinner.components.bean.TableRowBean;
 import lombok.Data;
 
 import java.util.Objects;
 
 @Data
-public class ConnectionsRow {
+public class ConnectionsRow implements TableRowBean {
     private String type;
     private String id;
     private boolean path;
@@ -34,5 +35,25 @@ public class ConnectionsRow {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    @Override
+    public String[] headers() {
+        return new String[]{"Type", "ID", "Path", "PhysicalID", "From Type", "From Name", "From Revision", "From Id", "From Rel Type", "From Rel Id", "To Type", "To Name", "To Revision", "To Id", "To Rel Type", "To Rel Id"};
+    }
+
+    @Override
+    public int[] widths() {
+        return new int[]{200, 200, 100, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200};
+    }
+
+    @Override
+    public Object[] rowValues() {
+        return new Object[]{type, id, path, physicalId, fromType, fromName, fromRevision, fromId, fromRelType, fromRelId, toType, toName, toRevision, toId, toRelType, toRelId};
+    }
+
+    @Override
+    public Class<?>[] columnTypes() {
+        return new Class[]{String.class, String.class, Boolean.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class};
     }
 }

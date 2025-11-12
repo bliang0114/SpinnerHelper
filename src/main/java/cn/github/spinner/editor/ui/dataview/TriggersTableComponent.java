@@ -11,31 +11,15 @@ import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-public class TriggersTableComponent extends AbstractDataViewTableComponent<TriggersRow, TriggersTableComponent> {
-    private static final Object[] COLUMNS = new Object[]{"Trigger Name", "Inherited", "Check", "Override", "Action"};
-    private static final int[] COLUMN_WIDTHS = new int[]{200, 100, 300, 300, 300};
+public class TriggersTableComponent extends AbstractDataViewTableComponent<TriggersRow> {
 
     public TriggersTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, new DefaultTableModel(COLUMNS, 0) {
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 2) {
-                    return Boolean.class;
-                }
-                return String.class;
-            }
-        }, COLUMN_WIDTHS, "Triggers Table Toolbar");
-    }
-
-    @Override
-    protected void addRow(TriggersRow row) {
-        tableModel.addRow(new Object[]{row.getTriggerName(), row.isInherited(), row.getCheck(), row.getOverride(), row.getAction()});
+        super(project, virtualFile, new TriggersRow(), "Triggers Table");
     }
 
     @Override

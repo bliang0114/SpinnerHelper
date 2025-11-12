@@ -42,10 +42,10 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
                 this.editorComponent = new ProgramTableComponent(project, virtualFile);
                 break;
             case FORM_TABLE:
-                this.editorComponent =new FormsAndTablesView(project, virtualFile);
+                this.editorComponent = new FormsAndTablesView(project, virtualFile);
                 break;
             case MENU_COMMAND:
-                this.editorComponent =new MenuAndCommandView(project);
+                this.editorComponent = new MenuAndCommandView(project);
                 break;
             default:
                 this.editorComponent = new JPanel();

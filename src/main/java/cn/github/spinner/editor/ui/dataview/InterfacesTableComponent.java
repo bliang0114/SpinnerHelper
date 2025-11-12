@@ -20,13 +20,11 @@ import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
-public class InterfacesTableComponent extends AbstractDataViewTableComponent<InterfacesRow, InterfacesTableComponent> {
-    private static final Object[] COLUMNS = new Object[]{"Interface Name", "Attribute Name", "Attribute Owner", "Type", "Default", "Range"};
-    private static final int[] COLUMN_WIDTHS = new int[]{260, 260, 260, 150, 150, 500};
+public class InterfacesTableComponent extends AbstractDataViewTableComponent<InterfacesRow> {
     private JBCheckBox checkBox;
 
     public InterfacesTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, COLUMNS, COLUMN_WIDTHS, "Interfaces Table Toolbar");
+        super(project, virtualFile, new InterfacesRow(), "Interfaces Table");
     }
 
     @Override
@@ -38,12 +36,7 @@ public class InterfacesTableComponent extends AbstractDataViewTableComponent<Int
     @Override
     protected Component[] createToolbarComponent() {
         checkBox = new JBCheckBox("Include non-automatic interface");
-        return new Component[] { table.getFilterComponent(), checkBox };
-    }
-
-    @Override
-    protected void addRow(InterfacesRow row) {
-        tableModel.addRow(new Object[]{row.getInterfaceName(), row.getAttributeName(), row.getAttributeOwner(), row.getType(), row.getDefaultValue(), row.getRange()});
+        return new Component[]{table.getFilterComponent(), checkBox};
     }
 
     @Override

@@ -1,11 +1,14 @@
 package cn.github.spinner.editor.ui.dataview.bean;
 
+import cn.github.spinner.components.bean.TableRowBean;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Objects;
 
 @Data
-public class InterfacesRow {
+@NoArgsConstructor
+public class InterfacesRow implements TableRowBean {
     private String interfaceName;
     private String attributeName;
     private String attributeOwner;
@@ -30,5 +33,25 @@ public class InterfacesRow {
     @Override
     public int hashCode() {
         return Objects.hash(interfaceName, attributeName, attributeOwner);
+    }
+
+    @Override
+    public String[] headers() {
+        return new String[]{"Interface Name", "Attribute Name", "Attribute Owner", "Type", "Default", "Range"};
+    }
+
+    @Override
+    public int[] widths() {
+        return new int[]{260, 260, 260, 150, 150, 500};
+    }
+
+    @Override
+    public Object[] rowValues() {
+        return new Object[]{interfaceName, attributeName, attributeOwner, type, defaultValue, range};
+    }
+
+    @Override
+    public Class<?>[] columnTypes() {
+        return new Class[]{String.class, String.class, String.class, String.class, String.class, String.class};
     }
 }

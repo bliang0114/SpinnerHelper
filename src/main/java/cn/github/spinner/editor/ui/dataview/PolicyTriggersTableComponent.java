@@ -14,17 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-public class PolicyTriggersTableComponent extends AbstractDataViewTableComponent<PolicyTriggersRow, PolicyTriggersTableComponent> {
-    private static final Object[] COLUMNS = new Object[]{"Policy", "State", "Trigger Name", "Check", "Override", "Action"};
-    private static final int[] COLUMN_WIDTHS = new int[]{200, 100, 100, 300, 300, 300};
+public class PolicyTriggersTableComponent extends AbstractDataViewTableComponent<PolicyTriggersRow> {
 
     public PolicyTriggersTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, COLUMNS, COLUMN_WIDTHS, "Policy Triggers Table Toolbar");
-    }
-
-    @Override
-    protected void addRow(PolicyTriggersRow row) {
-        tableModel.addRow(new Object[]{row.getPolicy(), row.getState(), row.getTriggerName(), row.getCheck(), row.getOverride(), row.getAction()});
+        super(project, virtualFile, new PolicyTriggersRow(), "Policy Triggers Table Toolbar");
     }
 
     @Override

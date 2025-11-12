@@ -150,6 +150,13 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
     private void loadTypeInformation(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
+        int componentCount = tabbedPane.getComponentCount();
+        for (int i = 0; i < componentCount; i++) {
+            Component component = tabbedPane.getComponentAt(i);
+            if (component instanceof AbstractDataViewTableComponent<?> tableComponent) {
+                tableComponent.setLoaded(false);
+            }
+        }
         loadTabData();
     }
 
@@ -160,7 +167,7 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
         String relationship = listModel.elementAt(selectedIndex);
         int tabIndex = tabbedPane.getSelectedIndex();
         Component component = tabbedPane.getComponentAt(tabIndex);
-        if (component instanceof AbstractDataViewTableComponent<?, ?> dataViewTableComponent) {
+        if (component instanceof AbstractDataViewTableComponent<?> dataViewTableComponent) {
             log.info("Loading relationship data for {}", relationship);
             dataViewTableComponent.setName(relationship);
             dataViewTableComponent.reloadData();

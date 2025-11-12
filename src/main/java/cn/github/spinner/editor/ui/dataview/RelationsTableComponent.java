@@ -16,17 +16,10 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-public class RelationsTableComponent extends AbstractDataViewTableComponent<RelationsRow, RelationsTableComponent> {
-    private static final Object[] COLUMNS = new Object[]{"Relationship", "Direction", "Type / Relationship"};
-    private static final int[] COLUMN_WIDTHS = new int[]{200, 50, 400};
+public class RelationsTableComponent extends AbstractDataViewTableComponent<RelationsRow> {
 
     public RelationsTableComponent(@NotNull Project project, VirtualFile virtualFile) {
-        super(project, virtualFile, COLUMNS, COLUMN_WIDTHS, "Relations Table Toolbar");
-    }
-
-    @Override
-    protected void addRow(RelationsRow row) {
-        tableModel.addRow(new Object[]{row.getRelationship(), row.getDirection(), row.getTypeOrRelationship()});
+        super(project, virtualFile, new RelationsRow(), "Relations Table");
     }
 
     @Override
