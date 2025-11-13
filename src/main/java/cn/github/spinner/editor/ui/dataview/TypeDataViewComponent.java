@@ -158,7 +158,7 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
 
         int tabCount = tabbedPane.getTabCount();
         for (int i = 0; i < tabCount; i++) {
-            Component component = tabbedPane.getTabComponentAt(i);
+            Component component = tabbedPane.getComponentAt(i);
             if (component instanceof AbstractDataViewTableComponent<?> tableComponent) {
                 tableComponent.setLoaded(false);
             }
