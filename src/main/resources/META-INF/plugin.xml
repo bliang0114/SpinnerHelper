@@ -15,11 +15,10 @@
     <description>
         SpinnerHelper is a professional plugin designed for IntelliJ IDEA to enhance 3DE development efficiency.
         It optimizes the development experience through intelligent deployment processes and a rich set of auxiliary tools.
-    </description>
-
-    <change-notes><![CDATA[
+        <![CDATA[
         <h2>SpinnerHelper - 3DE开发效率提升插件</h2>
         <p><code>SpinnerHelper</code> 是一款专为 IntelliJ IDEA 设计的专业级插件，致力于优化 3DE 开发体验。通过智能化的部署流程和丰富的辅助工具集，显著提升开发效率与便捷性。</p>
+        <p><strong>驱动下载地址:</strong><a href="https://gitee.com/bliang0114/SpinnerHelper/releases/download/2.06/matrix-connector-1.1.0.jar">matrix-connector-1.1.0.jar</a></p>
         <h3>🚀 核心功能</h3>
         <h4>多环境管理</h4>
         <ul>
@@ -59,7 +58,10 @@
           <li><strong>IDEA 版本</strong>：仅支持 IntelliJ IDEA 2024.2 及以上版本</li>
           <li><strong>依赖准备</strong>：需自行准备对应 3DE 版本的依赖包</li>
         </ul>
-    ]]></change-notes>
+    ]]>
+    </description>
+
+    <change-notes />
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
