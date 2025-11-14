@@ -6,11 +6,13 @@ import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.util.DeployUtil;
 import cn.github.spinner.util.MatrixJarLoadManager;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -19,6 +21,8 @@ import java.util.List;
 
 public class Connect3DETask extends Task.Backgroundable {
     private final EnvironmentConfig environment;
+    @Setter
+    private  Runnable successHandler;
 
     public Connect3DETask(@Nullable Project project, EnvironmentConfig environment) {
         super(project, "Connect to 3DExperience", true);
@@ -57,4 +61,14 @@ public class Connect3DETask extends Task.Backgroundable {
             UIUtil.showErrorNotification(myProject, "Connect failed", ex.getLocalizedMessage());
         }
     }
+
+    @Override
+    public void onSuccess() {
+        super.onSuccess();
+        if (successHandler != null) {
+            successHandler.run();
+        }
+    }
+
+
 }

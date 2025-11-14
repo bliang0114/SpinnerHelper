@@ -10,11 +10,11 @@ import java.util.List;
  */
 public interface FileOperationStrategy {
 
-    void processSingleFile(FileOperationContext context, PsiElement file);
+    void processSingleFile(PsiElement file);
 
-    default void processBatchFiles(FileOperationContext context, List<PsiElement> files) {
+    default void processBatchFiles(List<PsiElement> files) {
         for (PsiElement file : files) {
-            processSingleFile(context, file);
+            processSingleFile(file);
         }
     }
 

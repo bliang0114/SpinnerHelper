@@ -1,10 +1,8 @@
 package cn.github.spinner.deploy;
 
-import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.psi.PsiElement;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -17,12 +15,10 @@ import java.util.List;
 public class XlsFileStrategy extends AbstractFileStrategy {
     private static final Logger LOGGER = Logger.getInstance(XlsFileStrategy.class);
 
-    @Override
-    public void processSingleFile(FileOperationContext context, PsiElement file) {
-        String filePath = file.getContainingFile().getVirtualFile().getPath();
-        WorkspaceUtil.importSpinnerFile(context.getMatrixConnection(), context.getProject(), filePath, file.getText());
-        LOGGER.info("processSingleFile: " + filePath);
+    public XlsFileStrategy(FileOperationContext context) {
+        super(context);
     }
+
 
     @Override
     public String getSupportedFileExtension() {
@@ -35,8 +31,14 @@ public class XlsFileStrategy extends AbstractFileStrategy {
     }
 
     @Override
-    protected String executeDeployCommand(MatrixConnection connection, String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
-         // todo-fzhang 使用阳光部署方式
-        return WorkspaceUtil.runSpinnerImport(connection, remoteSpinnerDir);
+    protected String buildSpinnerSubPath(String firstFilePath) {
+        return WorkspaceUtil.extractSpinnerSubPath(firstFilePath);
     }
+
+    @Override
+    protected String executeDeployCommand(String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
+         // todo-fzhang 使用阳光部署方式
+        return WorkspaceUtil.runSpinnerImport(context.getMatrixConnection(), remoteSpinnerDir);
+    }
+
 }

@@ -1,6 +1,5 @@
 package cn.github.spinner.deploy;
 
-import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.util.WorkspaceUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +13,9 @@ import java.util.List;
 @Slf4j
 public class JpoFileStrategy extends AbstractFileStrategy {
 
+    public JpoFileStrategy(FileOperationContext context) {
+        super(context);
+    }
 
     @Override
     public String getSupportedFileExtension() {
@@ -26,7 +28,13 @@ public class JpoFileStrategy extends AbstractFileStrategy {
     }
 
     @Override
-    protected String executeDeployCommand(MatrixConnection connection, String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
-        return WorkspaceUtil.runJPOImportBath(connection, remoteSpinnerDir, remoteRelativePath, fileNames);
+    protected String buildSpinnerSubPath(String firstFilePath) {
+        return WorkspaceUtil.extractSpinnerSubPath(firstFilePath);
     }
+
+    @Override
+    protected String executeDeployCommand(String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
+        return WorkspaceUtil.runJPOImportBath(context.getMatrixConnection(), remoteSpinnerDir, remoteRelativePath, fileNames);
+    }
+
 }

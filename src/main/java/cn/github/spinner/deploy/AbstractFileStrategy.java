@@ -23,55 +23,71 @@ import java.util.List;
  */
 @Slf4j
 public abstract class AbstractFileStrategy implements FileOperationStrategy {
+    protected FileOperationContext context;
+
+    public AbstractFileStrategy(FileOperationContext context) {
+        this.context = context;
+    }
 
     @Override
-    public void processSingleFile(FileOperationContext context, PsiElement file) {
+    public void processSingleFile(PsiElement file) {
         log.info("processSingleFile, file==>{}", file);
     }
 
     @Override
-    public void processBatchFiles(FileOperationContext context, List<PsiElement> files) {
+    public void processBatchFiles(List<PsiElement> files) {
         Project project = context.getProject();
         MatrixConnection connection = context.getMatrixConnection();
         try {
             // 1. 获取基础路径信息
             String firstFilePath = getFirstFilePath(files);
-            String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(firstFilePath);
+            String spinnerSubPath = buildSpinnerSubPath(firstFilePath);
             String remoteTmpDir = WorkspaceUtil.getTmpDir(connection);
             String remoteSpinnerDir = "spinner-" + UUID.randomUUID();
-            String remoteRelativePath = buildRemoteRelativePath(remoteSpinnerDir, spinnerPath);
-            log.info("spinnerPath==>{}, remoteBaseDir==>{}, remoteSpinnerDir==>{}, remoteRelativePath==>{}", spinnerPath, remoteTmpDir, remoteSpinnerDir, remoteRelativePath);
+            String remoteRelativePath = buildRemoteRelativePath(remoteSpinnerDir, spinnerSubPath);
+            log.info("spinnerSubPath==>{}, remoteBaseDir==>{}, remoteSpinnerDir==>{}, remoteRelativePath==>{}", spinnerSubPath, remoteTmpDir, remoteSpinnerDir, remoteRelativePath);
 
             // 2. 创建远程临时目录
             WorkspaceUtil.createRemoteTempDir(connection, remoteTmpDir, remoteRelativePath);
 
             // 3. 上传文件并收集文件名
-            List<String> fileNames = uploadFiles(connection, remoteTmpDir, remoteRelativePath, files);
+            List<String> fileNames = uploadFiles(remoteTmpDir, remoteRelativePath, files);
 
             // 4. 执行部署任务
-            executeDeployTask(project, connection, remoteTmpDir, remoteSpinnerDir, remoteRelativePath, fileNames);
+            executeDeployTask(remoteTmpDir, remoteSpinnerDir, remoteRelativePath, fileNames);
 
         } catch (Exception e) {
             handleException(e);
         }
 
     }
+
     /**
      * 构建远程相对路径
      */
     protected abstract String buildRemoteRelativePath(String remoteSpinnerDir, String spinnerPath);
 
     /**
+     * 文件所在目录spinner后部分内容
+     * 如spinner/Business/SourceFiles，则返回 Business/SourceFiles
+     * 部署 properties文件时，返回空字符串即可
+     * @param firstFilePath 远程Spinner目录
+     * @return 文件所在目录spinner后部分内容
+     */
+    protected abstract String buildSpinnerSubPath(String firstFilePath);
+
+    /**
      * 执行部署命令
      */
-    protected abstract String executeDeployCommand(MatrixConnection connection, String remoteSpinnerDir,
+    protected abstract String executeDeployCommand(String remoteSpinnerDir,
                                                    String remoteRelativePath, List<String> fileNames) throws Exception;
 
     /**
      * 上传文件公共逻辑
      */
-    protected List<String> uploadFiles(MatrixConnection connection, String remoteBaseDir,
+    protected List<String> uploadFiles(String remoteBaseDir,
                                        String remoteRelativePath, List<PsiElement> files) throws Exception {
+        MatrixConnection connection = context.getMatrixConnection();
         List<String> fileNames = new ArrayList<>(files.size());
         for (PsiElement element : files) {
             String fileName = element.getContainingFile().getName();
@@ -89,9 +105,8 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
     /**
      * 执行部署任务
      */
-    protected void executeDeployTask(Project project, MatrixConnection connection, String remoteBaseDir,
-                                     String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) {
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
+    protected void executeDeployTask(String remoteBaseDir, String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), "Spinner Deploy") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
@@ -101,20 +116,35 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
                     String fullRemoteRelativePath = remoteBaseDir + "/" + remoteRelativePath;
 
                     // 调用子类实现的部署命令
-                    String res = executeDeployCommand(connection, fullRemoteSpinnerDir, fullRemoteRelativePath, fileNames);
+                    String res = executeDeployCommand( fullRemoteSpinnerDir, fullRemoteRelativePath, fileNames);
                     log.info("Deploy result==>{}", res);
 
-                    String title= "Deploy success";
+                    String title = "Deploy success";
                     // 处理部署结果
                     if (CharSequenceUtil.isEmpty(res) || (!res.contains("Error") && !res.contains("failed"))) {
-                        WorkspaceUtil.deleteRemoteTempDir(connection, fullRemoteSpinnerDir, remoteBaseDir);
+                        afterDeploySuccess(fullRemoteSpinnerDir, remoteBaseDir);
                     } else {
-                        title= "Deploy failed";
+                        title = "Deploy failed";
                     }
-                    UIUtil.showNotification(project, title, res);
+                    UIUtil.showNotification(context.getProject(), title, res == null ? "success" : res);
 
                 } catch (Exception e) {
-                    UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
+                    UIUtil.showErrorNotification(context.getProject(), "Error", e.getLocalizedMessage());
+                }
+            }
+        });
+    }
+
+    protected  void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), "Spinner Deploy") {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(false);
+                indicator.setText("Starting delete deploy temp dir...");
+                try {
+                    WorkspaceUtil.deleteRemoteTempDir(context.getMatrixConnection(), fullRemoteSpinnerDir, remoteBaseDir);
+                } catch (Exception e) {
+                    handleException(e);
                 }
             }
         });

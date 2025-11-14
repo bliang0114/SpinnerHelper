@@ -1,6 +1,7 @@
 package cn.github.spinner.deploy;
 
 import cn.github.spinner.constant.FileConstant;
+import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiElement;
 
@@ -35,12 +36,16 @@ public class BatchFileCommand implements FileOperationCommand{
                             map.computeIfAbsent(ext, k -> new ArrayList<>()).add(file);
                         },
                         HashMap::putAll);
+        if(typeFilesMap.isEmpty()) {
+            UIUtil.showNotification(context.getProject(), "Spinner Deploy Tip", "不支持的文件");
+            return;
+        }
 
         for (Map.Entry<String, List<PsiElement>> entry : typeFilesMap.entrySet()) {
             PsiElement virtualFile = entry.getValue().getFirst();
-            FileOperationStrategy strategy = FileOperationStrategyFactory.getStrategy(virtualFile);
+            FileOperationStrategy strategy = FileOperationStrategyFactory.getStrategy(context,virtualFile);
             if(strategy != null) {
-                strategy.processBatchFiles(context,entry.getValue());
+                strategy.processBatchFiles(entry.getValue());
             } else {
                 LOGGER.debug("批量部署不支持的文件类型：{}", entry.getKey());
             }

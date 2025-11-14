@@ -155,12 +155,16 @@ public class WorkspaceUtil {
         StringBuilder cmdBuild = new StringBuilder();
         cmdBuild.append("set context user creator;");
         for (String fileName : fileNames) {
-            cmdBuild.append("mod page ").append(fileName).append("fileName").append(filePath).append(fileName).append(";");
+            cmdBuild.append("mod page ").append(fileName).append(" file ").append(filePath).append(fileName).append(";");
         }
         cmdBuild.append("print context;quit;");
 
         String[] cmdArray = new String[]{script, "-c", cmdBuild.toString(), spinnerBaseDir, output};
         return connection.invokeJPOMethod("EnoBrowserJPO", "runScript", cmdArray, String.class);
+    }
+
+    public static String reCachePage(MatrixConnection connection) throws Exception {
+        return connection.invokeJPOMethod("SpinnerDeployJPO", "reCachePage", new String[]{}, String.class);
     }
 
 }
