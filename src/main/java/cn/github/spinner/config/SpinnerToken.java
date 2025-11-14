@@ -48,4 +48,16 @@ public class SpinnerToken {
             log.error("Error: close matrix connection, {}", e.getLocalizedMessage(), e);
         }
     }
+
+    public static void closeConnection(@NotNull Project project) {
+        MatrixConnection connection = getCurrentConnection(project);
+        try {
+            if (connection != null) {
+                connection.close();
+            }
+        } catch (IOException e) {
+            log.error("Error: close matrix connection, {}", e.getLocalizedMessage(), e);
+        }
+        CONNECTION_MAP.remove(project.getLocationHash());
+    }
 }

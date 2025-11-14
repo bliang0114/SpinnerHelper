@@ -18,6 +18,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +87,23 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
                         table.getEmptyText().setText(ex.getLocalizedMessage());
                     }
                 }, 100, TimeUnit.MILLISECONDS);
+            }
+        });
+
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() >= 2) {
+                    int rowIndex = table.rowAtPoint(e.getPoint());
+                    if (rowIndex >= 0) {
+                        int modelRowIndex = table.convertRowIndexToModel(rowIndex);
+                        if (modelRowIndex < 0) return;
+
+                        String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 4));
+                        ObjectDetailsDialog dialog = new ObjectDetailsDialog(project, id);
+                        dialog.show();
+                    }
+                }
             }
         });
     }
