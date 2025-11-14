@@ -94,7 +94,7 @@ public class SpinnerDeployJPO {
         }
     }
 
-    public void runScript(Context ctx, String[] args) throws Exception {
+    public String runScript(Context ctx, String[] args) throws Exception {
         if (adminOnly)
             checkAdmin(ctx);
         String[] cmdarray = Arrays.copyOf(args, args.length - 2);
@@ -105,7 +105,8 @@ public class SpinnerDeployJPO {
         pb.redirectErrorStream(true);
         Process p = pb.start();
         StreamWriter sw = new StreamWriter(p.getInputStream(), output);
-        sw.start();
+        sw.run();
+        return readFile(ctx, new String[]{output});
     }
 
     private void checkAdmin(Context ctx) throws MatrixException {
@@ -121,10 +122,8 @@ public class SpinnerDeployJPO {
     public void reCachePage(Context ctx, String[] args) throws Exception {
         if (adminOnly)
             checkAdmin(ctx);
-        ConcurrentHashMap<String, Properties> globalUserMap = UICache._tenantContent.get("globalUser");
-        if (globalUserMap != null) {
-            globalUserMap.remove("Conf");
-        }
+        UICache._tenantPageNames.remove("globalUser");
+        UICache._tenantContent.remove("globalUser");
         // 参数：方法名、参数类型数组（与原方法参数类型一一对应）
         Method  buildTenantPropertyCache = Tenant.class.getDeclaredMethod(
                 "buildTenantPropertyCache",

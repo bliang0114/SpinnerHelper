@@ -8,7 +8,6 @@ import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
-import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +35,6 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
 
     @Override
     public void processBatchFiles(List<PsiElement> files) {
-        Project project = context.getProject();
         MatrixConnection connection = context.getMatrixConnection();
         try {
             // 1. 获取基础路径信息
@@ -117,7 +115,7 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
 
                     // 调用子类实现的部署命令
                     String res = executeDeployCommand( fullRemoteSpinnerDir, fullRemoteRelativePath, fileNames);
-                    log.info("Deploy result==>{}", res);
+                    log.info("deploy.result==>{}", res);
 
                     String title = "Deploy success";
                     // 处理部署结果
@@ -136,6 +134,7 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
     }
 
     protected  void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
+        log.info("afterDeploySuccess, fullRemoteSpinnerDir==>{}, remoteBaseDir==>{}", fullRemoteSpinnerDir, remoteBaseDir);
         ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), "Spinner Deploy") {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {

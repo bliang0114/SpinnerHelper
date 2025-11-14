@@ -38,7 +38,7 @@ public class PropertiesFileStrategy extends AbstractFileStrategy {
 
     @Override
     protected String executeDeployCommand(String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
-        return WorkspaceUtil.runPageImportBatch(context.getMatrixConnection(), remoteSpinnerDir, remoteRelativePath, fileNames);
+        return WorkspaceUtil.runPageImportBatch(context.getProject(), context.getMatrixConnection(), remoteSpinnerDir, remoteRelativePath, fileNames);
     }
 
     @Override
