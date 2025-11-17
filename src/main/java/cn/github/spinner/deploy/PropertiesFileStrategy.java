@@ -50,7 +50,7 @@ public class PropertiesFileStrategy extends AbstractFileStrategy {
                 indicator.setText("Starting reCache Page...");
                 try {
                     WorkspaceUtil.deleteRemoteTempDir(context.getMatrixConnection(), fullRemoteSpinnerDir, remoteBaseDir);
-                    WorkspaceUtil.reCachePage(context.getMatrixConnection());
+                    WorkspaceUtil.reloadPageCache(context.getMatrixConnection());
                 } catch (Exception e) {
                     handleException(e);
                 }

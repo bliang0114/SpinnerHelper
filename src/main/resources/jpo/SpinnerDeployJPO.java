@@ -1,14 +1,14 @@
-import com.matrixone.apps.domain.util.Tenant;
+import com.matrixone.apps.domain.util.ContextUtil;
+import com.matrixone.apps.domain.util.PropertyUtil;
+import com.matrixone.apps.framework.ui.CacheManager;
 import com.matrixone.apps.framework.ui.UICache;
 import matrix.db.Context;
 import matrix.db.Person;
 import matrix.util.MatrixException;
 
 import java.io.*;
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class SpinnerDeployJPO {
 
@@ -119,29 +119,37 @@ public class SpinnerDeployJPO {
             throw new MatrixException("Context user \'" + user + "\' is not authorized for system administration");
     }
 
-    public void reCachePage(Context ctx, String[] args) throws Exception {
-        if (adminOnly)
-            checkAdmin(ctx);
-        UICache._tenantPageNames.remove("globalUser");
-        UICache._tenantContent.remove("globalUser");
-        // 参数：方法名、参数类型数组（与原方法参数类型一一对应）
-        Method  buildTenantPropertyCache = Tenant.class.getDeclaredMethod(
-                "buildTenantPropertyCache",
-                Context.class,
-                String.class,
-                String.class,
-                boolean.class
-        );
-        buildTenantPropertyCache.setAccessible(true);
-        buildTenantPropertyCache.invoke(
-                null, // 静态方法无需实例，传 null
-                ctx,  // 第一个参数：Context 实例
-                "globalUser",  // 第二个参数：String
-                "Conf",        // 第三个参数：String
-                true           // 第四个参数：Boolean
-        );
+    public void reloadPageCache(Context ctx, String[] args)  {
+        try {
+            ContextUtil.startTransaction(ctx, false);
+            if (adminOnly)
+                checkAdmin(ctx);
+            PropertyUtil.clearAdminPropertyCache();
+            UICache.clearTenantCache(ctx);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            ContextUtil.abortTransaction(ctx);
+        }
+    }
 
+    public void reloadSpinnerCache(Context ctx, String[] args)  {
+        try {
+            ContextUtil.startTransaction(ctx, false);
+            if (adminOnly)
+                checkAdmin(ctx);
+            CacheManager.resetAPPServerCache(ctx);
+            CacheManager.resetRMIServerCache(ctx);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            ContextUtil.abortTransaction(ctx);
+        }
+    }
 
+    public void reloadCache(Context ctx, String[] args)  {
+        reloadPageCache(ctx, args);
+        reloadSpinnerCache(ctx, args);
     }
 
     class StreamWriter extends Thread {
