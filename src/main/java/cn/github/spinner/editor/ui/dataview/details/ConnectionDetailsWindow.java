@@ -22,7 +22,7 @@ public class ConnectionDetailsWindow extends JFrame {
         this.project = project;
         this.id = id;
         setSize(JBUI.size(1200, 800));
-        setTitle(id);
+        setTitle("Connections of " + id);
         initComponents();
     }
 
