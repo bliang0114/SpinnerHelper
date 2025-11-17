@@ -108,13 +108,6 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
         uiListPanel.add(toolbarPanel, BorderLayout.NORTH);
         uiListPanel.add(ScrollPaneFactory.createScrollPane(uiList), BorderLayout.CENTER);
         add(uiListPanel, BorderLayout.WEST);
-
-        tabbedPane.add("Attributes", new AttributesTableComponent(project, virtualFile));
-        tabbedPane.add("Properties", new PropertiesTableComponent(project, virtualFile));
-        tabbedPane.add("Interfaces", new InterfacesTableComponent(project, virtualFile));
-        tabbedPane.add("Relations", new RelationsTableComponent(project, virtualFile));
-        tabbedPane.add("Triggers", new TriggersTableComponent(project, virtualFile));
-        tabbedPane.add("Connections", new ConnectionsTableComponent(project, virtualFile));
         add(tabbedPane, BorderLayout.CENTER);
     }
 
@@ -150,14 +143,21 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
     private void loadTypeInformation(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
-        int tabCount = tabbedPane.getTabCount();
-        for (int i = 0; i < tabCount; i++) {
-            Component component = tabbedPane.getComponentAt(i);
-            if (component instanceof AbstractDataViewTableComponent<?> tableComponent) {
-                tableComponent.setLoaded(false);
-            }
-        }
-        loadTabData();
+        tabbedPane.removeAll();
+        AttributesTableComponent attributesTableComponent = new AttributesTableComponent(project, virtualFile);
+        tabbedPane.add("Attributes", attributesTableComponent);
+        tabbedPane.add("Properties", new PropertiesTableComponent(project, virtualFile));
+        tabbedPane.add("Interfaces", new InterfacesTableComponent(project, virtualFile));
+        tabbedPane.add("Relations", new RelationsTableComponent(project, virtualFile));
+        tabbedPane.add("Triggers", new TriggersTableComponent(project, virtualFile));
+        tabbedPane.add("Connections", new ConnectionsTableComponent(project, virtualFile));
+        tabbedPane.setSelectedComponent(attributesTableComponent);
+        int selectedIndex = uiList.getSelectedIndex();
+        if (selectedIndex < 0) return;
+
+        String type = listModel.elementAt(selectedIndex);
+        attributesTableComponent.setName(type);
+        attributesTableComponent.reloadData();
     }
 
     private void loadTabData() {
@@ -166,6 +166,8 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
 
         String relationship = listModel.elementAt(selectedIndex);
         int tabIndex = tabbedPane.getSelectedIndex();
+        if (tabIndex < 0) return;
+
         Component component = tabbedPane.getComponentAt(tabIndex);
         if (component instanceof AbstractDataViewTableComponent<?> dataViewTableComponent) {
             log.info("Loading relationship data for {}", relationship);

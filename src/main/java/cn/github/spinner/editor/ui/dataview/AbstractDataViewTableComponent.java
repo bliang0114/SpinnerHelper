@@ -16,6 +16,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -36,7 +37,7 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
         super(entity, componentId);
         this.project = project;
         this.virtualFile = virtualFile;
-        this.executor = Executors.newSingleThreadScheduledExecutor();
+        this.executor = Executors.newScheduledThreadPool(1);
     }
 
     @Override
@@ -44,26 +45,43 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
         return new AnAction[]{new RefreshAction()};
     }
 
-    protected void reloadData() {
-        if (loaded) return;
-
-        tableModel.setRowCount(0);
+    @Override
+    protected void setPageData() {
         MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
         if (connection == null || CharSequenceUtil.isBlank(name)) {
             table.getEmptyText().setText("Connection is closed");
             return;
         }
-        table.getEmptyText().setText("Loading Data...");
         executor.schedule(() -> {
             try {
-                setTableData(loadDataFromMatrix(connection));
+                tableModel.setRowCount(0);
+                boolean flag = false;
+                if (totalCount != 0) {
+                    updatePaginationStatus();
+                    flag = true;
+                }
+                table.getEmptyText().setText("Loading Data...");
+                tableData = new ArrayList<>(loadDataFromMatrix(connection));
+                totalCount = totalCount == 0 ? tableData.size() : totalCount;
+                for (T data : tableData) {
+                    tableModel.addRow(data.rowValues());
+                }
+                if (!flag) {
+                    updatePaginationStatus();
+                }
                 table.getEmptyText().setText("Nothing to show");
-                loaded = true;
             } catch (MQLException e) {
                 log.error(e.getLocalizedMessage(), e);
                 table.getEmptyText().setText(e.getLocalizedMessage());
             }
         }, 100, TimeUnit.MILLISECONDS);
+    }
+
+    protected void reloadData() {
+        if (loaded) return;
+
+        setPageData();
+        loaded = true;
     }
 
     protected abstract List<T> loadDataFromMatrix(MatrixConnection connection) throws MQLException;

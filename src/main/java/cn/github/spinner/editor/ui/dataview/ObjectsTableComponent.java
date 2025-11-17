@@ -2,15 +2,14 @@ package cn.github.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
-import cn.github.driver.connection.MatrixObjectQuery;
-import cn.github.driver.connection.MatrixQueryResult;
 import cn.github.spinner.config.ObjectWhereExpression;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.editor.ui.dataview.bean.ObjectsRow;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
 import cn.github.spinner.ui.ObjectWhereExpressionBuilderDialog;
-import cn.hutool.core.map.MapUtil;
+import cn.github.spinner.util.MQLUtil;
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.NumberUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.ui.JBUI;
@@ -23,8 +22,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class ObjectsTableComponent extends AbstractDataViewTableComponent<ObjectsRow> {
@@ -69,25 +66,8 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
                         whereExpression.getRevision(),
                         whereExpression.build());
                 whereBtn.setToolTipText(tooltip);
-
-                tableModel.setRowCount(0);
-                table.getEmptyText().setText("Loading Data...");
-                executor.schedule(() -> {
-                    try {
-                        MatrixObjectQuery objectQuery = new MatrixObjectQuery();
-                        objectQuery.setType(name);
-                        objectQuery.setName(whereExpression.getName());
-                        objectQuery.setRevision(whereExpression.getRevision());
-                        objectQuery.setExpandType(true);
-                        objectQuery.setWhereExpression(whereExpression.build());
-                        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
-                        setTableData(queryFromMatrix(connection, objectQuery));
-                        table.getEmptyText().setText("Nothing to show");
-                    } catch (MQLException ex) {
-                        log.error(ex.getLocalizedMessage(), ex);
-                        table.getEmptyText().setText(ex.getLocalizedMessage());
-                    }
-                }, 100, TimeUnit.MILLISECONDS);
+                currentPage = 1;
+                setPageData();
             }
         });
 
@@ -118,42 +98,73 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
         gbc.gridx = 0;
         panel.add(whereBtn);
         container.add(panel);
-        return new Component[] { table.getFilterComponent(), container };
+        return new Component[]{table.getFilterComponent(), container};
     }
 
     @Override
     protected List<ObjectsRow> loadDataFromMatrix(MatrixConnection connection) throws MQLException {
-        MatrixObjectQuery objectQuery = new MatrixObjectQuery();
-        objectQuery.setType(name);
-        objectQuery.setExpandType(true);
-        return queryFromMatrix(connection, objectQuery);
-    }
-
-    private List<ObjectsRow> queryFromMatrix(MatrixConnection connection, MatrixObjectQuery objectQuery) throws MQLException {
-        MatrixQueryResult queryResult = connection.queryObject(objectQuery, List.of("type", "name", "revision", "id", "paths", "physicalid", "description", "originated", "modified", "lattice", "policy", "owner", "current", "organization", "project"));
+        ObjectWhereExpression whereExpression = SpinnerToken.getObjectWhereExpression(project);
+        if (whereExpression == null) {
+            whereExpression = new ObjectWhereExpression();
+        }
+        String condition = whereExpression.build();
+        String countQuery = CharSequenceUtil.format("eval expr 'count TRUE' on temp query bus '{}' '{}' '{}'", name, whereExpression.getName(), whereExpression.getRevision());
+        if (CharSequenceUtil.isNotBlank(condition)) {
+            countQuery += " where \"" + condition + "\"";
+        }
+        String result = MQLUtil.execute(project, countQuery);
+        if (NumberUtil.isInteger(result)) {
+            totalCount = Integer.parseInt(result);
+        }
         List<ObjectsRow> dataList = new ArrayList<>();
-        if (!queryResult.isEmpty()) {
-            for (Map<String, String> map : queryResult.getData()) {
-                ObjectsRow row = new ObjectsRow();
-                row.setType(MapUtil.getStr(map, "type"));
-                row.setName(MapUtil.getStr(map, "name"));
-                row.setRevision(MapUtil.getStr(map, "revision"));
-                row.setId(MapUtil.getStr(map, "id"));
-                String path = MapUtil.getStr(map, "paths");
-                row.setPath(CharSequenceUtil.isNotBlank(path) && !path.equalsIgnoreCase("FALSE"));
-                row.setPhysicalId(MapUtil.getStr(map, "physicalid"));
-                row.setDescription(MapUtil.getStr(map, "description"));
-                row.setOriginated(MapUtil.getStr(map, "originated"));
-                row.setModified(MapUtil.getStr(map, "modified"));
-                row.setVault(MapUtil.getStr(map, "lattice"));
-                row.setPolicy(MapUtil.getStr(map, "policy"));
-                row.setOwner(MapUtil.getStr(map, "owner"));
-                row.setState(MapUtil.getStr(map, "current"));
-                row.setOrganization(MapUtil.getStr(map, "organization"));
-                row.setCollaborativeSpace(MapUtil.getStr(map, "project"));
-                dataList.add(row);
-            }
+        var array = new String[0];
+        if (pageSize > 0) {
+            array = loadPageObject(whereExpression, condition);
+        } else {
+            array = loadAllObject(whereExpression);
+        }
+        for (String str : array) {
+            String[] arrayInfo = str.split("\001");
+            ObjectsRow row = new ObjectsRow();
+            row.setType(arrayInfo[0]);
+            row.setName(arrayInfo[1]);
+            row.setRevision(arrayInfo[2]);
+            row.setId(arrayInfo[3]);
+            String path = arrayInfo[4];
+            row.setPath(CharSequenceUtil.isNotBlank(path) && !path.equalsIgnoreCase("FALSE"));
+            row.setPhysicalId(arrayInfo[5]);
+            row.setDescription(arrayInfo[6]);
+            row.setOriginated(arrayInfo[7]);
+            row.setModified(arrayInfo[8]);
+            row.setVault(arrayInfo[9]);
+            row.setPolicy(arrayInfo[10]);
+            row.setOwner(arrayInfo[11]);
+            row.setState(arrayInfo[12]);
+            row.setOrganization(arrayInfo[13]);
+            row.setCollaborativeSpace(arrayInfo[14]);
+            dataList.add(row);
         }
         return dataList;
+    }
+
+    private String[] loadPageObject(ObjectWhereExpression whereExpression, String condition) throws MQLException {
+        var startIndex = (currentPage - 1) * pageSize;
+        var result = MQLUtil.execute(project, "temp query bus '{}' '{}' '{}' where \"{}\" limit {} select id dump \001 recordsep \002", name, whereExpression.getName(), whereExpression.getRevision(), condition, (currentPage * pageSize));
+        if (CharSequenceUtil.isNotBlank(result)) {
+            var array = result.split("\002");
+            List<String> ids = new ArrayList<>();
+            for (var i = startIndex; i < array.length; i++) {
+                ids.add(array[i].split("\001")[3]);
+            }
+            result = MQLUtil.execute(project, "temp query bus '{}' '{}' '{}' limit {} where \"id matchlist '{}' '{}'\" select id paths physicalid description originated modified lattice policy owner current organization project dump \001 recordsep \002", name, whereExpression.getName(), whereExpression.getRevision(), ids.size(), CharSequenceUtil.join(",", ids), ",");
+            array = result.split("\002");
+            return array;
+        }
+        return new String[0];
+    }
+
+    private String[] loadAllObject(ObjectWhereExpression whereExpression) throws MQLException {
+        var result = MQLUtil.execute(project, "temp query bus '{}' '{}' '{}' select id paths physicalid description originated modified lattice policy owner current organization project dump \001 recordsep \002", name, whereExpression.getName(), whereExpression.getRevision());
+        return result.split("\002");
     }
 }
