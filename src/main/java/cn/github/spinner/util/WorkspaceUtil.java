@@ -170,8 +170,17 @@ public class WorkspaceUtil {
         return connection.invokeJPOMethod("SpinnerDeployJPO", "runScript", cmdArray, String.class);
     }
 
-    public static String reCachePage(MatrixConnection connection) throws Exception {
-        return connection.invokeJPOMethod("SpinnerDeployJPO", "reCachePage", new String[]{}, String.class);
+    public static void reloadPageCache(MatrixConnection connection) throws Exception {
+        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadPageCache", new String[]{}, String.class);
+    }
+
+
+    public static void reloadSpinnerCache(MatrixConnection connection) throws Exception {
+        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadSpinnerCache", new String[]{}, String.class);
+    }
+
+    public static void reloadCache(MatrixConnection connection) throws Exception {
+        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadCache", new String[]{}, String.class);
     }
 
 }
