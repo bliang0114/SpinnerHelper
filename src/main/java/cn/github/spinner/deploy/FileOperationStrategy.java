@@ -12,7 +12,7 @@ public interface FileOperationStrategy {
 
     void processSingleFile(PsiElement file);
 
-    default void processBatchFiles(List<PsiElement> files) {
+    default void processBatchFiles(List<PsiElement> files) throws Exception {
         for (PsiElement file : files) {
             processSingleFile(file);
         }
