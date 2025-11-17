@@ -150,8 +150,8 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
     private void loadTypeInformation(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
-        int componentCount = tabbedPane.getComponentCount();
-        for (int i = 0; i < componentCount; i++) {
+        int tabCount = tabbedPane.getTabCount();
+        for (int i = 0; i < tabCount; i++) {
             Component component = tabbedPane.getComponentAt(i);
             if (component instanceof AbstractDataViewTableComponent<?> tableComponent) {
                 tableComponent.setLoaded(false);

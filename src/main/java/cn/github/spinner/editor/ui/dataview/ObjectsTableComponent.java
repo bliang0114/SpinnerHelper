@@ -7,6 +7,7 @@ import cn.github.driver.connection.MatrixQueryResult;
 import cn.github.spinner.config.ObjectWhereExpression;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.editor.ui.dataview.bean.ObjectsRow;
+import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
 import cn.github.spinner.ui.ObjectWhereExpressionBuilderDialog;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.CharSequenceUtil;
@@ -99,9 +100,8 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
                         int modelRowIndex = table.convertRowIndexToModel(rowIndex);
                         if (modelRowIndex < 0) return;
 
-                        String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 4));
-                        ObjectDetailsDialog dialog = new ObjectDetailsDialog(project, id);
-                        dialog.show();
+                        String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 1));
+                        ObjectDetailsWindow.showWindow(project, id);
                     }
                 }
             }

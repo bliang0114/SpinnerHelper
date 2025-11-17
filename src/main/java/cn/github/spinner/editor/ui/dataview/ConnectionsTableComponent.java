@@ -5,6 +5,8 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixConnectionQuery;
 import cn.github.driver.connection.MatrixQueryResult;
 import cn.github.spinner.editor.ui.dataview.bean.ConnectionsRow;
+import cn.github.spinner.editor.ui.dataview.details.ConnectionDetailsWindow;
+import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
@@ -13,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +32,41 @@ public class ConnectionsTableComponent extends AbstractDataViewTableComponent<Co
     protected void initComponents() {
         super.initComponents();
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+    }
+
+    @Override
+    protected void setupListener() {
+        super.setupListener();
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() >= 2) {
+                    int rowIndex = table.rowAtPoint(e.getPoint());
+                    if (rowIndex >= 0) {
+                        int modelRowIndex = table.convertRowIndexToModel(rowIndex);
+                        if (modelRowIndex < 0) return;
+
+                        int columnIndex = table.columnAtPoint(e.getPoint());
+                        if (columnIndex <= 4) {
+                            String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 2));
+                            ConnectionDetailsWindow.showWindow(project, id);
+                        } else if (columnIndex <= 8) {
+                            String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 8));
+                            ObjectDetailsWindow.showWindow(project, id);
+                        } else if (columnIndex <= 10) {
+                            String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 10));
+                            ConnectionDetailsWindow.showWindow(project, id);
+                        } else if (columnIndex <= 14) {
+                            String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 14));
+                            ObjectDetailsWindow.showWindow(project, id);
+                        } else if (columnIndex <= 16) {
+                            String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 16));
+                            ConnectionDetailsWindow.showWindow(project, id);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     @Override
