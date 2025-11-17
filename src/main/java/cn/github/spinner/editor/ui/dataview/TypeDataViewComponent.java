@@ -4,8 +4,8 @@ import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
-import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.config.SpinnerToken;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
@@ -109,14 +109,6 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         uiListPanel.add(toolbarPanel, BorderLayout.NORTH);
         uiListPanel.add(ScrollPaneFactory.createScrollPane(uiList), BorderLayout.CENTER);
         add(uiListPanel, BorderLayout.WEST);
-
-        tabbedPane.add("Attributes", new AttributesTableComponent(project, virtualFile));
-        tabbedPane.add("Properties", new PropertiesTableComponent(project, virtualFile));
-        tabbedPane.add("Interfaces", new InterfacesTableComponent(project, virtualFile));
-        tabbedPane.add("Relations", new RelationsTableComponent(project, virtualFile));
-        tabbedPane.add("Triggers", new TriggersTableComponent(project, virtualFile));
-        tabbedPane.add("Policy Triggers", new PolicyTriggersTableComponent(project, virtualFile));
-        tabbedPane.add("Objects", new ObjectsTableComponent(project, virtualFile));
         add(tabbedPane, BorderLayout.CENTER);
     }
 
@@ -156,14 +148,23 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private void loadTypeInformation(ListSelectionEvent event) {
         if (event.getValueIsAdjusting()) return;
 
-        int tabCount = tabbedPane.getTabCount();
-        for (int i = 0; i < tabCount; i++) {
-            Component component = tabbedPane.getComponentAt(i);
-            if (component instanceof AbstractDataViewTableComponent<?> tableComponent) {
-                tableComponent.setLoaded(false);
-            }
-        }
-        loadTabData();
+        tabbedPane.removeAll();
+        AttributesTableComponent attributesTableComponent = new AttributesTableComponent(project, virtualFile);
+        tabbedPane.add("Attributes", attributesTableComponent);
+        tabbedPane.add("Properties", new PropertiesTableComponent(project, virtualFile));
+        tabbedPane.add("Interfaces", new InterfacesTableComponent(project, virtualFile));
+        tabbedPane.add("Relations", new RelationsTableComponent(project, virtualFile));
+        tabbedPane.add("Triggers", new TriggersTableComponent(project, virtualFile));
+        tabbedPane.add("Policy Triggers", new PolicyTriggersTableComponent(project, virtualFile));
+        tabbedPane.add("Objects", new ObjectsTableComponent(project, virtualFile));
+
+        tabbedPane.setSelectedComponent(attributesTableComponent);
+        int selectedIndex = uiList.getSelectedIndex();
+        if (selectedIndex < 0) return;
+
+        String type = listModel.elementAt(selectedIndex);
+        attributesTableComponent.setName(type);
+        attributesTableComponent.reloadData();
     }
 
     private void loadTabData() {
@@ -172,6 +173,8 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
 
         String type = listModel.elementAt(selectedIndex);
         int tabIndex = tabbedPane.getSelectedIndex();
+        if (tabIndex < 0) return;
+
         Component component = tabbedPane.getComponentAt(tabIndex);
         if (component instanceof AbstractDataViewTableComponent<?> tableComponent) {
             log.info("Loading type data for {}", type);

@@ -59,7 +59,6 @@ sourceSets {
         }
         resources {
             srcDir("resources")
-            exclude("**/*.java")
         }
     }
 }

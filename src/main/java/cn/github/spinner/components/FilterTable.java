@@ -35,7 +35,8 @@ public class FilterTable extends JBTable {
         filterComponent = new FilterComponent("TABLE_FILTER_HISTORY", 10) {
             @Override
             public void filter() {
-                applyProfessionalFilter();
+                String filterText = filterComponent.getFilter();
+                cn.github.spinner.util.UIUtil.applyProfessionalFilter(sorter, filterText);
             }
         };
         filterComponent.reset();
@@ -75,54 +76,6 @@ public class FilterTable extends JBTable {
             }
         }
         return c;
-    }
-
-    private void applyProfessionalFilter() {
-        String filterText = filterComponent.getFilter();
-        if (filterText == null || filterText.isEmpty()) {
-            sorter.setRowFilter(null);
-            return;
-        }
-        try {
-            // 支持高级筛选语法
-            if (filterText.contains(":")) {
-                // 按列筛选 例如: "name:test type:file"
-                applyColumnSpecificFilter(filterText);
-            } else {
-                // 全局筛选
-                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(filterText)));
-            }
-        } catch (Exception e) {
-            // 筛选语法错误时使用全局筛选
-            try {
-                sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(filterText)));
-            } catch (PatternSyntaxException ex) {
-                sorter.setRowFilter(null);
-            }
-        }
-    }
-
-    private void applyColumnSpecificFilter(String filterText) {
-        String[] conditions = filterText.split("\\s+");
-        List<RowFilter<Object, Object>> filters = new ArrayList<>();
-        for (String condition : conditions) {
-            String[] parts = condition.split(":", 2);
-            if (parts.length == 2) {
-                String columnIndexStr = parts[0].trim();
-                String value = parts[1].trim();
-                // 查找列索引
-                int columnIndex = NumberUtil.isInteger(columnIndexStr) ? Integer.parseInt(columnIndexStr) : 1;
-                if (columnIndex >= 0 && !value.isEmpty()) {
-                    RowFilter<Object, Object> filter = RowFilter.regexFilter("(?i)" + Pattern.quote(value), columnIndex);
-                    filters.add(filter);
-                }
-            }
-        }
-        if (!filters.isEmpty()) {
-            sorter.setRowFilter(RowFilter.andFilter(filters));
-        } else {
-            sorter.setRowFilter(null);
-        }
     }
 
     private void initFont() {

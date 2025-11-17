@@ -4,6 +4,7 @@ import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.task.Connect3DETask;
 import cn.github.spinner.ui.EnvironmentToolWindow;
+import cn.github.spinner.util.DeployUtil;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -46,6 +47,7 @@ public abstract class EnvironmentTbActionAdapter extends AnAction {
         Optional<EnvironmentConfig> optional = getSettingsEnvironment(project);
         if (optional.isPresent()) {
             Connect3DETask task =  new Connect3DETask(project, optional.get());
+            task.setSuccessHandler(() -> DeployUtil.installDeployJpo(project));
             task.queue();
         }
     }

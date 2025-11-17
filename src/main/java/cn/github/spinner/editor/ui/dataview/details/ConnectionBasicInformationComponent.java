@@ -10,9 +10,9 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 
-public class ObjectBasicInformationComponent extends AbstractObjectDetailsTableComponent {
+public class ConnectionBasicInformationComponent extends AbstractObjectDetailsTableComponent {
 
-    public ObjectBasicInformationComponent(Project project, String id) {
+    public ConnectionBasicInformationComponent(Project project, String id) {
         super(project, id);
     }
 
@@ -28,7 +28,7 @@ public class ObjectBasicInformationComponent extends AbstractObjectDetailsTableC
 
     @Override
     protected String componentId() {
-        return ObjectBasicInformationComponent.class.getSimpleName();
+        return ConnectionBasicInformationComponent.class.getSimpleName();
     }
 
     @Override
@@ -64,19 +64,10 @@ public class ObjectBasicInformationComponent extends AbstractObjectDetailsTableC
     private String formatAttributeName(String attributeName) {
         attributeName = attributeName.replaceAll(" {4}", "");
         attributeName = attributeName.replaceAll("^type$", "Type");
-        attributeName = attributeName.replaceAll("^name$", "Name");
-        attributeName = attributeName.replaceAll("^revision$", "Revision");
         attributeName = attributeName.replaceAll("^id$", "ID");
         attributeName = attributeName.replaceAll("^physicalid$", "PhysicalID");
-        attributeName = attributeName.replaceAll("^description", "Description");
         attributeName = attributeName.replaceAll("^originated$", "Originated");
         attributeName = attributeName.replaceAll("^modified", "Modified");
-        attributeName = attributeName.replaceAll("^lattice$", "Vault (lattice)");
-        attributeName = attributeName.replaceAll("^policy$", "Policy");
-        attributeName = attributeName.replaceAll("^current$", "State (current)");
-        attributeName = attributeName.replaceAll("^owner$", "Owner");
-        attributeName = attributeName.replaceAll("^organization$", "Organization");
-        attributeName = attributeName.replaceAll("^project$", "Collaborative Space (project)");
         attributeName = attributeName.replaceAll("attribute\\[", "");
         attributeName = attributeName.replaceAll("].value", "");
         return attributeName;
@@ -86,7 +77,7 @@ public class ObjectBasicInformationComponent extends AbstractObjectDetailsTableC
     protected void loadData() {
         tableModel.setRowCount(0);
         try {
-            String result = MQLUtil.execute(project, "print bus {} select type name revision id physicalid description originated modified lattice policy current owner organization project attribute.value", id);
+            String result = MQLUtil.execute(project, "print connection {} select type id physicalid originated modified attribute.value", id);
             String[] array = result.split("\n");
             for (int i = 1; i < array.length; i++) {
                 String item = array[i];

@@ -15,14 +15,10 @@ public class ConnectionsRow implements TableRowBean {
     private String fromName;
     private String fromRevision;
     private String fromId;
-    private String fromRelType;
-    private String fromRelId;
     private String toType;
     private String toName;
     private String toRevision;
     private String toId;
-    private String toRelType;
-    private String toRelId;
 
     @Override
     public boolean equals(Object o) {
@@ -39,21 +35,21 @@ public class ConnectionsRow implements TableRowBean {
 
     @Override
     public String[] headers() {
-        return new String[]{"Type", "ID", "Path", "PhysicalID", "From Type", "From Name", "From Revision", "From Id", "From Rel Type", "From Rel Id", "To Type", "To Name", "To Revision", "To Id", "To Rel Type", "To Rel Id"};
+        return new String[]{"Type", "ID", "Path", "PhysicalID", "From Type", "From Name", "From Revision", "From Id", "To Type", "To Name", "To Revision", "To Id"};
     }
 
     @Override
     public int[] widths() {
-        return new int[]{200, 200, 100, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200, 200};
+        return new int[]{200, 200, 100, 200, 200, 200, 200, 200, 200, 200, 200, 200};
     }
 
     @Override
     public Object[] rowValues() {
-        return new Object[]{type, id, path, physicalId, fromType, fromName, fromRevision, fromId, fromRelType, fromRelId, toType, toName, toRevision, toId, toRelType, toRelId};
+        return new Object[]{type, id, path, physicalId, fromType, fromName, fromRevision, fromId, toType, toName, toRevision, toId};
     }
 
     @Override
     public Class<?>[] columnTypes() {
-        return new Class[]{String.class, String.class, Boolean.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class};
+        return new Class[]{String.class, String.class, Boolean.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class};
     }
 }
