@@ -18,15 +18,9 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
-import com.intellij.ui.JBColor;
-import com.intellij.util.ui.StartupUiUtil;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
-import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import java.awt.*;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
@@ -119,6 +113,7 @@ public class SpinnerDeployAction extends AnAction {
                         String res = WorkspaceUtil.runPageImport(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(), file.getName());
                         if (res == null || res.isEmpty()) {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
+                            WorkspaceUtil.reCachePage(connection);
                         }
                         UIUtil.showNotification(project, "Deploy Result",res);
                     } catch (Exception e) {
