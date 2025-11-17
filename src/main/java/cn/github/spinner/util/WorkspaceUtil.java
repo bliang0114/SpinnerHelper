@@ -2,6 +2,7 @@ package cn.github.spinner.util;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.FileConstant;
+import cn.github.spinner.constant.TitleConstant;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -32,7 +33,7 @@ public class WorkspaceUtil {
             WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
             //上传文件
             WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, spinnerFile.getName(), content);
-            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
+            ProgressManager.getInstance().run(new Task.Backgroundable(project, TitleConstant.SPINNER_DEPLOY) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
                     indicator.setIndeterminate(false);

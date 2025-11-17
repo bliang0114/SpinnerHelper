@@ -34,30 +34,24 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
     }
 
     @Override
-    public void processBatchFiles(List<PsiElement> files) {
+    public void processBatchFiles(List<PsiElement> files) throws Exception {
         MatrixConnection connection = context.getMatrixConnection();
-        try {
-            // 1. 获取基础路径信息
-            String firstFilePath = getFirstFilePath(files);
-            String spinnerSubPath = buildSpinnerSubPath(firstFilePath);
-            String remoteTmpDir = WorkspaceUtil.getTmpDir(connection);
-            String remoteSpinnerDir = "spinner-" + UUID.randomUUID();
-            String remoteRelativePath = buildRemoteRelativePath(remoteSpinnerDir, spinnerSubPath);
-            log.info("spinnerSubPath==>{}, remoteBaseDir==>{}, remoteSpinnerDir==>{}, remoteRelativePath==>{}", spinnerSubPath, remoteTmpDir, remoteSpinnerDir, remoteRelativePath);
+        // 1. 获取基础路径信息
+        String firstFilePath = getFirstFilePath(files);
+        String spinnerSubPath = buildSpinnerSubPath(firstFilePath);
+        String remoteTmpDir = WorkspaceUtil.getTmpDir(connection);
+        String remoteSpinnerDir = "spinner-" + UUID.randomUUID();
+        String remoteRelativePath = buildRemoteRelativePath(remoteSpinnerDir, spinnerSubPath);
+        log.info("spinnerSubPath==>{}, remoteBaseDir==>{}, remoteSpinnerDir==>{}, remoteRelativePath==>{}", spinnerSubPath, remoteTmpDir, remoteSpinnerDir, remoteRelativePath);
 
-            // 2. 创建远程临时目录
-            WorkspaceUtil.createRemoteTempDir(connection, remoteTmpDir, remoteRelativePath);
+        // 2. 创建远程临时目录
+        WorkspaceUtil.createRemoteTempDir(connection, remoteTmpDir, remoteRelativePath);
 
-            // 3. 上传文件并收集文件名
-            List<String> fileNames = uploadFiles(remoteTmpDir, remoteRelativePath, files);
+        // 3. 上传文件并收集文件名
+        List<String> fileNames = uploadFiles(remoteTmpDir, remoteRelativePath, files);
 
-            // 4. 执行部署任务
-            executeDeployTask(remoteTmpDir, remoteSpinnerDir, remoteRelativePath, fileNames);
-
-        } catch (Exception e) {
-            handleException(e);
-        }
-
+        // 4. 执行部署任务
+        executeDeployTask(remoteTmpDir, remoteSpinnerDir, remoteRelativePath, fileNames);
     }
 
     /**
@@ -103,34 +97,20 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
     /**
      * 执行部署任务
      */
-    protected void executeDeployTask(String remoteBaseDir, String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) {
-        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), "Spinner Deploy") {
-            @Override
-            public void run(@NotNull ProgressIndicator indicator) {
-                indicator.setIndeterminate(false);
-                indicator.setText("Starting deployment...");
-                try {
-                    String fullRemoteSpinnerDir = remoteBaseDir + "/" + remoteSpinnerDir;
-                    String fullRemoteRelativePath = remoteBaseDir + "/" + remoteRelativePath;
+    protected void executeDeployTask(String remoteBaseDir, String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
+        String fullRemoteSpinnerDir = remoteBaseDir + "/" + remoteSpinnerDir;
+        String fullRemoteRelativePath = remoteBaseDir + "/" + remoteRelativePath;
+        String res = executeDeployCommand(fullRemoteSpinnerDir, fullRemoteRelativePath, fileNames);
+        log.info("deploy.result==>{}", res);
 
-                    // 调用子类实现的部署命令
-                    String res = executeDeployCommand( fullRemoteSpinnerDir, fullRemoteRelativePath, fileNames);
-                    log.info("deploy.result==>{}", res);
-
-                    String title = "Deploy success";
-                    // 处理部署结果
-                    if (CharSequenceUtil.isEmpty(res) || (!res.contains("Error") && !res.contains("failed"))) {
-                        afterDeploySuccess(fullRemoteSpinnerDir, remoteBaseDir);
-                    } else {
-                        title = "Deploy failed";
-                    }
-                    UIUtil.showNotification(context.getProject(), title, res == null ? "success" : res);
-
-                } catch (Exception e) {
-                    UIUtil.showErrorNotification(context.getProject(), "Error", e.getLocalizedMessage());
-                }
-            }
-        });
+        String title = "Deploy success";
+        // 处理部署结果
+        if (CharSequenceUtil.isEmpty(res) || (!res.contains("Error") && !res.contains("failed"))) {
+            afterDeploySuccess(fullRemoteSpinnerDir, remoteBaseDir);
+        } else {
+            title = "Deploy failed";
+        }
+        UIUtil.showNotification(context.getProject(), title, res == null ? "success" : res);
     }
 
     protected  void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
