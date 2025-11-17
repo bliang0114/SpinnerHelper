@@ -100,7 +100,7 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
                         int modelRowIndex = table.convertRowIndexToModel(rowIndex);
                         if (modelRowIndex < 0) return;
 
-                        String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 1));
+                        String id = String.valueOf(tableModel.getValueAt(modelRowIndex, 4));
                         ObjectDetailsWindow.showWindow(project, id);
                     }
                 }
