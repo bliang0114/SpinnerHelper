@@ -1,6 +1,7 @@
 package cn.github.spinner.deploy;
 
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.spinner.constant.TitleConstant;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
 import cn.hutool.core.lang.UUID;
@@ -115,7 +116,7 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
 
     protected  void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
         log.info("afterDeploySuccess, fullRemoteSpinnerDir==>{}, remoteBaseDir==>{}", fullRemoteSpinnerDir, remoteBaseDir);
-        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), "Spinner Deploy") {
+        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), TitleConstant.SPINNER_DEPLOY) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);

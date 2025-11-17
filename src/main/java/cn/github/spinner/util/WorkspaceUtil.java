@@ -44,6 +44,7 @@ public class WorkspaceUtil {
                         if (res == null || res.isEmpty()) {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
                         }
+                        WorkspaceUtil.reloadSpinnerCache(connection);
                         UIUtil.showNotification(project, "Deploy Result",res);
                     } catch (Exception e) {
                         UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
