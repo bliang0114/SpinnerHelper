@@ -113,7 +113,7 @@ public class SpinnerDeployAction extends AnAction {
                         String res = WorkspaceUtil.runPageImport(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(), file.getName());
                         if (res == null || res.isEmpty()) {
                             res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
-                            WorkspaceUtil.reloadPageCache(connection);
+//                            WorkspaceUtil.reloadPageCache(connection);
                         }
                         UIUtil.showNotification(project, "Deploy Result",res);
                     } catch (Exception e) {
