@@ -1,9 +1,14 @@
 package cn.github.spinner.deploy;
 
 import cn.github.spinner.constant.FileConstant;
+import cn.github.spinner.constant.TitleConstant;
 import cn.github.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -37,8 +42,23 @@ public class XlsFileStrategy extends AbstractFileStrategy {
 
     @Override
     protected String executeDeployCommand(String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
-         // todo-fzhang 使用阳光部署方式
         return WorkspaceUtil.runSpinnerImport(context.getMatrixConnection(), remoteSpinnerDir);
     }
 
+    @Override
+    protected void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
+        super.afterDeploySuccess(fullRemoteSpinnerDir, remoteBaseDir);
+        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), TitleConstant.SPINNER_DEPLOY) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(false);
+                indicator.setText("Starting delete deploy temp dir...");
+                try {
+                    WorkspaceUtil.reloadSpinnerCache(context.getMatrixConnection());
+                } catch (Exception e) {
+                    handleException(e);
+                }
+            }
+        });
+    }
 }

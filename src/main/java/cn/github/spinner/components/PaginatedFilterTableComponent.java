@@ -21,19 +21,20 @@ import java.util.List;
 @Slf4j
 public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPanel {
     private final String componentId;
-    private final String PLACE_PAGINATION = "pagination";
     @Getter
     protected FilterTable table;
     protected DefaultTableModel tableModel;
     protected Object[] columns;
     protected int[] columnWidths;
     protected Class<?>[] columnTypes;
+    // 假分页时，存储全量表格数据
     protected List<T> tableData = new ArrayList<>();
     // 分页配置
     protected int currentPage = 1;
     protected int pageSize = 100;
-    private PageSizeActionGroup pageSizeActionGroup;
-    private TotalSizeAction totalSizeAction;
+    protected int totalCount = 0;
+    protected PageSizeActionGroup pageSizeActionGroup;
+    protected TotalSizeAction totalSizeAction;
 
     public PaginatedFilterTableComponent(@NotNull T entity, String componentId) {
         this.columns = entity.headers();
@@ -68,7 +69,7 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
         actionGroup.add(totalSizeAction);
         actionGroup.add(new NextPageAction());
         actionGroup.add(new LastPageAction());
-        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(PLACE_PAGINATION, actionGroup, true);
+        ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar("pagination", actionGroup, true);
         panel.setBackground(JBColor.WHITE);
         toolbar.setTargetComponent(this);
         panel.add(toolbar.getComponent());
@@ -131,37 +132,42 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
         add(paginationPanel, BorderLayout.SOUTH);
     }
 
-    /**
-     * 刷新表格数据（显示当前页内容）
-     */
-    private void refreshTableData() {
-//        pageSizeActionGroup.setText(pageDataTitle());
+    protected void updatePaginationStatus() {
         pageSizeActionGroup.updateText();
-        totalSizeAction.setText(" of " + tableData.size());
-        tableModel.setRowCount(0); // 清空表格
-        int total = tableData.size();
+        totalSizeAction.updateDisplay();
+    }
+
+    protected void clearPaginationStatus() {
+        pageSizeActionGroup.clearText();
+        totalSizeAction.clearDisplay();
+    }
+
+    public void setTableData(List<T> tableData) {
+        this.tableData = new ArrayList<>(tableData);
+        this.currentPage = 1;
+        this.totalCount = tableData.size();
+        setPageData();
+    }
+
+    protected void setPageData() {
+//        clearPaginationStatus();
+        updatePaginationStatus();
+        tableModel.setRowCount(0);
         int start = pageSize == 0 ? 0 : (currentPage - 1) * pageSize;
-        int end = pageSize == 0 ? total : Math.min(start + pageSize, total);
-        // 反射获取实体字段值，添加到表格
+        int end = pageSize == 0 ? totalCount : Math.min(start + pageSize, totalCount);
         for (int i = start; i < end; i++) {
             T entity = tableData.get(i);
             tableModel.addRow(entity.rowValues());
         }
     }
 
-    public void setTableData(List<T> entities) {
-        this.tableData = new ArrayList<>(entities);
-        this.currentPage = 1;
-        refreshTableData();
-    }
-
     private String pageDataTitle() {
         if (this.pageSize == 0) {
-            return "1 - " + this.tableData.size();
+            return "1 - " + totalCount;
         }
         int startRowIndex = 1 + (this.currentPage - 1) * this.pageSize;
         int endRowIndex = this.currentPage * this.pageSize;
-        endRowIndex = Math.min(endRowIndex, this.tableData.size());
+        endRowIndex = Math.min(endRowIndex, totalCount);
         return startRowIndex + " - " + endRowIndex;
     }
 
@@ -173,7 +179,7 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
             currentPage = 1;
-            refreshTableData();
+            setPageData();
         }
 
         @Override
@@ -196,7 +202,7 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
             currentPage = currentPage - 1;
-            refreshTableData();
+            setPageData();
         }
 
         @Override
@@ -219,12 +225,12 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
             currentPage = currentPage + 1;
-            refreshTableData();
+            setPageData();
         }
 
         @Override
         public void update(@NotNull AnActionEvent e) {
-            boolean enabled = currentPage * pageSize < tableData.size() && !tableData.isEmpty() && pageSize != 0;
+            boolean enabled = currentPage * pageSize < totalCount && !tableData.isEmpty() && pageSize != 0;
             e.getPresentation().setEnabled(enabled);
         }
 
@@ -241,15 +247,15 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
-            int endPage = tableData.size() / pageSize;
-            endPage = tableData.size() % pageSize == 0 ? endPage : endPage + 1;
+            int endPage = totalCount / pageSize;
+            endPage = totalCount % pageSize == 0 ? endPage : endPage + 1;
             currentPage = endPage;
-            refreshTableData();
+            setPageData();
         }
 
         @Override
         public void update(@NotNull AnActionEvent e) {
-            boolean enabled = currentPage * pageSize < tableData.size() && !tableData.isEmpty() && pageSize != 0;
+            boolean enabled = currentPage * pageSize < totalCount && !tableData.isEmpty() && pageSize != 0;
             e.getPresentation().setEnabled(enabled);
         }
 
@@ -271,7 +277,7 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
         public void actionPerformed(@NotNull AnActionEvent e) {
             PaginatedFilterTableComponent.this.currentPage = 1;
             PaginatedFilterTableComponent.this.pageSize = pageSize;
-            refreshTableData();
+            setPageData();
         }
     }
 
@@ -304,14 +310,20 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
                 comboBoxButton.repaint();
             });
         }
+
+        public void clearText() {
+            comboBoxButton.getPresentation().setText("");
+            SwingUtilities.invokeLater(() -> {
+                comboBoxButton.updateUI();
+                comboBoxButton.repaint();
+            });
+        }
     }
 
     public class TotalSizeAction extends AnAction implements CustomComponentAction {
-        private String text;
         private JBLabel label;
 
         public TotalSizeAction() {
-            this.text = "";
         }
 
         @Override
@@ -320,18 +332,25 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
 
         @Override
         public @NotNull JComponent createCustomComponent(@NotNull Presentation presentation, @NotNull String place) {
-            label = new JBLabel(text);
+            label = new JBLabel("");
             return label;
         }
 
-        public void setText(String newText) {
-            if (newText.equals(text)) return; // 文本未变化则不更新
-            text = newText;
-
+        public void updateDisplay() {
             // 确保在 UI 线程中更新组件（IDEA 要求所有 UI 操作必须在 EDT 线程执行）
             SwingUtilities.invokeLater(() -> {
                 if (label != null) {
-                    label.setText(text);
+                    label.setText(" of " + totalCount);
+                    label.repaint(); // 强制重绘，避免文本未刷新
+                }
+            });
+        }
+
+        public void clearDisplay() {
+            // 确保在 UI 线程中更新组件（IDEA 要求所有 UI 操作必须在 EDT 线程执行）
+            SwingUtilities.invokeLater(() -> {
+                if (label != null) {
+                    label.setText("");
                     label.repaint(); // 强制重绘，避免文本未刷新
                 }
             });
