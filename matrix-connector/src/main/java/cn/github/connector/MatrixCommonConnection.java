@@ -8,6 +8,7 @@ import matrix.db.*;
 import matrix.util.MatrixException;
 import matrix.util.StringList;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -21,7 +22,7 @@ public class MatrixCommonConnection implements MatrixConnection {
     }
 
     @Override
-    public MatrixStatement executeStatement(String mql) throws MQLException {
+    public MatrixStatement executeStatement(String mql) {
         return new MatrixCommonStatement(context, mql);
     }
 
@@ -102,7 +103,7 @@ public class MatrixCommonConnection implements MatrixConnection {
                 return Environment.getValue(context, var);
             } else {
                 if (systemprops == null) {
-                    Properties props = JPO.invoke(context, "EnoBrowserJPO", (String[])null, "getProperties", (String[])null, Properties.class);
+                    Properties props = JPO.invoke(context, "EnoBrowserJPO", null, "getProperties", null, Properties.class);
                     systemprops = props.toString().replace(", ", "\n").replace("{", "").replace("}", "");
                 }
                 int a = systemprops.indexOf(var + "=");
@@ -133,6 +134,21 @@ public class MatrixCommonConnection implements MatrixConnection {
     }
 
     @Override
+    public File downloadBusinessAttachment(String objectId, String fileName, String format) throws MQLException {
+        String tempDir = System.getenv("TEMP").replace("\\", "/");
+        if (tempDir.isEmpty()) {
+            tempDir = System.getenv("TMP").replace("\\", "/");
+        }
+        tempDir += "/";
+        try {
+            FcsSupport.fcsCheckout(objectId, context, false, format, fileName, tempDir);
+            return new File(tempDir + fileName);
+        } catch (MatrixException e) {
+            throw new MQLException(e);
+        }
+    }
+
+    @Override
     public void close() throws IOException {
         try {
             if(this.context != null){
@@ -143,4 +159,5 @@ public class MatrixCommonConnection implements MatrixConnection {
         }
         this.context = null;
     }
+
 }

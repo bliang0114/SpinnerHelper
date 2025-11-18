@@ -62,6 +62,7 @@ public class ObjectDetailsWindow extends JFrame {
         tabbedPane.add("Connections (bus)", new ObjectBusConnectionsComponent(project, id));
         tabbedPane.add("Connections (rel)", new ObjectRelConnectionsComponent(project, id));
         tabbedPane.add("Paths", new ObjectPathsComponent(project, id));
+        tabbedPane.add("Files", new ObjectFilesComponent(project, id));
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         panel.add(tabbedPane, BorderLayout.CENTER);

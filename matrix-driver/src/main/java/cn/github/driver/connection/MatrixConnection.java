@@ -3,7 +3,7 @@ package cn.github.driver.connection;
 import cn.github.driver.MQLException;
 
 import java.io.Closeable;
-import java.util.Collections;
+import java.io.File;
 import java.util.List;
 
 /**
@@ -91,4 +91,16 @@ public interface MatrixConnection extends Closeable {
      * @author zaydenwang
      */
     <T> T invokeJPOMethod(String jpoName, String methodName, String[] params, Class<T> clazz) throws MQLException;
+
+
+    /**
+     * 下载对象附件
+     *
+     * @param objectId    对象id
+     * @param fileName 附件名称
+     * @param format     附近格式
+     * @return {@link File}
+     * @author zaydenwang
+     */
+    File downloadBusinessAttachment(String objectId, String fileName, String format) throws MQLException;
 }
