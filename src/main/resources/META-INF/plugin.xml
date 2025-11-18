@@ -55,7 +55,7 @@
         </code></pre>
         <h3>📋 配置要求</h3>
         <ul>
-          <li><strong>IDEA 版本</strong>：仅支持 IntelliJ IDEA 2024.2 及以上版本</li>
+          <li><strong>IDEA 版本</strong>：仅支持 IntelliJ IDEA 2025.1 及以上版本</li>
           <li><strong>依赖准备</strong>：需自行准备对应 3DE 版本的依赖包</li>
         </ul>
     ]]>

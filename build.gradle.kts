@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "2.0.7"
+version = "2.0.8"
 
 repositories {
 //    mavenCentral()
@@ -48,7 +48,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "2.0.7"
+        version = "2.0.8"
     }
 }
 
@@ -79,6 +79,6 @@ tasks {
     }
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "2.0.7"
+        version = "2.0.8"
     }
 }
