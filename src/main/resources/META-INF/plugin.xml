@@ -18,7 +18,8 @@
         <![CDATA[
         <h2>SpinnerHelper - 3DE开发效率提升插件</h2>
         <p><code>SpinnerHelper</code> 是一款专为 IntelliJ IDEA 设计的专业级插件，致力于优化 3DE 开发体验。通过智能化的部署流程和丰富的辅助工具集，显著提升开发效率与便捷性。</p>
-        <p><strong>驱动下载地址:</strong><a href="https://gitee.com/bliang0114/SpinnerHelper/releases/download/2.06/matrix-connector-1.1.0.jar">matrix-connector-1.1.0.jar</a></p>
+        <p><strong>驱动下载地址:</strong><a href="https://gitee.com/bliang0114/SpinnerHelper/releases/download/2.0.8/matrix-connector-1.1.0.jar">matrix-connector-1.1.0.jar</a></p>
+        <p><strong>驱动下载地址:</strong><a href="https://gitee.com/bliang0114/SpinnerHelper/releases/download/2.0.9/matrix-connector-1.2.0.jar">(latest) matrix-connector-1.2.0.jar</a></p>
         <h3>🚀 核心功能</h3>
         <h4>多环境管理</h4>
         <ul>
