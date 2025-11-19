@@ -16,6 +16,7 @@ public class MatrixDataViewFileType implements FileType {
     public static final MatrixDataViewFileType PROGRAM = new MatrixDataViewFileType(ViewType.PROGRAM);
     public static final MatrixDataViewFileType FORM_TABLE = new MatrixDataViewFileType(ViewType.FORM_TABLE);
     public static final MatrixDataViewFileType MENU_COMMAND = new MatrixDataViewFileType(ViewType.MENU_COMMAND);
+    public static final MatrixDataViewFileType OBJECT_BROWSER = new MatrixDataViewFileType(ViewType.OBJECT_BROWSER);
 
     @Getter
     private final ViewType viewType;
@@ -50,6 +51,6 @@ public class MatrixDataViewFileType implements FileType {
     }
 
     public enum ViewType {
-        TYPE, RELATIONSHIP, PROGRAM,FORM_TABLE,MENU_COMMAND
+        TYPE, RELATIONSHIP, PROGRAM,FORM_TABLE,MENU_COMMAND, OBJECT_BROWSER
     }
 }

@@ -140,8 +140,8 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
             row.setPolicy(arrayInfo[10]);
             row.setOwner(arrayInfo[11]);
             row.setState(arrayInfo[12]);
-            row.setOrganization(arrayInfo[13]);
-            row.setCollaborativeSpace(arrayInfo[14]);
+            row.setOrganization(arrayInfo.length > 13 ? arrayInfo[13] : "");
+            row.setCollaborativeSpace(arrayInfo.length > 14 ? arrayInfo[14] : "");
             dataList.add(row);
         }
         return dataList;

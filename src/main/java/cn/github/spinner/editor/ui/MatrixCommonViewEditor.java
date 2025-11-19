@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.ui;
 
 import cn.github.spinner.editor.MatrixDataViewFileType;
+import cn.github.spinner.editor.ui.dataview.ObjectBrowserComponent;
 import cn.github.spinner.editor.ui.dataview.RelationshipDataViewComponent;
 import cn.github.spinner.editor.ui.dataview.TypeDataViewComponent;
 import cn.github.spinner.editor.ui.dataview.ProgramTableComponent;
@@ -46,6 +47,9 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
                 break;
             case MENU_COMMAND:
                 this.editorComponent = new MenuAndCommandView(project);
+                break;
+            case OBJECT_BROWSER:
+                this.editorComponent = new ObjectBrowserComponent(project, virtualFile);
                 break;
             default:
                 this.editorComponent = new JPanel();

@@ -1,11 +1,9 @@
 package cn.github.spinner.components;
 
 import cn.github.spinner.customize.CellCopyTransferHandler;
-import cn.hutool.core.util.NumberUtil;
 import com.intellij.ui.FilterComponent;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.table.JBTable;
-import com.intellij.util.ui.JBFont;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 import lombok.Getter;
@@ -14,10 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 
 public class FilterTable extends JBTable {
     private final TableRowSorter<TableModel> sorter;

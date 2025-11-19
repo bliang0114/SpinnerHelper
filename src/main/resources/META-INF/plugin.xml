@@ -147,6 +147,9 @@
             <action id="Spinner Config.MQLConsole"
                     class="cn.github.spinner.action.basic.MQLConsoleAction"
                     icon="AllIcons.Nodes.Console"/>
+            <action id="Spinner Config.ObjectBrowser"
+                    class="cn.github.spinner.action.basic.ObjectBrowserAction"
+                    icon="AllIcons.Actions.Search"/>
         </group>
         <group id="Spinner Config.RightToolbar">
             <action id="Spinner Config.Dependencies"
@@ -155,7 +158,7 @@
         </group>
         <group id="Spinner Config.More" icon="AllIcons.Actions.MoreHorizontal" popup="true">
             <add-to-group group-id="Spinner Config.Toolbar" anchor="after"
-                          relative-to-action="Spinner Config.MQLConsole"/>
+                          relative-to-action="Spinner Config.ObjectBrowser"/>
             <action id="Spinner Config.Program"
                     class="cn.github.spinner.action.editor.ProgramAction"
                     icon="AllIcons.General.ProjectStructure"/>
