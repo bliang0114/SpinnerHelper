@@ -69,7 +69,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                 return ecbEditor;
             }
         });
-        driverComboBox = new  ComboBox<>();
+        driverComboBox = new ComboBox<>();
         driverComboBox.setEditable(false);
         Map<String, MatrixDriversConfig.DriverInfo> driversMap = MatrixDriversConfig.getInstance().getDriversMap();
         driversMap.keySet().forEach(driverComboBox::addItem);

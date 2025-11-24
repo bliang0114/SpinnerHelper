@@ -3,7 +3,7 @@ package cn.github.spinner.editor.spinner;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.ui.components.JBTextField;
+import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,7 +17,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
     private final String value;
     private final String separator;
     private DefaultActionGroup actionGroup;
-    private List<JBTextField> components;
+    private List<ExpandableTextField> components;
 
     public SpinnerMultiTextFieldComponent(String header, String value) {
         this(header, value, "|");
@@ -35,7 +35,9 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
         String[] values = this.value.split("[" + separator + "]");
         components =  new ArrayList<>(values.length);
         for (String s : values) {
-            components.add(new JBTextField(s));
+            ExpandableTextField textField = new ExpandableTextField();
+            textField.setText(s);
+            components.add(textField);
         }
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new AddValueAction());
@@ -74,8 +76,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
 
     public String getValue() {
         StringBuilder value = new StringBuilder();
-        for (JComponent component : components) {
-            JBTextField textField = (JBTextField) component;
+        for (ExpandableTextField textField : components) {
             String text = textField.getText();
             if (!text.isEmpty()) {
                 value.append(textField.getText()).append(separator);
@@ -97,7 +98,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
             String place = e.getPlace();
             place = place.replace("Spinner " + header + ".ActionGroup", "");
             int index = Integer.parseInt(place);
-            components.add(index + 1, new JBTextField());
+            components.add(index + 1, new ExpandableTextField());
 
             removeAll();
             setupLayout();
@@ -153,7 +154,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
             String place = e.getPlace();
             place = place.replace("Spinner " + header + ".ActionGroup", "");
             int index = Integer.parseInt(place);
-            JBTextField component = components.get(index);
+            ExpandableTextField component = components.get(index);
             String text = component.getText();
             if (text == null || text.isEmpty()) return;
 

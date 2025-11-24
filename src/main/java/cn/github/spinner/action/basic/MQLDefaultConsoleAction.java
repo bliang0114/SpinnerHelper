@@ -1,6 +1,8 @@
 package cn.github.spinner.action.basic;
 
+import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.editor.MQLLanguage;
+import cn.github.spinner.execution.MQLExecutorToolWindow;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -13,22 +15,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 @Slf4j
-public class MQLConsoleAction extends AnAction {
+public class MQLDefaultConsoleAction extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getData(PlatformDataKeys.PROJECT);
         if (project == null) return;
 
-        // 初始化MQL执行器窗口
-        UIUtil.getMQLExecutorToolWindow(project);
-        // 创建一个虚拟文件用于标识编辑器
-        LightVirtualFile file = new LightVirtualFile("MQL Console");
-        file.setLanguage(MQLLanguage.INSTANCE);
-        file.setWritable(true);
-        file.setCharset(null);
+        LightVirtualFile consoleFile = SpinnerToken.getMQLConsoleFile(project, SpinnerToken.DEFAULT_MQL_CONSOLE);
+        if (consoleFile == null) {
+            consoleFile = new LightVirtualFile(SpinnerToken.DEFAULT_MQL_CONSOLE);
+            consoleFile.setLanguage(MQLLanguage.INSTANCE);
+            consoleFile.setWritable(true);
+            consoleFile.setCharset(null);
+            SpinnerToken.putMQLConsoleFile(project, consoleFile);
+        }
+        MQLExecutorToolWindow toolWindow = UIUtil.getMQLExecutorToolWindow(project);
+        if (toolWindow != null) {
+            toolWindow.addNodeToTree(SpinnerToken.DEFAULT_MQL_CONSOLE);
+        }
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-        fileEditorManager.openFile(file, true);
+        fileEditorManager.openFile(consoleFile, true);
     }
 
     @Override

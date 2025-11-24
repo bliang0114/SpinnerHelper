@@ -3,7 +3,7 @@ package cn.github.spinner.editor.spinner;
 import cn.github.spinner.components.ComboBoxWithFilter;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.ui.components.JBTextField;
+import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,7 +18,7 @@ public class SpinnerSettingsComponent extends JPanel {
     private final String settingValue;
     private DefaultActionGroup actionGroup;
     private List<ComboBoxWithFilter<String>> settingNameComponents;
-    private List<JBTextField> settingValueComponents;
+    private List<ExpandableTextField> settingValueComponents;
 
     public SpinnerSettingsComponent(SpinnerType spinnerType, String settingName, String settingValue) {
         this.spinnerType = spinnerType;
@@ -38,7 +38,9 @@ public class SpinnerSettingsComponent extends JPanel {
             ComboBoxWithFilter<String> comboBox = new ComboBoxWithFilter<>(settingNameItems, settingNames[i]);
             settingNameComponents.add(comboBox);
             String value = i >= settingValues.length ? "" : settingValues[i];
-            settingValueComponents.add(new JBTextField(value));
+            ExpandableTextField textField = new ExpandableTextField();
+            textField.setText(value);
+            settingValueComponents.add(textField);
         }
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new AddSettingAction());
@@ -86,10 +88,10 @@ public class SpinnerSettingsComponent extends JPanel {
         return value.toString();
     }
 
-    private void getComponentValue(StringBuilder value, List<?> settingValueComponents) {
-        for (Object component : settingValueComponents) {
+    private void getComponentValue(StringBuilder value, List<?> settingComponents) {
+        for (Object component : settingComponents) {
             String text = "";
-            if (component instanceof JBTextField textField) {
+            if (component instanceof ExpandableTextField textField) {
                 text = textField.getText();
             } else if (component instanceof ComboBoxWithFilter<?> comboBox) {
                 text = String.valueOf(comboBox.getItem());
@@ -115,7 +117,7 @@ public class SpinnerSettingsComponent extends JPanel {
             int index = Integer.parseInt(place);
             List<String> settingNameItems = SpinnerSettingNameConfig.getSettingNames(spinnerType);
             settingNameComponents.add(index + 1, new ComboBoxWithFilter<>(settingNameItems, ""));
-            settingValueComponents.add(index + 1, new JBTextField());
+            settingValueComponents.add(index + 1, new ExpandableTextField());
 
             removeAll();
             setupLayout();

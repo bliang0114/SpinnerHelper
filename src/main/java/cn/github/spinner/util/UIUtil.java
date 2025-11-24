@@ -2,7 +2,6 @@ package cn.github.spinner.util;
 
 import cn.github.spinner.execution.MQLExecutorToolWindow;
 import cn.github.spinner.ui.EnvironmentToolWindow;
-import cn.github.spinner.ui.SpinnerDataView;
 import cn.hutool.core.util.NumberUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
@@ -32,18 +31,6 @@ public class UIUtil {
         if (content == null) return null;
 
         return (EnvironmentToolWindow) content.getComponent();
-    }
-
-    public static SpinnerDataView getSpinnerDataViewWindow(Project project) {
-        if (project == null) return null;
-
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("SpinnerDataView");
-        if (toolWindow == null) return null;
-
-        Content content = toolWindow.getContentManager().getContent(0);
-        if (content == null) return null;
-
-        return (SpinnerDataView) content.getComponent();
     }
 
     public static ToolWindow getToolWindow(Project project, String id) {

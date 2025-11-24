@@ -73,10 +73,8 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="SpinnerConfig" factoryClass="cn.github.spinner.ui.SpinnerUIFactory" anchor="right"
                     icon="AllIcons.RunConfigurations.Remote"/>
-        <!--        <toolWindow id="SpinnerDataView" factoryClass="ui.cn.gitee.spinner.SpinnerSettingFactory" anchor="right" icon="AllIcons.RunConfigurations.Remote"/>-->
         <toolWindow id="MQLExecutor" factoryClass="cn.github.spinner.execution.MQLExecutorToolWindowFactory"
-                    icon="AllIcons.General.LayoutEditorPreview"
-                    canCloseContents="true" anchor="bottom" doNotActivateOnStart="true"/>
+                    icon="AllIcons.General.LayoutEditorPreview" anchor="bottom"/>
         <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
         <applicationService serviceImplementation="cn.github.spinner.config.SpinnerSettings"/>
@@ -145,9 +143,9 @@
             <action id="Spinner Config.URLParser"
                     class="cn.github.spinner.action.basic.URLParserAction"
                     icon="AllIcons.General.Web"/>
-            <action id="Spinner Config.MQLConsole"
-                    class="cn.github.spinner.action.basic.MQLConsoleAction"
-                    icon="AllIcons.Nodes.Console"/>
+<!--            <action id="Spinner Config.MQLConsole"-->
+<!--                    class="cn.github.spinner.action.basic.MQLNewConsoleAction"-->
+<!--                    icon="AllIcons.Nodes.Console"/>-->
             <action id="Spinner Config.ObjectBrowser"
                     class="cn.github.spinner.action.basic.ObjectBrowserAction"
                     icon="AllIcons.Actions.Search"/>
@@ -156,6 +154,16 @@
             <action id="Spinner Config.Dependencies"
                     class="cn.github.spinner.action.basic.MatrixDriverSettingsAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>
+        </group>
+        <group id="Spinner Config.MQLConsoleGroup" icon="AllIcons.Nodes.Console" popup="true">
+            <add-to-group group-id="Spinner Config.Toolbar" anchor="after"
+                          relative-to-action="Spinner Config.URLParser"/>
+            <action id="Spinner Config.MQLDefaultConsole"
+                    class="cn.github.spinner.action.basic.MQLDefaultConsoleAction"
+                    icon="AllIcons.Nodes.Console"/>
+            <action id="Spinner Config.MQLNewConsole"
+                    class="cn.github.spinner.action.basic.MQLNewConsoleAction"
+                    icon="AllIcons.Debugger.Console"/>
         </group>
         <group id="Spinner Config.More" icon="AllIcons.Actions.MoreHorizontal" popup="true">
             <add-to-group group-id="Spinner Config.Toolbar" anchor="after"
@@ -185,6 +193,9 @@
         <action id="MQL Editor.LoadDefinition"
                 class="cn.github.spinner.action.editor.LoadDefinitionForMQLAction"
                 icon="AllIcons.Debugger.Db_db_object"/>
+        <action id="MQL Editor.SaveAs"
+                class="cn.github.spinner.action.editor.SaveAsForMQLAction"
+                icon="AllIcons.Actions.MenuSaveall"/>
         <action id="MQL Editor.Settings"
                 class="cn.github.spinner.action.editor.MQLEditorSettingsAction"
                 icon="AllIcons.General.Settings">

@@ -71,7 +71,7 @@ public class SpinnerDataRecordBuilder {
 
     public JComponent build(String[] headers, Vector<String> values) {
         INSTANCE.components = new JComponent[headers.length];
-        SpinnerType spinnerType = SpinnerType.fromFile(INSTANCE.virtualFile.getName());
+        SpinnerType spinnerType = SpinnerType.fromFile(INSTANCE.virtualFile);
         FormBuilder formBuilder = FormBuilder.createFormBuilder();
         for (int i = 0; i < headers.length; i++) {
             String value = i >= values.size() ? "" : values.elementAt(i);

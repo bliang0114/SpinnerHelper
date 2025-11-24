@@ -8,6 +8,7 @@ import cn.github.spinner.components.FilterTable;
 import cn.github.spinner.components.RowNumberTableModel;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
+import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.CharSequenceUtil;
@@ -26,11 +27,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicComboBoxEditor;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -113,12 +112,48 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     }
 
     private void setupListener() {
-        policyComboBox.addActionListener(new ActionListener() {
+        nameTextField.addKeyListener(new EnterPressListener());
+        revisionTextField.addKeyListener(new EnterPressListener());
+        idTextField.addKeyListener(new EnterPressListener());
+        physicalIdTextField.addKeyListener(new EnterPressListener());
+        typeComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
+        ownerComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
+        policyComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
+        stateComboBox.getEditor().getEditorComponent().addFocusListener(new FocusAdapter() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                log.info("policy combo button pressed: {}", e.getActionCommand());
+            public void focusGained(FocusEvent e) {
+                new Task.Backgroundable(project, "Load Policy State") {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        indicator.setIndeterminate(true);
+                        String item = policyComboBox.getItem();
+                        if (CharSequenceUtil.isNotBlank(item) && !"*".equals(item)) {
+                            try {
+                                String result = MQLUtil.execute(project, "print policy '{}' select state dump", item);
+                                if (CharSequenceUtil.isNotBlank(result)) {
+                                    SwingUtilities.invokeLater(() -> {
+                                        stateComboBox.removeAllItems();
+                                        stateComboBox.setItem("*");
+                                        String[] array = result.split(",");
+                                        for (String s : array) {
+                                            stateComboBox.addItem(s);
+                                        }
+                                    });
+                                }
+                            } catch (MQLException ex) {
+                                throw new RuntimeException(ex);
+                            }
+                        } else {
+                            SwingUtilities.invokeLater(() -> stateComboBox.removeAllItems());
+                        }
+                    }
+                }.queue();
             }
         });
+        stateComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
+        organizationComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
+        projectComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
+        whereClauseTextArea.addKeyListener(new EnterPressListener());
         // 查询按钮点击事件
         queryBtn.addActionListener(e -> handleQuery());
         // 重置按钮点击事件
@@ -297,8 +332,11 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
             builder.append("project == '").append(projectComboBox.getItem()).append("'");
         }
         if (CharSequenceUtil.isNotBlank(whereClauseTextArea.getText())) {
-            builder.append(builder.isEmpty() ? "" : "(" + builder + ") ");
-            builder.append(whereClauseTextArea.getText());
+            if (!builder.isEmpty()) {
+                builder.insert(0, "(").append(")");
+            }
+            builder.append(builder.isEmpty() ? "" : " && ");
+            builder.append("(").append(whereClauseTextArea.getText()).append(")");
         }
         if (!builder.isEmpty()) {
             builder.insert(0, "(").append(")");
@@ -307,6 +345,10 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     }
 
     private void handleQuery() {
+        if (emptyExpression()) {
+            UIUtil.showWarningNotification(project, "Search from Server", "Conditional is empty");
+            return;
+        }
         tableModel.setRowCount(0);
         table.getEmptyText().setText("Searching from server ......");
         final var typePattern = CharSequenceUtil.isBlank(typeComboBox.getItem()) ? "*" : typeComboBox.getItem();
@@ -391,5 +433,27 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         revisionTextField.setText("*");
         idTextField.setText("");
         physicalIdTextField.setText("");
+    }
+
+    private boolean emptyExpression() {
+        return (CharSequenceUtil.isBlank(typeComboBox.getItem()) || "*".equals(typeComboBox.getItem()))
+                && (CharSequenceUtil.isBlank(policyComboBox.getItem()) || "*".equals(policyComboBox.getItem()))
+                && (CharSequenceUtil.isBlank(stateComboBox.getItem()) || "*".equals(stateComboBox.getItem()))
+                && (CharSequenceUtil.isBlank(organizationComboBox.getItem()) || "*".equals(organizationComboBox.getItem()))
+                && (CharSequenceUtil.isBlank(projectComboBox.getItem()) || "*".equals(projectComboBox.getItem()))
+                && (CharSequenceUtil.isBlank(ownerComboBox.getItem()) || "*".equals(ownerComboBox.getItem()))
+                && (CharSequenceUtil.isBlank(nameTextField.getText()) || "*".equals(nameTextField.getText()))
+                && (CharSequenceUtil.isBlank(revisionTextField.getText()) || "*".equals(revisionTextField.getText()))
+                && CharSequenceUtil.isBlank(idTextField.getText())
+                && CharSequenceUtil.isBlank(physicalIdTextField.getText());
+    }
+
+    private class EnterPressListener extends KeyAdapter {
+        @Override
+        public void keyPressed(KeyEvent e) {
+            if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                handleQuery();
+            }
+        }
     }
 }

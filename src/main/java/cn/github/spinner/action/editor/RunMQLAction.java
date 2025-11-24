@@ -1,6 +1,8 @@
 package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.spinner.util.ConsoleManager;
+import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.config.SpinnerToken;
@@ -35,6 +37,7 @@ public class RunMQLAction extends AnAction {
         Editor editor = e.getData(CommonDataKeys.EDITOR);
         if (editor == null) return ;
 
+        String consoleName = editor.getVirtualFile().getName();
         String selectedText = EditorUtil.getSelectedText(editor);
         log.info("Selected Text: {}", selectedText);
         List<String> commandList;
@@ -50,7 +53,12 @@ public class RunMQLAction extends AnAction {
                 .map(command -> command.replaceAll("\n", " ").trim()).toList();
         log.info("commandList: {}", commandList);
         if (!commandList.isEmpty()) {
-            MQLCommandExecutor executor = new MQLCommandExecutor(project, commandList);
+            ConsoleManager consoleManager = SpinnerToken.getConsoleManager(project, consoleName);
+            if (consoleManager == null) {
+                UIUtil.showWarningNotification(project, "MQL Executor", CharSequenceUtil.format("Console {} is null, use Default MQL Console.", consoleName));
+                consoleName = SpinnerToken.DEFAULT_MQL_CONSOLE;
+            }
+            MQLCommandExecutor executor = new MQLCommandExecutor(project, consoleName, commandList);
             executor.queue();
         }
     }

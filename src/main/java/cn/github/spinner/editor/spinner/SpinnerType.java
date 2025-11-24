@@ -1,12 +1,16 @@
 package cn.github.spinner.editor.spinner;
 
+import com.intellij.openapi.vfs.VirtualFile;
+import org.jetbrains.annotations.NotNull;
+
 public enum SpinnerType {
     ATTRIBUTE, INTERFACE, POLICY, POLICY_RULE_MAPPING, POLICY_STATE, PROPERTY, RELATIONSHIP, TRIGGER, TYPE,
     PAGE, PROGRAM, ROLE, RULE, NUMBER_GENERATOR, OBJECT_GENERATOR, TRIGGER_PROGRAM_PARAMETERS, REL_NUMBER_GENERATOR,
-    CHANNEL, COMMAND, MENU, PORTAL, TABLE_COLUMN, TABLE, FORM, FORM_FIELD;
+    CHANNEL, COMMAND, MENU, PORTAL, TABLE_COLUMN, TABLE, FORM, FORM_FIELD, POLICY_FILE, RULE_FILE;
 
-    public static SpinnerType fromFile(String fileName) {
-        if (fileName == null || fileName.isEmpty()) throw new IllegalArgumentException("Error: fileName is null or empty");
+    public static SpinnerType fromFile(@NotNull VirtualFile virtualFile) {
+        String fileName = virtualFile.getName();
+        if (fileName.isEmpty()) throw new IllegalArgumentException("Error: fileName is null or empty");
 
         return switch (fileName) {
             case "SpinnerAttributeData_ALL.xls" -> ATTRIBUTE;
@@ -34,7 +38,15 @@ public enum SpinnerType {
             case "bo_eService Object Generator_ALL.xls" -> OBJECT_GENERATOR;
             case "bo_eService Trigger Program Parameters_ALL.xls" -> TRIGGER_PROGRAM_PARAMETERS;
             case "rel-b2b_eService Number Generator_ALL.xls" -> REL_NUMBER_GENERATOR;
-            default -> throw new IllegalArgumentException("Error: Unknown file: " + fileName);
+            default -> {
+                String parentDir = virtualFile.getParent().getName();
+                if ("Rule".equalsIgnoreCase(parentDir)) {
+                    yield RULE_FILE;
+                } else if ("Policy".equalsIgnoreCase(parentDir)) {
+                    yield POLICY_FILE;
+                }
+                throw new IllegalArgumentException("Error: Unknown file: " + fileName);
+            }
         };
     }
 }

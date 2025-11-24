@@ -4,7 +4,7 @@ import cn.github.spinner.ui.URLFormatterDialog;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.ui.components.JBTextField;
+import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,7 +15,7 @@ public class SpinnerTextFieldComponent extends JPanel {
     private final String header;
     private final String value;
     private DefaultActionGroup actionGroup;
-    private JBTextField textField;
+    private ExpandableTextField textField;
 
     public SpinnerTextFieldComponent(String header, String value) {
         this.header = header;
@@ -25,7 +25,8 @@ public class SpinnerTextFieldComponent extends JPanel {
     }
 
     private void initComponents() {
-        textField = new JBTextField(this.value);
+        textField = new ExpandableTextField();
+        textField.setText(this.value);
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new CommentAction());
         actionGroup.add(new URLParserAction());

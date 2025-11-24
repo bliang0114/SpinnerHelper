@@ -6,24 +6,14 @@ import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
 import lombok.Getter;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 public class ConsoleManager {
-    private static final Map<Project, ConsoleManager> INSTANCES = new ConcurrentHashMap<>();
-    private final Project project;
     @Getter
     private final ConsoleView consoleView;
     private final ConsolePrinter consolePrinter;
 
-    private ConsoleManager(Project project) {
-        this.project = project;
+    public ConsoleManager(Project project) {
         this.consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
         this.consolePrinter = new ConsolePrinter(project, consoleView);
-    }
-
-    public static ConsoleManager getInstance(Project project) {
-        return INSTANCES.computeIfAbsent(project, ConsoleManager::new);
     }
 
     public void print(String message) {
