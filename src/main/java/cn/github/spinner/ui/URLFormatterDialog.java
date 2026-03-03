@@ -1,15 +1,12 @@
 package cn.github.spinner.ui;
 
 import cn.github.spinner.components.FilterTable;
-import cn.github.spinner.components.RowNumberTableModel;
-import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.FormBuilder;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -23,7 +20,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class URLFormatterDialog extends DialogWrapper {
+public class URLFormatterDialog extends JFrame {
     @Getter
     @Setter
     private JBTextField textField;
@@ -31,13 +28,13 @@ public class URLFormatterDialog extends DialogWrapper {
     private DefaultTableModel tableModel;
 
     public URLFormatterDialog() {
-        super(true);
         setTitle("URL Parameter Parse Tool");
-        setOKActionEnabled(false);
         setSize(800, 600);
         initComponents();
         setupListener();
-        init();
+
+        setLayout(new BorderLayout());
+        add(createCenterPanel(), BorderLayout.CENTER);
     }
 
     private void initComponents() {
@@ -65,8 +62,7 @@ public class URLFormatterDialog extends DialogWrapper {
         });
     }
 
-    @Override
-    protected @Nullable JComponent createCenterPanel() {
+    protected @NotNull JComponent createCenterPanel() {
         table.getColumnModel().getColumn(0).setPreferredWidth(200);
         table.getColumnModel().getColumn(1).setPreferredWidth(400);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -256,35 +252,5 @@ public class URLFormatterDialog extends DialogWrapper {
             }
         }
         return subParams;
-    }
-
-    // 打印汇总结果
-    private static void printSummary(String mainUrl, Map<String, String> mainParams,
-                                     Map<String, Map<String, String>> nestedParams) {
-        System.out.println("URL: " + mainUrl);
-
-        // 输出主参数
-        for (Map.Entry<String, String> entry : mainParams.entrySet()) {
-            System.out.println(entry.getKey() + ": " + entry.getValue() + ",");
-        }
-
-        // 输出嵌套URL参数
-        for (Map.Entry<String, Map<String, String>> entry : nestedParams.entrySet()) {
-            String paramName = entry.getKey();
-            Map<String, String> subParams = entry.getValue();
-
-            System.out.println(paramName + ": " + subParams.get("_url") + ",");
-
-            for (Map.Entry<String, String> subEntry : subParams.entrySet()) {
-                if (!subEntry.getKey().equals("_url")) {
-                    System.out.println(paramName + "." + subEntry.getKey() + ": " + subEntry.getValue() + ",");
-                }
-            }
-        }
-    }
-
-    @Override
-    protected Action @NotNull [] createActions() {
-        return new Action[]{getCancelAction()};
     }
 }

@@ -1,15 +1,14 @@
 package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
-import cn.github.spinner.context.UserInput;
-import cn.github.spinner.util.ConsoleManager;
-import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.github.spinner.config.SpinnerSettings;
-import cn.github.spinner.config.SpinnerToken;
-import cn.github.spinner.task.MQLCommandExecutor;
+import cn.github.spinner.context.UserInput;
+import cn.github.spinner.execution.MQLExecutorToolWindow;
+import cn.github.spinner.task.ExecuteMQLCommand;
+import cn.github.spinner.util.ConsoleManager;
 import cn.github.spinner.util.EditorUtil;
 import cn.github.spinner.util.UIUtil;
+import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -27,7 +26,7 @@ public class RunMQLAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        if  (project == null) return;
+        if (project == null) return;
 
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
@@ -35,7 +34,7 @@ public class RunMQLAction extends AnAction {
             return;
         }
         Editor editor = e.getData(CommonDataKeys.EDITOR);
-        if (editor == null) return ;
+        if (editor == null) return;
 
         String consoleName = editor.getVirtualFile().getName();
         String selectedText = EditorUtil.getSelectedText(editor);
@@ -44,7 +43,7 @@ public class RunMQLAction extends AnAction {
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         if (StrUtil.isNotEmpty(selectedText)) {
             commandList = List.of(selectedText.split(spinnerSettings.getLineDelimiter()));
-        }else{
+        } else {
             commandList = List.of(EditorUtil.getLineContent(editor).split(spinnerSettings.getLineDelimiter()));
         }
         // 去除注释行和空行
@@ -53,13 +52,17 @@ public class RunMQLAction extends AnAction {
                 .map(command -> command.replaceAll("\n", " ").trim()).toList();
         log.info("commandList: {}", commandList);
         if (!commandList.isEmpty()) {
-            ConsoleManager consoleManager = SpinnerToken.getConsoleManager(project, consoleName);
+            ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, consoleName);
             if (consoleManager == null) {
-                UIUtil.showWarningNotification(project, "MQL Executor", CharSequenceUtil.format("Console {} is null, use Default MQL Console.", consoleName));
-                consoleName = SpinnerToken.DEFAULT_MQL_CONSOLE;
+                consoleManager = new ConsoleManager(project, consoleName, editor.getVirtualFile());
+                UserInput.getInstance().putConsole(project, consoleName, consoleManager);
             }
-            MQLCommandExecutor executor = new MQLCommandExecutor(project, consoleName, commandList);
-            executor.queue();
+            MQLExecutorToolWindow toolWindow = UIUtil.getMQLExecutorToolWindow(project);
+            if (toolWindow != null) {
+                toolWindow.addNodeToTree(consoleName);
+            }
+            ExecuteMQLCommand executeMQLCommand = new ExecuteMQLCommand(project, consoleName, commandList);
+            executeMQLCommand.queue();
         }
     }
 
@@ -68,7 +71,7 @@ public class RunMQLAction extends AnAction {
         Project project = e.getProject();
         if (project == null) {
             e.getPresentation().setEnabled(false);
-            return ;
+            return;
         }
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         e.getPresentation().setEnabled(connection != null);
@@ -76,6 +79,6 @@ public class RunMQLAction extends AnAction {
 
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
-        return ActionUpdateThread.EDT;
+        return ActionUpdateThread.BGT;
     }
 }

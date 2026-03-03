@@ -1,19 +1,34 @@
 package cn.github.spinner.util;
 
-import com.intellij.execution.filters.TextConsoleBuilderFactory;
+import com.intellij.execution.impl.ConsoleViewImpl;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
-import lombok.Getter;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.search.GlobalSearchScope;
+import lombok.Data;
 
+@Data
 public class ConsoleManager {
-    @Getter
     private final ConsoleView consoleView;
     private final ConsolePrinter consolePrinter;
+    private String consoleName;
+    private VirtualFile consoleFile;
 
-    public ConsoleManager(Project project) {
-        this.consoleView = TextConsoleBuilderFactory.getInstance().createBuilder(project).getConsole();
+    public ConsoleManager(Project project, String consoleName, VirtualFile consoleFile) {
+        this.consoleView = new ConsoleViewImpl(
+                project,
+                GlobalSearchScope.allScope(project),
+                true,  // viewer mode
+                false   // ← 关键：false = 禁用循环缓冲区
+        );
         this.consolePrinter = new ConsolePrinter(project, consoleView);
+        this.consoleName = consoleName;
+        this.consoleFile = consoleFile;
+    }
+
+    public boolean isPhysicalFile() {
+        return consoleFile.isInLocalFileSystem();
     }
 
     public void print(String message) {

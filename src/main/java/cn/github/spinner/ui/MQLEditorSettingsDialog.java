@@ -19,6 +19,8 @@ public class MQLEditorSettingsDialog extends DialogWrapper {
     private final JBCheckBox keepExecHistory;
     @Getter
     private final JBTextField lineDelimiter;
+    @Getter
+    private final JBTextField timeoutMinutes;
 
     public MQLEditorSettingsDialog(Project project) {
         super(true);
@@ -26,8 +28,9 @@ public class MQLEditorSettingsDialog extends DialogWrapper {
         setTitle("MQL Editor Settings");
         setOKButtonText("OK");
         // 初始化字段
-        keepExecHistory = new JBCheckBox("keep executing history");
+        keepExecHistory = new JBCheckBox("Keep executing history");
         lineDelimiter = new JBTextField();
+        timeoutMinutes = new JBTextField();
         setupValue();
         init();
     }
@@ -37,6 +40,8 @@ public class MQLEditorSettingsDialog extends DialogWrapper {
         keepExecHistory.setSelected(spinnerSettings.isKeepMQLExecuteHistory());
         String lineDelimiterStr = spinnerSettings.getLineDelimiter();
         lineDelimiter.setText(lineDelimiterStr.isEmpty() ? "\\n" : lineDelimiterStr);
+        int timeoutMinutesInt = spinnerSettings.getTimeoutMinutes();
+        timeoutMinutes.setText(timeoutMinutesInt == 0 ? "10" : String.valueOf(timeoutMinutesInt));
     }
 
     @Nullable
@@ -44,7 +49,8 @@ public class MQLEditorSettingsDialog extends DialogWrapper {
     protected JComponent createCenterPanel() {
         return FormBuilder.createFormBuilder()
                 .addComponent(keepExecHistory)
-                .addLabeledComponent("Line Delimiter", lineDelimiter)
+                .addLabeledComponent("Line delimiter", lineDelimiter)
+                .addLabeledComponent("Timeout minutes", timeoutMinutes)
                 .getPanel();
     }
 

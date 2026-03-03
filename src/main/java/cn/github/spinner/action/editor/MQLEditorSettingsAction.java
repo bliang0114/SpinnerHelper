@@ -20,6 +20,7 @@ public class MQLEditorSettingsAction extends AnAction {
             SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
             spinnerSettings.setKeepMQLExecuteHistory(dialog.getKeepExecHistory().isSelected());
             spinnerSettings.setLineDelimiter(dialog.getLineDelimiter().getText());
+            spinnerSettings.setTimeoutMinutes(Integer.parseInt(dialog.getTimeoutMinutes().getText()));
         }
     }
 }

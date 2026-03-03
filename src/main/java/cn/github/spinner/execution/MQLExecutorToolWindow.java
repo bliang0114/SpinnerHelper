@@ -1,11 +1,10 @@
 package cn.github.spinner.execution;
 
-import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.util.ConsoleManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
-import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
@@ -42,6 +41,7 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
         splitter.setProportion(0.3f);
         JBScrollPane scrollPane = new JBScrollPane(consoleTree);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        splitter.setDividerWidth(10);
         splitter.setFirstComponent(scrollPane);
         splitter.setSecondComponent(new JPanel());
         return splitter;
@@ -51,13 +51,12 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("Consoles");
         treeModel = new DefaultTreeModel(root);
         consoleTree = new Tree(treeModel);
-        addNodeToTree(SpinnerToken.DEFAULT_MQL_CONSOLE);
         consoleTree.expandRow(0);
         consoleTree.setRootVisible(true);
         consoleTree.setShowsRootHandles(true);
         consoleTree.setCellRenderer(new ConsoleTreeCellRenderer());
         consoleTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        consoleTree.addMouseListener(new  MouseAdapter() {
+        consoleTree.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() == 2) {
@@ -66,11 +65,11 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
                     DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                     if (!node.isRoot()) {
                         String nodeName = String.valueOf(node.getUserObject());
-                        LightVirtualFile consoleFile = SpinnerToken.getMQLConsoleFile(project, nodeName);
-                        if (consoleFile == null) return;
+                        ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, nodeName);
+                        if (consoleManager == null || consoleManager.getConsoleFile() == null) return;
 
                         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                        fileEditorManager.openFile(consoleFile, true);
+                        fileEditorManager.openFile(consoleManager.getConsoleFile(), true);
                     }
                 }
             }
@@ -80,12 +79,11 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) consoleTree.getLastSelectedPathComponent();
             if (node == null) return;
             String nodeName = String.valueOf(node.getUserObject());
-            ConsoleManager consoleManager = SpinnerToken.getConsoleManager(project, nodeName);
+            ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, nodeName);
             if (consoleManager == null) {
                 splitter.setSecondComponent(new JPanel());
                 return;
             }
-
             splitter.setSecondComponent(consoleManager.getConsoleView().getComponent());
         });
     }
@@ -105,10 +103,10 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
         if (!existed) {
             DefaultMutableTreeNode treeNode = new DefaultMutableTreeNode(name);
             root.add(treeNode);
-            SpinnerToken.putConsoleManager(project, name, new ConsoleManager(project));
             treeModel.reload();
             consoleTree.expandRow(0);
         }
+        selectNode(name);
     }
 
     public void selectNode(String name) {

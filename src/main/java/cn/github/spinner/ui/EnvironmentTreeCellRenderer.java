@@ -1,7 +1,7 @@
 package cn.github.spinner.ui;
 
-import cn.hutool.core.text.CharSequenceUtil;
-import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.config.EnvironmentConfig;
+import cn.github.spinner.context.UserInput;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.ColoredText;
@@ -38,9 +38,9 @@ public class EnvironmentTreeCellRenderer extends ColoredTreeCellRenderer {
                 // 普通字符串节点
                 setIcon(AllIcons.Nodes.AbstractClass);
                 append(userObject.toString(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
-                String environmentName = SpinnerToken.getEnvironmentName(project);
-                if (CharSequenceUtil.isNotEmpty(environmentName)) {
-                    append(ColoredText.singleFragment(" - [" + environmentName + "]", SimpleTextAttributes.ERROR_ATTRIBUTES));
+                EnvironmentConfig environmentConfig = UserInput.getInstance().connectEnvironment.get(project);
+                if (environmentConfig != null) {
+                    append(ColoredText.singleFragment(" - [" + environmentConfig.getName() + "]", SimpleTextAttributes.ERROR_ATTRIBUTES));
                 }
             }
         }

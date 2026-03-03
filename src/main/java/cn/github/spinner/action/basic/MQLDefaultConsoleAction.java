@@ -1,9 +1,8 @@
 package cn.github.spinner.action.basic;
 
-import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.MQLLanguage;
-import cn.github.spinner.execution.MQLExecutorToolWindow;
-import cn.github.spinner.util.UIUtil;
+import cn.github.spinner.util.ConsoleManager;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -22,20 +21,17 @@ public class MQLDefaultConsoleAction extends AnAction {
         Project project = e.getData(PlatformDataKeys.PROJECT);
         if (project == null) return;
 
-        LightVirtualFile consoleFile = SpinnerToken.getMQLConsoleFile(project, SpinnerToken.DEFAULT_MQL_CONSOLE);
-        if (consoleFile == null) {
-            consoleFile = new LightVirtualFile(SpinnerToken.DEFAULT_MQL_CONSOLE);
+        ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, UserInput.DEFAULT_MQL_CONSOLE);
+        if (consoleManager == null) {
+            LightVirtualFile consoleFile = new LightVirtualFile(UserInput.DEFAULT_MQL_CONSOLE);
             consoleFile.setLanguage(MQLLanguage.INSTANCE);
             consoleFile.setWritable(true);
             consoleFile.setCharset(null);
-            SpinnerToken.putMQLConsoleFile(project, consoleFile);
-        }
-        MQLExecutorToolWindow toolWindow = UIUtil.getMQLExecutorToolWindow(project);
-        if (toolWindow != null) {
-            toolWindow.addNodeToTree(SpinnerToken.DEFAULT_MQL_CONSOLE);
+            consoleManager = new ConsoleManager(project, UserInput.DEFAULT_MQL_CONSOLE, consoleFile);
+            UserInput.getInstance().putConsole(project, consoleManager.getConsoleName(), consoleManager);
         }
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-        fileEditorManager.openFile(consoleFile, true);
+        fileEditorManager.openFile(consoleManager.getConsoleFile(), true);
     }
 
     @Override

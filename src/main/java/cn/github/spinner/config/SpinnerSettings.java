@@ -25,6 +25,9 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
     @Getter
     @Setter
     public String lineDelimiter = "\\n";
+    @Getter
+    @Setter
+    public int timeoutMinutes = 10;
 
     public static SpinnerSettings getInstance(Project project){
         return project.getService(SpinnerSettings.class);
