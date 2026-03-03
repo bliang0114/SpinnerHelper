@@ -16,14 +16,12 @@ public class NewEnvAction extends AnAction {
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
         EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
-        if (toolWindow == null) {
-            return;
-        }
+        if (toolWindow == null) return;
+
         EnvironmentSettingsDialog dialog = new EnvironmentSettingsDialog(project, null);
         if (dialog.showAndGet()) {
             EnvironmentConfig environment = dialog.getEnvironment();
-            SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
-            spinnerSettings.getEnvironments().add(environment);
+            SpinnerSettings.getInstance(project).replaceEnvironment(environment);
             toolWindow.refreshTree();
         }
     }

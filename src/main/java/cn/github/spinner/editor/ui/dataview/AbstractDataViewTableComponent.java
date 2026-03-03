@@ -5,6 +5,7 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.components.PaginatedFilterTableComponent;
 import cn.github.spinner.components.bean.TableRowBean;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
@@ -50,7 +51,7 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
 
     @Override
     protected void setPageData() {
-        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null || CharSequenceUtil.isBlank(name)) {
             table.getEmptyText().setText("Connection is closed");
             return;
@@ -59,8 +60,8 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
         if (totalCount != 0) {
             updatePaginationStatus();
         }
-        table.getEmptyText().setText("Loading Data...");
-        new Task.Backgroundable(project, "Loading Data...") {
+        table.getEmptyText().setText("Loading data...");
+        new Task.Backgroundable(project, "Loading data...") {
             private Throwable error;
 
             @Override

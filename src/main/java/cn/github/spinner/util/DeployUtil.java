@@ -18,13 +18,10 @@ public class DeployUtil {
         installJpo(project, "SpinnerDeployJPO");
     }
 
-    private static void installJpo(Project project,String fileName) {
+    private static void installJpo(Project project, String fileName) {
         StringBuilder sb = new StringBuilder();
-        try (
-                InputStream fileInputStream = DeployUtil.class.getResourceAsStream("/jpo/" + fileName + ".java");
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(fileInputStream));
-        ) {
+        try (InputStream fileInputStream = DeployUtil.class.getResourceAsStream("/jpo/" + fileName + ".java");
+             BufferedReader in = new BufferedReader(new InputStreamReader(fileInputStream))) {
             while (true) {
                 String line = in.readLine();
                 if (line == null) {
@@ -48,7 +45,6 @@ public class DeployUtil {
             UIUtil.showErrorNotification(project, "Install " + fileName, ex2.getLocalizedMessage());
         }
     }
-
 
 
 }

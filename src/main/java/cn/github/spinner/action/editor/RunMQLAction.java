@@ -1,6 +1,7 @@
 package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.util.ConsoleManager;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
@@ -28,12 +29,11 @@ public class RunMQLAction extends AnAction {
         Project project = e.getProject();
         if  (project == null) return;
 
-        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
-            UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
+            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Please connect to a matrix server first.");
             return;
         }
-
         Editor editor = e.getData(CommonDataKeys.EDITOR);
         if (editor == null) return ;
 
@@ -70,12 +70,8 @@ public class RunMQLAction extends AnAction {
             e.getPresentation().setEnabled(false);
             return ;
         }
-        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
-        if (connection == null) {
-            e.getPresentation().setEnabled(false);
-            return;
-        }
-        e.getPresentation().setEnabled(true);
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
+        e.getPresentation().setEnabled(connection != null);
     }
 
     @Override

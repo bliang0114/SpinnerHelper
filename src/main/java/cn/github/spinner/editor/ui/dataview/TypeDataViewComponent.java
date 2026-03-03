@@ -5,6 +5,8 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
+import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
@@ -115,7 +117,7 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private void loadType() {
         rowList.clear();
         listModel.clear();
-        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
             uiList.setEmptyText("Connection is closed");
             return;

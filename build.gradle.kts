@@ -1,7 +1,9 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.1.0"
-    id("org.jetbrains.intellij.platform") version "2.5.0"
+    id("org.jetbrains.intellij.platform") version "2.11.0"
     id("org.jetbrains.grammarkit") version "2022.3.2.2"
 }
 
@@ -57,6 +59,9 @@ sourceSets {
         java {
             srcDirs("src/main/java", "gen")
         }
+        kotlin {
+            srcDirs("src/main/kotlin", "gen")
+        }
         resources {
             srcDir("resources")
         }
@@ -77,6 +82,13 @@ tasks {
         options.encoding = "UTF-8"
         dependsOn(generateLexer)
     }
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_21
+        }
+        dependsOn(generateLexer)
+    }
+
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
         version = "2.0.10"

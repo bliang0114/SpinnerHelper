@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.spinner;
 
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.spinner.context.UserInput;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
@@ -191,9 +192,9 @@ public class SpinnerDataRecordBuilder {
                 UIUtil.showWarningNotification(null, "Spinner Data View", "project is null, deploy failure");
                 return;
             }
-            MatrixConnection connection = SpinnerToken.getCurrentConnection(INSTANCE.project);
+            MatrixConnection connection = UserInput.getInstance().connection.get(project);
             if (connection == null) {
-                UIUtil.showWarningNotification(null, "Spinner Data View", "connection is null, deploy failure");
+                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, "Please connect to a matrix server first.");
                 return;
             }
             List<String> lines = FileUtil.readLines(INSTANCE.virtualFile.getPath(), INSTANCE.virtualFile.getCharset());

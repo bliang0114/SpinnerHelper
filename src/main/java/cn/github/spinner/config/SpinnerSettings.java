@@ -50,4 +50,18 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
     public Optional<EnvironmentConfig> getEnvironment(String name) {
         return getEnvironments().stream().filter(env -> env.getName().equals(name)).findFirst();
     }
+
+    public void replaceEnvironment(EnvironmentConfig environment) {
+        Optional<EnvironmentConfig> optional = getEnvironment(environment.getName());
+        if (optional.isPresent()) {
+            optional.get().update(environment);
+        } else {
+            getEnvironments().add(environment);
+        }
+    }
+
+    public void removeEnvironment(String name) {
+        Optional<EnvironmentConfig> optional = getEnvironment(name);
+        optional.ifPresent(environmentConfig -> getEnvironments().remove(environmentConfig));
+    }
 }

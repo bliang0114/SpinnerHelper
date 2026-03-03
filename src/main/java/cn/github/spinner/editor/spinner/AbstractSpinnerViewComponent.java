@@ -15,7 +15,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.JBSplitter;
 import com.intellij.ui.ScrollPaneFactory;
-import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.util.ui.JBUI;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +27,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 @Slf4j
 public abstract class AbstractSpinnerViewComponent extends JPanel {
@@ -87,8 +87,11 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
 
             int modelRowIndex = table.convertRowIndexToModel(selectedRow);
             if (modelRowIndex < 0) return;
+
+            @SuppressWarnings("unchecked")
+            Vector<String> vector = tableModel.getDataVector().get(modelRowIndex);
             JComponent component = SpinnerDataRecordBuilder.createBuilder(this.virtualFile, modelRowIndex, AbstractSpinnerViewComponent.this)
-                    .setProject(project).build(headers, tableModel.getDataVector().get(modelRowIndex));
+                    .setProject(project).build(headers, vector);
             recordPane.setComponentAt(0, component);
         });
         Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
@@ -114,7 +117,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
     }
 
     protected AnAction[] createToolbarAction() {
-        return new AnAction[] {new RecordPaneVisibleAction()};
+        return new AnAction[]{new RecordPaneVisibleAction()};
     }
 
     private JComponent getToolbarComponent() {
@@ -191,7 +194,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel {
 
     public class RecordPaneVisibleAction extends ToggleAction {
         public RecordPaneVisibleAction() {
-            super("Show / Hide Record View", "Show / Hide Record View", AllIcons.Nodes.Record);
+            super("Show / Hide Record View", "Show / hide record view", AllIcons.Nodes.Record);
         }
 
         @Override

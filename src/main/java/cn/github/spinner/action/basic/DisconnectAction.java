@@ -1,47 +1,48 @@
 package cn.github.spinner.action.basic;
 
-import cn.github.spinner.config.EnvironmentConfig;
-import cn.github.spinner.config.SpinnerSettings;
-import cn.github.spinner.task.Disconnect3DETask;
-import cn.github.spinner.ui.EnvironmentToolWindow;
-import cn.github.spinner.util.UIUtil;
+import cn.github.driver.connection.MatrixConnection;
+import cn.github.spinner.context.UserInput;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
+import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Optional;
+import java.io.IOException;
 
-public class DisconnectAction extends EnvironmentTbActionAdapter {
+public class DisconnectAction extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
-        if (toolWindow == null) return;
+        if (project == null) return;
 
-        EnvironmentConfig environment = toolWindow.getEnvironment();
-        if (environment == null) return;
-
-        SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
-        Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(environment.getName());
-        if (optional.isPresent()) {
-            environment = optional.get();
-            Disconnect3DETask task = new Disconnect3DETask(project, toolWindow, environment);
-            task.queue();
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
+        if (connection != null) {
+            new Thread(() -> {
+                try {
+                    connection.close();
+                } catch (IOException ex) {
+                    Thread.currentThread().interrupt();
+                }
+            }).start();
+            UserInput.getInstance().connection.remove(project);
+            UserInput.getInstance().connectEnvironment.remove(project);
         }
     }
 
     @Override
     public void update(@NotNull AnActionEvent e) {
-        try {
-            e.getPresentation().setEnabled(enableAction(e));
-        } catch (Exception ex) {
+        Project project = e.getProject();
+        if (project == null) {
             e.getPresentation().setEnabled(false);
+            return;
         }
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
+        e.getPresentation().setEnabled(connection != null);
     }
 
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
-        return super.getActionUpdateThread();
+        return ActionUpdateThread.BGT;
     }
 }

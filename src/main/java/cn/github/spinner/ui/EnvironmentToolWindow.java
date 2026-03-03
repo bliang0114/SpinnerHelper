@@ -2,6 +2,7 @@ package cn.github.spinner.ui;
 
 import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.config.SpinnerSettings;
+import cn.github.spinner.context.UserInput;
 import com.intellij.openapi.actionSystem.ActionGroup;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
@@ -25,8 +26,8 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel {
     @Getter
     private Tree environmentTree;
     private DefaultTreeModel treeModel;
-    @Getter
-    private EnvironmentConfig environment;
+//    @Getter
+//    private EnvironmentConfig environment;
 
     public EnvironmentToolWindow(@NotNull Project project) {
         super(true, true);
@@ -83,6 +84,7 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel {
         // 添加选择监听器
         environmentTree.addTreeSelectionListener(e -> {
             DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) environmentTree.getLastSelectedPathComponent();
+            EnvironmentConfig environment;
             if (selectedNode instanceof EnvironmentTreeNode envNode) {
                 environment = envNode.getEnvironment();
             } else if(selectedNode instanceof DetailTreeNode detailNode) {
@@ -91,6 +93,7 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel {
             } else {
                 environment = null;
             }
+            UserInput.getInstance().clickEnvironment.put(project, environment);
         });
     }
 

@@ -1,6 +1,7 @@
 package cn.github.spinner.action.editor;
 
 import cn.github.spinner.config.EnvironmentConfig;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.MatrixDataViewFileType;
 import cn.github.spinner.ui.EnvironmentToolWindow;
 import cn.github.spinner.util.UIUtil;
@@ -32,16 +33,11 @@ public class MenuAndCommandAction extends AnAction {
     @Override
     public void update(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
-        if (toolWindow == null) {
+        if (project == null) {
             e.getPresentation().setEnabled(false);
-            return;
+            return ;
         }
-        EnvironmentConfig environment = toolWindow.getEnvironment();
-        if (environment == null) {
-            e.getPresentation().setEnabled(false);
-            return;
-        }
-        e.getPresentation().setEnabled(environment.isConnected());
+        EnvironmentConfig connectEnvironment = UserInput.getInstance().connectEnvironment.get(project);
+        e.getPresentation().setEnabled(connectEnvironment != null);
     }
 }

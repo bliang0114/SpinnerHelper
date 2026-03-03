@@ -4,6 +4,7 @@ import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
+import cn.github.spinner.context.UserInput;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.config.SpinnerToken;
 import com.intellij.openapi.project.Project;
@@ -12,7 +13,11 @@ import com.intellij.openapi.project.ProjectManager;
 public class MQLUtil {
 
     public static String execute(Project project, String mql) throws MQLException {
-        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+//        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
+        if (connection == null) {
+            throw new MQLException("Please connect to a matrix server first.");
+        }
         MatrixStatement matrixStatement = connection.executeStatement(mql);
         MatrixResultSet matrixResultSet = matrixStatement.executeQuery();
         if (!matrixResultSet.isSuccess()) {

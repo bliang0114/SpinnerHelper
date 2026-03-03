@@ -3,6 +3,7 @@ package cn.github.spinner.editor.ui.dataview.details;
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -119,7 +120,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                                     });
                                     indicator.setText("正在下载：" + fileName);
                                     indicator.setIndeterminate(true);
-                                    MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+                                    MatrixConnection connection = UserInput.getInstance().connection.get(project);
                                     if (connection == null) {
                                         throw new IllegalStateException("未获取到有效连接，请检查配置");
                                     }

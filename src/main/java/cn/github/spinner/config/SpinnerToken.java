@@ -16,19 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class SpinnerToken {
     public static final String DEFAULT_MQL_CONSOLE = "Default MQL Console";
-    public static final Map<String, MatrixConnection> CONNECTION_MAP = new ConcurrentHashMap<>();
     public static final Map<String, String> ENVIRONMENT_NAME_MAP = new ConcurrentHashMap<>();
     public static final Map<String, ObjectWhereExpression> OBJECT_WHERE_EXPRESSION_MAP = new ConcurrentHashMap<>();
     public static final Map<String, Map<String, LightVirtualFile>> MQL_CONSOLE_MAP = new ConcurrentHashMap<>();
     public static final Map<String, Map<String, ConsoleManager>> MQL_CONSOLE_EXECUTOR_MAP = new ConcurrentHashMap<>();
-
-    public static MatrixConnection getCurrentConnection(@NotNull Project project) {
-        return CONNECTION_MAP.get(project.getLocationHash());
-    }
-
-    public static void putConnection(@NotNull Project project, @NotNull MatrixConnection connection) {
-        CONNECTION_MAP.put(project.getLocationHash(), connection);
-    }
 
     public static String getEnvironmentName(@NotNull Project project) {
         return ENVIRONMENT_NAME_MAP.get(project.getLocationHash());
@@ -79,27 +70,5 @@ public class SpinnerToken {
     public static void putConsoleManager(@NotNull Project project, String consoleName, @NotNull ConsoleManager consoleManager) {
         Map<String, ConsoleManager> consoleManagerMap = MQL_CONSOLE_EXECUTOR_MAP.computeIfAbsent(project.getLocationHash(), k -> new ConcurrentHashMap<>());
         consoleManagerMap.put(consoleName, consoleManager);
-    }
-
-    public static void closeConnection(MatrixConnection connection) {
-        try {
-            if (connection != null) {
-                connection.close();
-            }
-        } catch (IOException e) {
-            log.error("Error: close matrix connection, {}", e.getLocalizedMessage(), e);
-        }
-    }
-
-    public static void closeConnection(@NotNull Project project) {
-        MatrixConnection connection = getCurrentConnection(project);
-        try {
-            if (connection != null) {
-                connection.close();
-            }
-        } catch (IOException e) {
-            log.error("Error: close matrix connection, {}", e.getLocalizedMessage(), e);
-        }
-        CONNECTION_MAP.remove(project.getLocationHash());
     }
 }

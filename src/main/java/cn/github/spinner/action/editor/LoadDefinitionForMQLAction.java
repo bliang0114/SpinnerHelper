@@ -4,10 +4,10 @@ import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
-import cn.hutool.core.text.CharSequenceUtil;
-import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.MQLKeywords;
 import cn.github.spinner.util.UIUtil;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
@@ -22,8 +22,11 @@ public class LoadDefinitionForMQLAction extends AnAction {
         Project project = e.getProject();
         if (project == null) return;
 
-        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
-        if  (connection == null) return;
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
+        if (connection == null) {
+            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Please connect to a matrix server first.");
+            return;
+        }
 
         try {
             StringBuilder builder = new StringBuilder();
@@ -35,7 +38,6 @@ public class LoadDefinitionForMQLAction extends AnAction {
                 MQLKeywords.TYPE_INSTANCES.addAll(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
                 builder.append("Load Type Definition Successfully<br/>");
             }
-
             statement = connection.executeStatement("list relationship");
             resultSet = statement.executeQuery();
             if (resultSet.isSuccess()) {
@@ -44,9 +46,8 @@ public class LoadDefinitionForMQLAction extends AnAction {
                 MQLKeywords.RELATIONSHIP_INSTANCES.addAll(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
                 builder.append("Load Relationship Definition Successfully<br/>");
             }
-
             if (!builder.isEmpty()) {
-                UIUtil.showNotification(project, "Load Definition For MQL", builder.toString());
+                UIUtil.showNotification(project, UserInput.NOTIFICATION_TITLE_LOAD_DATA, builder.toString());
             }
         } catch (MQLException ex) {
             throw new RuntimeException(ex);

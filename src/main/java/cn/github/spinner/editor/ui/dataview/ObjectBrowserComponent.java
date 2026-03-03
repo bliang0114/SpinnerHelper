@@ -1,12 +1,14 @@
 package cn.github.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
+import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixObjectQuery;
 import cn.github.driver.connection.MatrixQueryResult;
 import cn.github.spinner.components.ComboBoxWithFilter;
 import cn.github.spinner.components.FilterTable;
 import cn.github.spinner.components.RowNumberTableModel;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
@@ -265,7 +267,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     }
 
     private void loadMatrixData() {
-        var connection = SpinnerToken.getCurrentConnection(project);
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) return;
 
         try {
@@ -370,7 +372,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
                 objectQuery.setOwner(ownerPattern);
                 objectQuery.setWhereExpression(whereExpression);
                 try {
-                    var connection = SpinnerToken.getCurrentConnection(project);
+                    MatrixConnection connection = UserInput.getInstance().connection.get(project);
                     if (connection == null) throw new MQLException("connection is closed");
 
                     MatrixQueryResult queryResult = connection.queryObject(objectQuery, List.of("type", "name", "revision", "id", "paths", "physicalid", "description", "originated", "modified", "lattice", "policy", "owner", "current", "organization", "project"));

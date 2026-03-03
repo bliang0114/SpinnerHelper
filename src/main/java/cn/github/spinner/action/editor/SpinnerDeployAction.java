@@ -2,6 +2,7 @@ package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -48,9 +49,9 @@ public class SpinnerDeployAction extends AnAction {
                 return;
             }
             String fileName = file.getName();
-            MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
-            if (connection== null) {
-                UIUtil.showWarningNotification(project, "Not Login, Please Login First", "");
+            MatrixConnection connection = UserInput.getInstance().connection.get(project);
+            if (connection == null) {
+                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, "Please connect to a matrix server first.");
                 return;
             }
             if (fileName.endsWith(".java")) {

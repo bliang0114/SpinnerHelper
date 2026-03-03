@@ -6,6 +6,7 @@ import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutorToolWindow;
 import cn.github.spinner.util.ConsoleManager;
 import cn.github.spinner.util.UIUtil;
@@ -39,9 +40,9 @@ public class MQLCommandExecutor extends Task.Backgroundable {
     public void run(@NotNull ProgressIndicator indicator) {
         indicator.setIndeterminate(true);
         assert myProject != null;
-        MatrixConnection connection = SpinnerToken.getCurrentConnection(myProject);
+        MatrixConnection connection = UserInput.getInstance().connection.get(myProject);
         if (connection == null) {
-            UIUtil.showWarningNotification(myProject, "MQL Executor", "Not Login, Please Login First");
+            UIUtil.showWarningNotification(myProject, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Please connect to a matrix server first.");
             return;
         }
         ConsoleManager consoleManager = SpinnerToken.getConsoleManager(myProject, consoleName);

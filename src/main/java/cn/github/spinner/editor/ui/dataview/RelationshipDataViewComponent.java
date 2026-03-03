@@ -2,6 +2,7 @@ package cn.github.spinner.editor.ui.dataview;
 
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.spinner.context.UserInput;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.util.MQLUtil;
@@ -114,7 +115,7 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
     private void loadRelationship() {
         rowList.clear();
         listModel.clear();
-        MatrixConnection connection = SpinnerToken.getCurrentConnection(project);
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
             uiList.setEmptyText("Connection is closed");
             return;
