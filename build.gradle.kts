@@ -89,6 +89,10 @@ tasks {
         dependsOn(generateLexer)
     }
 
+    buildSearchableOptions {
+        enabled = false  // 直接禁用，发布插件不需要可搜索选项索引
+    }
+
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
         version = "2.1.0"
