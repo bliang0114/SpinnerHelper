@@ -9,6 +9,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import cn.github.spinner.execution.MQLExecutionEntry;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.util.List;
@@ -116,7 +117,11 @@ public class ConsoleManager {
         consolePrinter.setSoftWrapsEnabled(enabled);
     }
 
-    public JComponent getResultComponent() {
-        return consolePrinter.getResultComponent();
+    public JComponent createResultComponent() {
+        return consolePrinter.createResultComponent();
+    }
+
+    public void releaseResultComponent(@Nullable JComponent component) {
+        consolePrinter.releaseResultComponent(component);
     }
 }

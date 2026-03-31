@@ -28,6 +28,9 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
     @Getter
     @Setter
     public int timeoutMinutes = 10;
+    @Getter
+    @Setter
+    public String mqlResultPosition = "RIGHT";
 
     public static SpinnerSettings getInstance(Project project){
         return project.getService(SpinnerSettings.class);

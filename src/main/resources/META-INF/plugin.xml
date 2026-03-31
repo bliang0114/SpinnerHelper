@@ -62,6 +62,13 @@
     </description>
 
     <change-notes><![CDATA[
+        <h2>3.0.1</h2>
+        <ul>
+        <li>完善 MQL 自动补全规则，`type`、`rel`、`relationship`、`temp query bus` 在双引号场景下支持同一对引号内的逗号分隔名称列表补全。</li>
+        <li>修复包含空格的类型名、关系名在连续补全时被错误拆成多对引号的问题，生成结果统一为 <code>"A,B"</code> 这种 MQL 可执行格式。</li>
+        <li>优化 `temp query bus`、`query connection rel`、`where` 等关键字后的上下文提示与插入行为，补全后可继续在当前语义位置稳定提示。</li>
+        <li>MQL编辑器布局支持拖动调整</li>
+        </ul>
         <h2>3.0.0</h2>
         <ul>
         <li>MQL编辑器已重构为分栏视图：左侧源码、右侧执行结果，替换旧版结果工具窗口。</li>
@@ -106,7 +113,6 @@
         <fileEditorProvider implementation="cn.github.spinner.editor.ui.MatrixCommonViewProvider"/>
         <fileEditorProvider implementation="cn.github.spinner.editor.spinner.SpinnerDataViewProvider"/>
         <fileEditorProvider implementation="cn.github.spinner.editor.MQLSplitEditorProvider"/>
-        <editorNotificationProvider implementation="cn.github.spinner.editor.MQLEditorNotificationProvider"/>
     </extensions>
     <actions>
         <action id="SpinnerDeploy" class="cn.github.spinner.action.editor.SpinnerDeployAction" text="SpinnerDeploy"
