@@ -2,6 +2,7 @@ package cn.github.spinner.execution;
 
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.util.ConsoleManager;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.SimpleToolWindowPanel;
@@ -11,10 +12,13 @@ import com.intellij.ui.treeStructure.Tree;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.ToolTipManager;
 import javax.swing.tree.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.Map;
 
 public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
     private final Project project;
@@ -50,11 +54,30 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
     private void createConsoleTree() {
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("Consoles");
         treeModel = new DefaultTreeModel(root);
-        consoleTree = new Tree(treeModel);
+        consoleTree = new Tree(treeModel) {
+            @Override
+            public String getToolTipText(MouseEvent event) {
+                TreePath path = getPathForLocation(event.getX(), event.getY());
+                if (path == null) {
+                    return null;
+                }
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+                Object userObject = node.getUserObject();
+                if (userObject instanceof MQLExecutionEntry entry) {
+                    return entry.success() ? null : entry.message();
+                }
+                return null;
+            }
+        };
+        reloadConsoleTree();
         consoleTree.expandRow(0);
         consoleTree.setRootVisible(true);
         consoleTree.setShowsRootHandles(true);
         consoleTree.setCellRenderer(new ConsoleTreeCellRenderer());
+        ToolTipManager toolTipManager = ToolTipManager.sharedInstance();
+        toolTipManager.setInitialDelay(150);
+        toolTipManager.setReshowDelay(0);
+        toolTipManager.registerComponent(consoleTree);
         consoleTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         consoleTree.addMouseListener(new MouseAdapter() {
             @Override
@@ -64,12 +87,16 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
                     if (path == null) return;
                     DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                     if (!node.isRoot()) {
-                        String nodeName = String.valueOf(node.getUserObject());
-                        ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, nodeName);
+                        ConsoleManager consoleManager = getConsoleManager(node);
                         if (consoleManager == null || consoleManager.getConsoleFile() == null) return;
 
-                        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-                        fileEditorManager.openFile(consoleManager.getConsoleFile(), true);
+                        Object userObject = node.getUserObject();
+                        if (userObject instanceof MQLExecutionEntry entry) {
+                            new OpenFileDescriptor(project, consoleManager.getConsoleFile(), entry.lineNumber(), 0).navigate(true);
+                            return;
+                        }
+
+                        FileEditorManager.getInstance(project).openFile(consoleManager.getConsoleFile(), true);
                     }
                 }
             }
@@ -78,14 +105,31 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
         consoleTree.addTreeSelectionListener(e -> {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) consoleTree.getLastSelectedPathComponent();
             if (node == null) return;
-            String nodeName = String.valueOf(node.getUserObject());
-            ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, nodeName);
+            ConsoleManager consoleManager = getConsoleManager(node);
             if (consoleManager == null) {
                 splitter.setSecondComponent(new JPanel());
                 return;
             }
             splitter.setSecondComponent(consoleManager.getConsoleView().getComponent());
         });
+    }
+
+    public void reloadConsoleTree() {
+        DefaultMutableTreeNode root = (DefaultMutableTreeNode) treeModel.getRoot();
+        root.removeAllChildren();
+        Map<String, ConsoleManager> consoleMap = UserInput.getInstance().mqlConsole.get(project);
+        if (consoleMap != null && !consoleMap.isEmpty()) {
+            consoleMap.values().stream()
+                    .sorted(Comparator.comparing(ConsoleManager::getConsoleName, String.CASE_INSENSITIVE_ORDER))
+                    .map(consoleManager -> {
+                        DefaultMutableTreeNode consoleNode = new DefaultMutableTreeNode(consoleManager.getConsoleName());
+                        consoleManager.getExecutionEntries().forEach(entry -> consoleNode.add(new DefaultMutableTreeNode(entry)));
+                        return consoleNode;
+                    })
+                    .forEach(root::add);
+        }
+        treeModel.reload();
+        consoleTree.expandRow(0);
     }
 
     public void addNodeToTree(String name) {
@@ -122,8 +166,21 @@ public class MQLExecutorToolWindow extends SimpleToolWindowPanel {
                     break;
                 }
             }
+            consoleTree.expandPath(treePath);
             consoleTree.setSelectionPath(treePath);
             consoleTree.scrollPathToVisible(treePath);
         });
+    }
+
+    private ConsoleManager getConsoleManager(@NotNull DefaultMutableTreeNode node) {
+        Object userObject = node.getUserObject();
+        if (userObject instanceof String nodeName) {
+            return UserInput.getInstance().getConsole(project, nodeName);
+        }
+        TreeNode parent = node.getParent();
+        if (parent instanceof DefaultMutableTreeNode parentNode) {
+            return getConsoleManager(parentNode);
+        }
+        return null;
     }
 }

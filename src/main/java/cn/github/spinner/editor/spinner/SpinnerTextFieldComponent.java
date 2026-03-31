@@ -10,16 +10,24 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 
 public class SpinnerTextFieldComponent extends JPanel {
     private final String header;
     private final String value;
+    private final Runnable onValueChanged;
     private DefaultActionGroup actionGroup;
     private ExpandableTextField textField;
 
     public SpinnerTextFieldComponent(String header, String value) {
+        this(header, value, null);
+    }
+
+    public SpinnerTextFieldComponent(String header, String value, Runnable onValueChanged) {
         this.header = header;
         this.value = CharSequenceUtil.nullToEmpty(value);
+        this.onValueChanged = onValueChanged;
         initComponents();
         setupLayout();
     }
@@ -27,6 +35,13 @@ public class SpinnerTextFieldComponent extends JPanel {
     private void initComponents() {
         textField = new ExpandableTextField();
         textField.setText(this.value);
+        textField.addActionListener(e -> notifyValueChanged());
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                notifyValueChanged();
+            }
+        });
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new CommentAction());
         actionGroup.add(new URLParserAction());
@@ -64,6 +79,12 @@ public class SpinnerTextFieldComponent extends JPanel {
         return textField.getText();
     }
 
+    private void notifyValueChanged() {
+        if (onValueChanged != null) {
+            onValueChanged.run();
+        }
+    }
+
     public class CommentAction extends AnAction {
         public CommentAction() {
             super("Comment", "Comment", AllIcons.Actions.RefactoringBulb);
@@ -81,6 +102,7 @@ public class SpinnerTextFieldComponent extends JPanel {
                 text = "<<" + text + ">>";
             }
             textField.setText(text);
+            notifyValueChanged();
         }
 
         @Override

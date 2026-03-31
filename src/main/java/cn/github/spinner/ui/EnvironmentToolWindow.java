@@ -93,7 +93,11 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel {
             } else {
                 environment = null;
             }
-            UserInput.getInstance().clickEnvironment.put(project, environment);
+            if (environment == null) {
+                UserInput.getInstance().clickEnvironment.remove(project);
+            } else {
+                UserInput.getInstance().clickEnvironment.put(project, environment);
+            }
         });
     }
 

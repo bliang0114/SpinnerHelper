@@ -2,13 +2,12 @@ package cn.github.spinner.action.basic;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.util.MatrixConnectionUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
 
 public class DisconnectAction extends AnAction {
     @Override
@@ -18,15 +17,9 @@ public class DisconnectAction extends AnAction {
 
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection != null) {
-            new Thread(() -> {
-                try {
-                    connection.close();
-                } catch (IOException ex) {
-                    Thread.currentThread().interrupt();
-                }
-            }).start();
             UserInput.getInstance().connection.remove(project);
             UserInput.getInstance().connectEnvironment.remove(project);
+            MatrixConnectionUtil.closeAsync(project, connection, "Disconnect Matrix Server", null);
         }
     }
 

@@ -13,6 +13,8 @@ import com.intellij.testFramework.LightVirtualFile;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.charset.StandardCharsets;
+
 @Slf4j
 public class MQLDefaultConsoleAction extends AnAction {
 
@@ -26,7 +28,7 @@ public class MQLDefaultConsoleAction extends AnAction {
             LightVirtualFile consoleFile = new LightVirtualFile(UserInput.DEFAULT_MQL_CONSOLE);
             consoleFile.setLanguage(MQLLanguage.INSTANCE);
             consoleFile.setWritable(true);
-            consoleFile.setCharset(null);
+            consoleFile.setCharset(StandardCharsets.UTF_8);
             consoleManager = new ConsoleManager(project, UserInput.DEFAULT_MQL_CONSOLE, consoleFile);
             UserInput.getInstance().putConsole(project, consoleManager.getConsoleName(), consoleManager);
         }

@@ -35,14 +35,16 @@ public class ConsolePrinter {
     }
 
     private void scrollToBottom() {
-        JComponent component = consoleView.getComponent();
-        if (component instanceof JScrollPane scrollPane) {
-            JViewport viewport = scrollPane.getViewport();
-            JViewport realViewport = findRealViewport(viewport);
-            if (realViewport != null) {
-                JComponent view = (JComponent) realViewport.getView();
-                Rectangle bounds = view.getBounds();
-                realViewport.setViewPosition(new Point(0, bounds.height));
+        if (consoleView != null) {
+            JComponent component = consoleView.getComponent();
+            if (component instanceof JScrollPane scrollPane) {
+                JViewport viewport = scrollPane.getViewport();
+                JViewport realViewport = findRealViewport(viewport);
+                if (realViewport != null) {
+                    JComponent view = (JComponent) realViewport.getView();
+                    Rectangle bounds = view.getBounds();
+                    realViewport.setViewPosition(new Point(0, bounds.height));
+                }
             }
         }
     }

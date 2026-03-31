@@ -69,6 +69,9 @@ public class ConnectMatrixServer extends Task.Backgroundable {
             UserInput.getInstance().connection.put(myProject, newConnection);
             UserInput.getInstance().connectEnvironment.put(myProject, environment);
             UIUtil.showNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Server connect successfully.");
+            if (successHandler != null) {
+                successHandler.run();
+            }
         } catch (TimeoutException e) {
             future.cancel(true);
             UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Connect timeout (20s exceeded).");
@@ -79,14 +82,6 @@ public class ConnectMatrixServer extends Task.Backgroundable {
             UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Connect failed: " + e.getCause().getMessage());
         } finally {
             executor.shutdownNow();
-        }
-    }
-
-    @Override
-    public void onSuccess() {
-        super.onSuccess();
-        if (successHandler != null) {
-            successHandler.run();
         }
     }
 

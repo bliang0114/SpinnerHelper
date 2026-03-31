@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "2.1.0"
+version = "2.2.0"
 
 repositories {
 //    mavenCentral()
@@ -45,12 +45,17 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
-      Initial version
+            V2.2.0
+            ---
+            1. 修复Spinner文件在Spinner视图与Text视图切换编辑卡顿的问题
+            2. 修复首次打开项目后，执行MQL，结果未显示的问题
+            3. 新增MQL编辑器中对执行结果的状态显示
+            4. 优化部分代码
     """.trimIndent()
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "2.1.0"
+        version = "2.2.0"
     }
 }
 
@@ -95,6 +100,6 @@ tasks {
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "2.1.0"
+        version = "2.2.0"
     }
 }

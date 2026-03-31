@@ -9,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,17 +18,27 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
     private final String header;
     private final String value;
     private final String separator;
+    private final Runnable onValueChanged;
     private DefaultActionGroup actionGroup;
     private List<ExpandableTextField> components;
 
     public SpinnerMultiTextFieldComponent(String header, String value) {
-        this(header, value, "|");
+        this(header, value, "|", null);
     }
 
     public SpinnerMultiTextFieldComponent(String header, String value, String separator) {
+        this(header, value, separator, null);
+    }
+
+    public SpinnerMultiTextFieldComponent(String header, String value, Runnable onValueChanged) {
+        this(header, value, "|", onValueChanged);
+    }
+
+    public SpinnerMultiTextFieldComponent(String header, String value, String separator, Runnable onValueChanged) {
         this.header = header;
         this.value = CharSequenceUtil.nullToEmpty(value);
         this.separator = separator;
+        this.onValueChanged = onValueChanged;
         initComponents();
         setupLayout();
     }
@@ -35,9 +47,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
         String[] values = this.value.split("[" + separator + "]");
         components =  new ArrayList<>(values.length);
         for (String s : values) {
-            ExpandableTextField textField = new ExpandableTextField();
-            textField.setText(s);
-            components.add(textField);
+            components.add(createTextField(s));
         }
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new AddValueAction());
@@ -88,6 +98,25 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
         return value.toString();
     }
 
+    private ExpandableTextField createTextField(String value) {
+        ExpandableTextField textField = new ExpandableTextField();
+        textField.setText(value);
+        textField.addActionListener(e -> notifyValueChanged());
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                notifyValueChanged();
+            }
+        });
+        return textField;
+    }
+
+    private void notifyValueChanged() {
+        if (onValueChanged != null) {
+            onValueChanged.run();
+        }
+    }
+
     public class AddValueAction extends AnAction {
         public AddValueAction() {
             super("Add Value", "Add Value", AllIcons.General.Add);
@@ -98,12 +127,13 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
             String place = e.getPlace();
             place = place.replace("Spinner " + header + ".ActionGroup", "");
             int index = Integer.parseInt(place);
-            components.add(index + 1, new ExpandableTextField());
+            components.add(index + 1, createTextField(""));
 
             removeAll();
             setupLayout();
             revalidate();
             repaint();
+            notifyValueChanged();
         }
 
         @Override
@@ -128,6 +158,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
             setupLayout();
             revalidate();
             repaint();
+            notifyValueChanged();
         }
 
         @Override
@@ -165,6 +196,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
                 text = "<<" + text + ">>";
             }
             component.setText(text);
+            notifyValueChanged();
         }
 
         @Override

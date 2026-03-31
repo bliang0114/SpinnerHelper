@@ -13,11 +13,13 @@ import com.intellij.testFramework.LightVirtualFile;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.OptionalInt;
 
 @Slf4j
 public class MQLNewConsoleAction extends AnAction {
+    private static final String CONSOLE_PREFIX = "MQL Console ";
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
@@ -30,21 +32,31 @@ public class MQLNewConsoleAction extends AnAction {
             OptionalInt maxOptional = consoleBeanMap.values().stream()
                     .filter(console -> !console.isPhysicalFile())
                     .map(ConsoleManager::getConsoleName)
-                    .filter(consoleName -> consoleName.startsWith("MQL Console"))
-                    .map(consoleName -> consoleName.replace("MQL Console ", ""))
-                    .map(Integer::parseInt)
-                    .mapToInt(Integer::intValue).max();
+                    .mapToInt(this::extractConsoleIndex)
+                    .filter(index -> index > 0)
+                    .max();
             max = maxOptional.isPresent() ? maxOptional.getAsInt() + 1 : max;
         }
-        String consoleName = "MQL Console " + max;
+        String consoleName = CONSOLE_PREFIX + max;
         LightVirtualFile consoleFile = new LightVirtualFile(consoleName);
         consoleFile.setLanguage(MQLLanguage.INSTANCE);
         consoleFile.setWritable(true);
-        consoleFile.setCharset(null);
+        consoleFile.setCharset(StandardCharsets.UTF_8);
         ConsoleManager consoleManager = new ConsoleManager(project, consoleName, consoleFile);
         UserInput.getInstance().putConsole(project, consoleManager.getConsoleName(), consoleManager);
         FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
         fileEditorManager.openFile(consoleFile, true);
+    }
+
+    private int extractConsoleIndex(String consoleName) {
+        if (!consoleName.startsWith(CONSOLE_PREFIX)) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(consoleName.substring(CONSOLE_PREFIX.length()).trim());
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 
     @Override

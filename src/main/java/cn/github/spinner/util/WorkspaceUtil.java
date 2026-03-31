@@ -11,10 +11,9 @@ import com.intellij.openapi.project.Project;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
 import java.io.File;
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 public class WorkspaceUtil {
@@ -27,7 +26,7 @@ public class WorkspaceUtil {
             }
             String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
             String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
-            String remoteSpinnerDir = "spinner" + new Random().nextInt();
+            String remoteSpinnerDir = createRemoteSpinnerDirName();
             String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
             //创建目录
             WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
@@ -42,7 +41,7 @@ public class WorkspaceUtil {
                         //编译JPO
                         String res = WorkspaceUtil.runSpinnerImport(connection, remoteBaseDir + "/" + remoteSpinnerDir);
                         if (res == null || res.isEmpty()) {
-                            res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
+                            res = buildDeploySuccessMessage(remoteBaseDir, remoteSpinnerDir);
                         }
 //                        WorkspaceUtil.reloadSpinnerCache(connection);
                         UIUtil.showNotification(project, "Deploy Result",res);
@@ -53,8 +52,16 @@ public class WorkspaceUtil {
             });
         } catch (Exception e) {
             log.error("Deploy Error", e);
-            JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
+            UIUtil.showErrorNotification(project, "Deploy Error", e.getLocalizedMessage());
         }
+    }
+
+    public static String createRemoteSpinnerDirName() {
+        return "spinner" + ThreadLocalRandom.current().nextInt(1_000_000_000);
+    }
+
+    public static String buildDeploySuccessMessage(String remoteBaseDir, String remoteSpinnerDir) {
+        return "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/spinner.log";
     }
 
     public static String extractSpinnerSubPath(String fullPath) {

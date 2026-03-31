@@ -5,6 +5,7 @@ import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutorToolWindow;
 import cn.github.spinner.task.ExecuteMQLCommand;
+import cn.github.spinner.task.MQLCommandEntry;
 import cn.github.spinner.util.ConsoleManager;
 import cn.github.spinner.util.EditorUtil;
 import cn.github.spinner.util.UIUtil;
@@ -18,6 +19,7 @@ import com.intellij.openapi.project.Project;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -34,22 +36,15 @@ public class RunMQLAction extends AnAction {
             return;
         }
         Editor editor = e.getData(CommonDataKeys.EDITOR);
-        if (editor == null) return;
+        if (editor == null || editor.getVirtualFile() == null) return;
 
         String consoleName = editor.getVirtualFile().getName();
         String selectedText = EditorUtil.getSelectedText(editor);
         log.info("Selected Text: {}", selectedText);
-        List<String> commandList;
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
-        if (StrUtil.isNotEmpty(selectedText)) {
-            commandList = List.of(selectedText.split(spinnerSettings.getLineDelimiter()));
-        } else {
-            commandList = List.of(EditorUtil.getLineContent(editor).split(spinnerSettings.getLineDelimiter()));
-        }
-        // 去除注释行和空行
-        commandList = commandList.stream()
-                .filter(command -> !command.isEmpty() && !command.startsWith("#"))
-                .map(command -> command.replaceAll("\n", " ").trim()).toList();
+        List<MQLCommandEntry> commandList = StrUtil.isNotEmpty(selectedText)
+                ? getSelectedCommandEntries(editor, spinnerSettings.getLineDelimiter())
+                : getCurrentLineCommandEntries(editor, spinnerSettings.getLineDelimiter());
         log.info("commandList: {}", commandList);
         if (!commandList.isEmpty()) {
             ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, consoleName);
@@ -80,5 +75,34 @@ public class RunMQLAction extends AnAction {
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
         return ActionUpdateThread.BGT;
+    }
+
+    private List<MQLCommandEntry> getSelectedCommandEntries(@NotNull Editor editor, @NotNull String lineDelimiter) {
+        List<MQLCommandEntry> entries = new ArrayList<>();
+        int startLine = editor.getDocument().getLineNumber(editor.getSelectionModel().getSelectionStart());
+        int endLine = editor.getDocument().getLineNumber(editor.getSelectionModel().getSelectionEnd());
+        for (int line = startLine; line <= endLine; line++) {
+            addCommandEntries(entries, line, EditorUtil.getLineContent(editor, line), lineDelimiter);
+        }
+        return entries;
+    }
+
+    private List<MQLCommandEntry> getCurrentLineCommandEntries(@NotNull Editor editor, @NotNull String lineDelimiter) {
+        List<MQLCommandEntry> entries = new ArrayList<>();
+        int line = editor.getCaretModel().getCurrentCaret().getLogicalPosition().line;
+        addCommandEntries(entries, line, EditorUtil.getLineContent(editor), lineDelimiter);
+        return entries;
+    }
+
+    private void addCommandEntries(@NotNull List<MQLCommandEntry> entries,
+                                   int lineNumber,
+                                   @NotNull String rawText,
+                                   @NotNull String lineDelimiter) {
+        for (String command : rawText.split(lineDelimiter)) {
+            String normalized = command.replaceAll("\n", " ").trim();
+            if (!normalized.isEmpty() && !normalized.startsWith("#")) {
+                entries.add(new MQLCommandEntry(lineNumber, normalized));
+            }
+        }
     }
 }

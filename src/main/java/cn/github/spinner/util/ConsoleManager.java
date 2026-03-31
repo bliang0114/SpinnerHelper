@@ -6,12 +6,17 @@ import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.GlobalSearchScope;
+import cn.github.spinner.execution.MQLExecutionEntry;
 import lombok.Data;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Data
 public class ConsoleManager {
     private final ConsoleView consoleView;
     private final ConsolePrinter consolePrinter;
+    private final List<MQLExecutionEntry> executionEntries = new CopyOnWriteArrayList<>();
     private String consoleName;
     private VirtualFile consoleFile;
 
@@ -53,5 +58,13 @@ public class ConsoleManager {
 
     public void clear() {
         consolePrinter.clear();
+    }
+
+    public void addExecutionEntry(MQLExecutionEntry entry) {
+        executionEntries.add(entry);
+    }
+
+    public void clearExecutionEntries() {
+        executionEntries.clear();
     }
 }

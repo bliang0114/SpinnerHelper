@@ -9,6 +9,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,14 +18,20 @@ public class SpinnerSettingsComponent extends JPanel {
     private final SpinnerType spinnerType;
     private final String settingName;
     private final String settingValue;
+    private final Runnable onValueChanged;
     private DefaultActionGroup actionGroup;
     private List<ComboBoxWithFilter<String>> settingNameComponents;
     private List<ExpandableTextField> settingValueComponents;
 
     public SpinnerSettingsComponent(SpinnerType spinnerType, String settingName, String settingValue) {
+        this(spinnerType, settingName, settingValue, null);
+    }
+
+    public SpinnerSettingsComponent(SpinnerType spinnerType, String settingName, String settingValue, Runnable onValueChanged) {
         this.spinnerType = spinnerType;
         this.settingName = settingName;
         this.settingValue = settingValue;
+        this.onValueChanged = onValueChanged;
         initComponents();
         setupLayout();
     }
@@ -35,12 +43,9 @@ public class SpinnerSettingsComponent extends JPanel {
         settingValueComponents =  new ArrayList<>(settingNames.length);
         List<String> settingNameItems = SpinnerSettingNameConfig.getSettingNames(this.spinnerType);
         for (int i = 0; i < settingNames.length; i++) {
-            ComboBoxWithFilter<String> comboBox = new ComboBoxWithFilter<>(settingNameItems, settingNames[i]);
-            settingNameComponents.add(comboBox);
+            settingNameComponents.add(createSettingNameComponent(settingNameItems, settingNames[i]));
             String value = i >= settingValues.length ? "" : settingValues[i];
-            ExpandableTextField textField = new ExpandableTextField();
-            textField.setText(value);
-            settingValueComponents.add(textField);
+            settingValueComponents.add(createSettingValueComponent(value));
         }
         actionGroup = new DefaultActionGroup();
         actionGroup.add(new AddSettingAction());
@@ -105,6 +110,41 @@ public class SpinnerSettingsComponent extends JPanel {
         }
     }
 
+    private ComboBoxWithFilter<String> createSettingNameComponent(List<String> settingNameItems, String value) {
+        ComboBoxWithFilter<String> comboBox = new ComboBoxWithFilter<>(settingNameItems, value);
+        comboBox.addActionListener(e -> notifyValueChanged());
+        Component editorComponent = comboBox.getEditor().getEditorComponent();
+        if (editorComponent instanceof JTextField textField) {
+            textField.addActionListener(e -> notifyValueChanged());
+            textField.addFocusListener(new FocusAdapter() {
+                @Override
+                public void focusLost(FocusEvent e) {
+                    notifyValueChanged();
+                }
+            });
+        }
+        return comboBox;
+    }
+
+    private ExpandableTextField createSettingValueComponent(String value) {
+        ExpandableTextField textField = new ExpandableTextField();
+        textField.setText(value);
+        textField.addActionListener(e -> notifyValueChanged());
+        textField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                notifyValueChanged();
+            }
+        });
+        return textField;
+    }
+
+    private void notifyValueChanged() {
+        if (onValueChanged != null) {
+            onValueChanged.run();
+        }
+    }
+
     public class AddSettingAction extends AnAction {
         public AddSettingAction() {
             super("Add Setting", "Add Setting", AllIcons.General.Add);
@@ -116,13 +156,14 @@ public class SpinnerSettingsComponent extends JPanel {
             place = place.replace("Spinner Setting.ActionGroup", "");
             int index = Integer.parseInt(place);
             List<String> settingNameItems = SpinnerSettingNameConfig.getSettingNames(spinnerType);
-            settingNameComponents.add(index + 1, new ComboBoxWithFilter<>(settingNameItems, ""));
-            settingValueComponents.add(index + 1, new ExpandableTextField());
+            settingNameComponents.add(index + 1, createSettingNameComponent(settingNameItems, ""));
+            settingValueComponents.add(index + 1, createSettingValueComponent(""));
 
             removeAll();
             setupLayout();
             revalidate();
             repaint();
+            notifyValueChanged();
         }
 
         @Override
@@ -148,6 +189,7 @@ public class SpinnerSettingsComponent extends JPanel {
             setupLayout();
             revalidate();
             repaint();
+            notifyValueChanged();
         }
 
         @Override
@@ -185,6 +227,7 @@ public class SpinnerSettingsComponent extends JPanel {
                 text = "<<" + text + ">>";
             }
             component.setItem(text);
+            notifyValueChanged();
         }
 
         @Override

@@ -1,7 +1,7 @@
 package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
-import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.constant.TitleConstant;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
@@ -21,10 +21,8 @@ import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
-import javax.swing.*;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.util.Random;
 
 public class SpinnerDeployAction extends AnAction {
 
@@ -33,106 +31,114 @@ public class SpinnerDeployAction extends AnAction {
     @Override
     public void actionPerformed(AnActionEvent e) {
         Project project = e.getData(CommonDataKeys.PROJECT);
-        if (project == null) return;
+        if (project == null) {
+            return;
+        }
 
         try {
             logger.info("Deploy Action start");
             PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
-            if(file == null){
-                UIUtil.showWarningNotification(project, "File is null", "");
+            if (file == null) {
+                UIUtil.showWarningNotification(project, "Deploy", "File is unavailable.");
                 return;
             }
-            String filePath = file.getViewProvider().getVirtualFile().getPath();
+
             PsiDirectory parent = file.getParent();
-            if(parent == null){
-                UIUtil.showWarningNotification(project, "Parent Dir is null", "");
+            if (parent == null) {
+                UIUtil.showWarningNotification(project, "Deploy", "Parent directory is unavailable.");
                 return;
             }
-            String fileName = file.getName();
+
             MatrixConnection connection = UserInput.getInstance().connection.get(project);
             if (connection == null) {
                 UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, "Please connect to a matrix server first.");
                 return;
             }
-            if (fileName.endsWith(".java")) {
-                String javaContent = file.getText();
-                importJPOFile(connection, project, filePath, javaContent);
-            } else if (fileName.endsWith(".xls")) {
-                Editor editor = e.getData(CommonDataKeys.EDITOR);
-                assert editor != null;
-                Document document = editor.getDocument();
-                SelectionModel selectionModel = editor.getSelectionModel();
-                int firstLine = 0;
-                String firstLineText = editor.getDocument().getText(new TextRange(
-                        editor.getDocument().getLineStartOffset(firstLine),
-                        editor.getDocument().getLineEndOffset(firstLine)
-                ));
-                int selectionStart = selectionModel.getSelectionStart();
-                int selectionEnd = selectionModel.getSelectionEnd();
-                int startLine = document.getLineNumber(selectionStart);
-                if (startLine == 0) {
-                    startLine++;
-                }
-                int endLine = document.getLineNumber(selectionEnd);
-                String selectLineContent = editor.getDocument().getText(new TextRange(
-                        editor.getDocument().getLineStartOffset(startLine),
-                        editor.getDocument().getLineEndOffset(endLine)
-                ));
-                WorkspaceUtil.importSpinnerFile(connection, project, filePath, firstLineText + "\n" + selectLineContent);
-            } else if(fileName.endsWith(".properties")){
-                if(parent.getName().equals("PageFiles")){
-                    importPageFile(connection, project, file);
-                }
 
-            } else {
-                UIUtil.showErrorNotification(project, "Unsupported File Type, Supports .java .xls", "");
+            String fileName = file.getName();
+            String filePath = file.getViewProvider().getVirtualFile().getPath();
+            if (fileName.endsWith(".java")) {
+                importJpoFile(connection, project, filePath, file.getText());
+                return;
             }
+
+            if (fileName.endsWith(".xls")) {
+                Editor editor = e.getData(CommonDataKeys.EDITOR);
+                if (editor == null) {
+                    UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, "Editor is unavailable for the selected file.");
+                    return;
+                }
+                WorkspaceUtil.importSpinnerFile(connection, project, filePath, buildSelectedSpinnerContent(editor));
+                return;
+            }
+
+            if (fileName.endsWith(".properties") && "PageFiles".equals(parent.getName())) {
+                importPageFile(connection, project, file);
+                return;
+            }
+
+            UIUtil.showErrorNotification(project, "Unsupported File Type", "Supports .java, .xls and PageFiles/.properties");
         } catch (Exception ex) {
-            logger.error("Deploy Error", ex);
-            JOptionPane.showMessageDialog(null, ex.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
+            showDeployError(project, ex);
         }
+    }
+
+    private String buildSelectedSpinnerContent(@NotNull Editor editor) {
+        Document document = editor.getDocument();
+        SelectionModel selectionModel = editor.getSelectionModel();
+        int lineCount = document.getLineCount();
+        if (lineCount == 0) {
+            return "";
+        }
+        String firstLineText = document.getText(new TextRange(
+                document.getLineStartOffset(0),
+                document.getLineEndOffset(0)
+        ));
+        if (lineCount == 1) {
+            return firstLineText;
+        }
+
+        int selectionStart = selectionModel.getSelectionStart();
+        int selectionEnd = selectionModel.getSelectionEnd();
+        int safeSelectionEnd = selectionEnd > selectionStart ? selectionEnd - 1 : selectionEnd;
+        int startLine = Math.max(1, document.getLineNumber(selectionStart));
+        int endLine = Math.max(startLine, document.getLineNumber(safeSelectionEnd));
+        startLine = Math.min(startLine, lineCount - 1);
+        endLine = Math.min(endLine, lineCount - 1);
+        String selectedLineContent = document.getText(new TextRange(
+                document.getLineStartOffset(startLine),
+                document.getLineEndOffset(endLine)
+        ));
+        return firstLineText + "\n" + selectedLineContent;
     }
 
     private void importPageFile(MatrixConnection connection, Project project, PsiFile file) {
         try {
             String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
-            String remoteSpinnerDir = "spinner" + new Random().nextInt();
+            String remoteSpinnerDir = WorkspaceUtil.createRemoteSpinnerDirName();
             String remoteRelativePath = remoteSpinnerDir + "/Business/PageFiles";
-            //创建目录
             WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
-            //上传文件
+
             byte[] content = file.getVirtualFile().contentsToByteArray();
             String originalContent = new String(content, StandardCharsets.UTF_8);
             WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, file.getName(), originalContent);
-            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    indicator.setIndeterminate(false);
-                    indicator.setText("Starting deployment...");
-                    try {
-                        //编译JPO
-                        String res = WorkspaceUtil.runPageImport(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(), file.getName());
-                        if (res == null || res.isEmpty()) {
-                            res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
-//                            WorkspaceUtil.reloadPageCache(connection);
-                        }
-                        UIUtil.showNotification(project, "Deploy Result",res);
-                    } catch (Exception e) {
-                        UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
-                    }
-                }
-            });
+
+            runDeployTask(project, remoteBaseDir, remoteSpinnerDir, () -> WorkspaceUtil.runPageImport(
+                    connection,
+                    remoteBaseDir + "/" + remoteSpinnerDir,
+                    remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(),
+                    file.getName()
+            ));
         } catch (Exception e) {
-            logger.error("Deploy Error", e);
-            JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
+            showDeployError(project, e);
         }
     }
 
     public static String encodeToUnicode(String str) {
-        if(str == null){
+        if (str == null) {
             return null;
         }
-        if(isUnicode(str)){
+        if (isUnicode(str)) {
             return str;
         }
         StringBuilder result = new StringBuilder();
@@ -150,11 +156,9 @@ public class SpinnerDeployAction extends AnAction {
 
         for (int i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
-            // 检查是否为基本多文种平面之外的字符(需要代理对表示)
             if (Character.isHighSurrogate(c) || Character.isLowSurrogate(c)) {
                 return true;
             }
-            // 检查是否为非ASCII字符
             if (c > 127) {
                 return true;
             }
@@ -162,43 +166,59 @@ public class SpinnerDeployAction extends AnAction {
         return false;
     }
 
-    private void importJPOFile(MatrixConnection connection, Project project, String filePath, String codeContent) {
+    private void importJpoFile(MatrixConnection connection, Project project, String filePath, String codeContent) {
         try {
             File jpoFile = new File(filePath);
             if (!jpoFile.exists()) {
-                throw new RuntimeException("File not found.");
+                throw new IllegalStateException("File not found.");
             }
+
             String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
             String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
-            String remoteSpinnerDir = "spinner" + new Random().nextInt();
+            String remoteSpinnerDir = WorkspaceUtil.createRemoteSpinnerDirName();
             String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
-            //创建目录
             WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
-            //上传文件
             WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, jpoFile.getName(), codeContent);
-            //编译JPO
-            String jpoName = jpoFile.getName().replace("_mxJPO.java", "");
 
-            ProgressManager.getInstance().run(new Task.Backgroundable(project, "Spinner Deploy") {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    indicator.setIndeterminate(false);
-                    indicator.setText("Starting deployment...");
-                    try {
-                        //编译JPO
-                        String res = WorkspaceUtil.runJPOImport(connection, remoteBaseDir + "/" + remoteSpinnerDir, remoteBaseDir + "/" + remoteRelativePath, jpoName);
-                        if (res == null || res.isEmpty()) {
-                            res = "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/" + "spinner.log";
-                        }
-                        UIUtil.showNotification(project, "Deploy Result",res);
-                    } catch (Exception e) {
-                        UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
-                    }
-                }
-            });
+            String jpoName = jpoFile.getName().replace("_mxJPO.java", "");
+            runDeployTask(project, remoteBaseDir, remoteSpinnerDir, () -> WorkspaceUtil.runJPOImport(
+                    connection,
+                    remoteBaseDir + "/" + remoteSpinnerDir,
+                    remoteBaseDir + "/" + remoteRelativePath,
+                    jpoName
+            ));
         } catch (Exception e) {
-            logger.error("Deploy Error", e);
-            JOptionPane.showMessageDialog(null, e.getLocalizedMessage(), "Deploy Error", JOptionPane.ERROR_MESSAGE);
+            showDeployError(project, e);
         }
+    }
+
+    private void runDeployTask(Project project, String remoteBaseDir, String remoteSpinnerDir, DeployOperation deployOperation) {
+        ProgressManager.getInstance().run(new Task.Backgroundable(project, TitleConstant.SPINNER_DEPLOY) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(false);
+                indicator.setText("Starting deployment...");
+                try {
+                    String result = deployOperation.execute();
+                    if (result == null || result.isEmpty()) {
+                        result = WorkspaceUtil.buildDeploySuccessMessage(remoteBaseDir, remoteSpinnerDir);
+                    }
+                    UIUtil.showNotification(project, "Deploy Result", result);
+                } catch (Exception e) {
+                    logger.error("Deploy Error", e);
+                    UIUtil.showErrorNotification(project, "Deploy Error", e.getLocalizedMessage());
+                }
+            }
+        });
+    }
+
+    private void showDeployError(Project project, Exception exception) {
+        logger.error("Deploy Error", exception);
+        UIUtil.showErrorNotification(project, "Deploy Error", exception.getLocalizedMessage());
+    }
+
+    @FunctionalInterface
+    private interface DeployOperation {
+        String execute() throws Exception;
     }
 }

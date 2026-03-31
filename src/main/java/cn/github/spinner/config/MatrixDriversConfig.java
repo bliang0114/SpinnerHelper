@@ -11,13 +11,14 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.*;
+import java.util.Objects;
 
 @Service(Service.Level.APP)
 @State(name="SpinnerSettings", storages = @Storage("matrix-drivers-config.xml"))
 public final class MatrixDriversConfig implements PersistentStateComponent<MatrixDriversConfig> {
     @Setter
     private Map<String, DriverInfo> driversMap;
-    private final List<String> DEFAULT_DRIVER = List.of("R2021x", "R2022x", "R2023x", "R2024x", "R2025x");
+    private static final List<String> DEFAULT_DRIVER = List.of("R2021x", "R2022x", "R2023x", "R2024x", "R2025x");
 
     public static MatrixDriversConfig getInstance(){
         return ApplicationManager.getApplication().getService(MatrixDriversConfig.class);
@@ -35,10 +36,10 @@ public final class MatrixDriversConfig implements PersistentStateComponent<Matri
 
     public Map<String, DriverInfo> getDriversMap() {
         if (driversMap == null){
-            driversMap = new HashMap<>();
+            driversMap = new LinkedHashMap<>();
         }
         for (String driver : DEFAULT_DRIVER) {
-            driversMap.putIfAbsent(driver, null);
+            driversMap.computeIfAbsent(driver, key -> new DriverInfo());
         }
         return driversMap;
     }
@@ -46,15 +47,19 @@ public final class MatrixDriversConfig implements PersistentStateComponent<Matri
     public List<File> getDriverFiles(String driverName) {
         DriverInfo driverInfo = putDriver(driverName);
         List<DriverFile> driverFiles = Optional.ofNullable(driverInfo).map(DriverInfo::getDriverFiles).orElse(new ArrayList<>());
-        return driverFiles.stream().map(driverFile -> new File(driverFile.getPath())).toList();
+        return driverFiles.stream()
+                .map(DriverFile::getPath)
+                .filter(Objects::nonNull)
+                .map(File::new)
+                .toList();
     }
 
     public void putDriver(String driverName, DriverInfo driverInfo) {
-        getDriversMap().putIfAbsent(driverName, driverInfo);
+        getDriversMap().put(driverName, driverInfo == null ? new DriverInfo() : driverInfo);
     }
 
     public DriverInfo putDriver(String driverName) {
-        return getDriversMap().putIfAbsent(driverName, new DriverInfo());
+        return getDriversMap().computeIfAbsent(driverName, key -> new DriverInfo());
     }
 
     public void removeDriver(String driverName) {
