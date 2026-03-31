@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "2.2.0"
+version = "3.0.0"
 
 repositories {
 //    mavenCentral()
@@ -45,17 +45,19 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
-            V2.2.0
-            ---
-            1. 修复Spinner文件在Spinner视图与Text视图切换编辑卡顿的问题
-            2. 修复首次打开项目后，执行MQL，结果未显示的问题
-            3. 新增MQL编辑器中对执行结果的状态显示
-            4. 优化部分代码
+            <h2>3.0.0</h2>
+            <ul>
+            <li>MQL编辑器已重构为分栏视图：左侧源码、右侧执行结果，替换旧版结果工具窗口。</li>
+            <li>执行结果现已保留语句与输出映射、长期历史记录、换行切换、检索功能、语法高亮输出、侧边标记及失败提示气泡。</li>
+            <li>针对包含 $1、$2 等占位符的MQL命令，新增非阻塞式执行前弹窗录入。</li>
+            <li>环境管理新增CAS开关（新增/编辑/复制流程均支持），适配CAS与非CAS服务器的连接、重连逻辑。</li>
+            <li>优化了历史环境配置兼容性，并精细化优化多项MQL编辑器与执行交互体验。</li>
+            </ul>
     """.trimIndent()
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "2.2.0"
+        version = "3.0.0"
     }
 }
 
@@ -95,11 +97,11 @@ tasks {
     }
 
     buildSearchableOptions {
-        enabled = false  // 直接禁用，发布插件不需要可搜索选项索引
+        enabled = false  // disabled because publishing this plugin does not need searchable options
     }
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "2.2.0"
+        version = "3.0.0"
     }
 }

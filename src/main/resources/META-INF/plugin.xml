@@ -62,7 +62,16 @@
     ]]>
     </description>
 
-    <change-notes />
+    <change-notes><![CDATA[
+        <h2>3.0.0</h2>
+        <ul>
+        <li>MQL编辑器已重构为分栏视图：左侧源码、右侧执行结果，替换旧版结果工具窗口。</li>
+        <li>执行结果现已保留语句与输出映射、长期历史记录、换行切换、检索功能、语法高亮输出、侧边标记及失败提示气泡。</li>
+        <li>针对包含 $1、$2 等占位符的MQL命令，新增非阻塞式执行前弹窗录入。</li>
+        <li>环境管理新增CAS开关（新增/编辑/复制流程均支持），适配CAS与非CAS服务器的连接、重连逻辑。</li>
+        <li>优化了历史环境配置兼容性，并精细化优化多项MQL编辑器与执行交互体验。</li>
+        </ul>
+    ]]></change-notes>
 
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
@@ -73,8 +82,6 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="SpinnerConfig" factoryClass="cn.github.spinner.ui.SpinnerUIFactory" anchor="right"
                     icon="AllIcons.RunConfigurations.Remote"/>
-        <toolWindow id="MQLExecutor" factoryClass="cn.github.spinner.execution.MQLExecutorToolWindowFactory"
-                    icon="AllIcons.General.LayoutEditorPreview" anchor="bottom"/>
         <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
         <applicationService serviceImplementation="cn.github.spinner.config.SpinnerSettings"/>
@@ -99,6 +106,7 @@
 
         <fileEditorProvider implementation="cn.github.spinner.editor.ui.MatrixCommonViewProvider"/>
         <fileEditorProvider implementation="cn.github.spinner.editor.spinner.SpinnerDataViewProvider"/>
+        <fileEditorProvider implementation="cn.github.spinner.editor.MQLSplitEditorProvider"/>
         <editorNotificationProvider implementation="cn.github.spinner.editor.MQLEditorNotificationProvider"/>
     </extensions>
     <actions>

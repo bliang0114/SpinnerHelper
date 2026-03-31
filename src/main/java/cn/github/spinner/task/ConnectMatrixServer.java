@@ -60,6 +60,7 @@ public class ConnectMatrixServer extends Task.Backgroundable {
                         environment.getPassword(),
                         environment.getVault(),
                         environment.getRole(),
+                        environment.isCas(),
                         classLoader
                 )
         );

@@ -8,7 +8,9 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.GlobalSearchScope;
 import cn.github.spinner.execution.MQLExecutionEntry;
 import lombok.Data;
+import org.jetbrains.annotations.NotNull;
 
+import javax.swing.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -66,5 +68,55 @@ public class ConsoleManager {
 
     public void clearExecutionEntries() {
         executionEntries.clear();
+    }
+
+    public int getCurrentOutputOffset() {
+        return consolePrinter.getCurrentOffset();
+    }
+
+    public int printSync(String message) {
+        return consolePrinter.printSync(message);
+    }
+
+    public int printSync(String message, ConsoleViewContentType contentType) {
+        return consolePrinter.printSync(message, contentType);
+    }
+
+    public void scrollToExecutionEntry(@NotNull MQLExecutionEntry entry) {
+        consolePrinter.scrollToOffset(entry.consoleStartOffset());
+    }
+
+    public MQLExecutionEntry findExecutionEntry(int sourceOffset, int lineNumber) {
+        MQLExecutionEntry nextEntryOnSameLine = null;
+        MQLExecutionEntry previousEntryOnSameLine = null;
+        for (MQLExecutionEntry entry : executionEntries) {
+            if (sourceOffset >= entry.sourceStartOffset() && sourceOffset < entry.sourceEndOffset()) {
+                return entry;
+            }
+            if (entry.lineNumber() == lineNumber) {
+                if (sourceOffset < entry.sourceStartOffset()) {
+                    if (nextEntryOnSameLine == null || entry.sourceStartOffset() < nextEntryOnSameLine.sourceStartOffset()) {
+                        nextEntryOnSameLine = entry;
+                    }
+                } else if (sourceOffset >= entry.sourceEndOffset()) {
+                    if (previousEntryOnSameLine == null || entry.sourceStartOffset() > previousEntryOnSameLine.sourceStartOffset()) {
+                        previousEntryOnSameLine = entry;
+                    }
+                }
+            }
+        }
+        return nextEntryOnSameLine != null ? nextEntryOnSameLine : previousEntryOnSameLine;
+    }
+
+    public boolean isSoftWrapsEnabled() {
+        return consolePrinter.isSoftWrapsEnabled();
+    }
+
+    public void setSoftWrapsEnabled(boolean enabled) {
+        consolePrinter.setSoftWrapsEnabled(enabled);
+    }
+
+    public JComponent getResultComponent() {
+        return consolePrinter.getResultComponent();
     }
 }

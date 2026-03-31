@@ -28,9 +28,15 @@ public class MatrixCommonDriver implements MatrixDriver {
     public MatrixConnection connect(MatrixDriverProperty matrixDriverProperty) throws MQLException {
         try {
             Passport.setTrustManager(false);
-            String ticket = Passport.getTicket(matrixDriverProperty.getUrl(), matrixDriverProperty.getUsername(), matrixDriverProperty.getPassword());
-            String newUrl = Passport.addUrlParam(matrixDriverProperty.getUrl(), "ticket", ticket);
-            Context ctx = new Context(newUrl);
+            Context ctx;
+            if (matrixDriverProperty.isCas()) {
+                String ticket = Passport.getTicket(matrixDriverProperty.getUrl(), matrixDriverProperty.getUsername(), matrixDriverProperty.getPassword());
+                String newUrl = Passport.addUrlParam(matrixDriverProperty.getUrl(), "ticket", ticket);
+                ctx = new Context(newUrl);
+            } else {
+                ctx = new Context(matrixDriverProperty.getUrl());
+                ctx.setPassword(matrixDriverProperty.getPassword());
+            }
             ctx.setUser(matrixDriverProperty.getUsername());
             ctx.setVault(matrixDriverProperty.getVault());
             ctx.setRole(matrixDriverProperty.getRole());

@@ -12,6 +12,7 @@ public class EnvironmentConfig {
     private String vault;
     private String securityContext;
     private String driver;
+    private boolean cas;
     @Transient
     private transient boolean connected = false;
 
@@ -28,6 +29,10 @@ public class EnvironmentConfig {
     }
 
     public EnvironmentConfig(String name, String hostUrl, String user, String password, String vault, String securityContext, String driver) {
+        this(name, hostUrl, user, password, vault, securityContext, driver, false);
+    }
+
+    public EnvironmentConfig(String name, String hostUrl, String user, String password, String vault, String securityContext, String driver, boolean cas) {
         this.name = name;
         this.hostUrl = hostUrl;
         this.user = user;
@@ -35,6 +40,7 @@ public class EnvironmentConfig {
         this.vault = vault;
         this.securityContext = securityContext;
         this.driver = driver;
+        this.cas = cas;
     }
 
     @Transient
@@ -72,5 +78,6 @@ public class EnvironmentConfig {
         this.vault = environment.vault;
         this.securityContext = environment.securityContext;
         this.driver = environment.driver;
+        this.cas = environment.cas;
     }
 }

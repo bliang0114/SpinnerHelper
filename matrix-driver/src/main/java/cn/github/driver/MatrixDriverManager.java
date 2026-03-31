@@ -92,7 +92,11 @@ public class MatrixDriverManager {
      * @author zaydenwang
      */
     public static MatrixConnection getConnection(String url, String username, String password, String vault, ClassLoader classLoader) throws MQLException {
-        return getConnection(url, username, password, vault, null, classLoader);
+        return getConnection(url, username, password, vault, null, false, classLoader);
+    }
+
+    public static MatrixConnection getConnection(String url, String username, String password, String vault, boolean cas, ClassLoader classLoader) throws MQLException {
+        return getConnection(url, username, password, vault, null, cas, classLoader);
     }
 
     /**
@@ -108,6 +112,10 @@ public class MatrixDriverManager {
      * @author zaydenwang
      */
     public static MatrixConnection getConnection(String url, String username, String password, String vault, String role, ClassLoader classLoader) throws MQLException {
+        return getConnection(url, username, password, vault, role, false, classLoader);
+    }
+
+    public static MatrixConnection getConnection(String url, String username, String password, String vault, String role, boolean cas, ClassLoader classLoader) throws MQLException {
         if (url == null) {
             throw new MQLException("The url cannot be null", "08001");
         }
@@ -115,7 +123,7 @@ public class MatrixDriverManager {
         ensureDriversInitialized(classLoader);
 
         MQLException reason = null;
-        MatrixDriverProperty matrixDriverProperty = new MatrixDriverProperty(url, username, password, vault, role);
+        MatrixDriverProperty matrixDriverProperty = new MatrixDriverProperty(url, username, password, vault, role, cas);
         for (MatrixDriver driver : registeredDrivers) {
             if (isDriverAllowed(driver, classLoader)) {
                 try {

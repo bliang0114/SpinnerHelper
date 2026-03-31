@@ -7,7 +7,6 @@ import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutionEntry;
-import cn.github.spinner.execution.MQLExecutorToolWindow;
 import cn.github.spinner.util.ConsoleManager;
 import cn.github.spinner.util.MQLExecutionGutterManager;
 import cn.github.spinner.util.UIUtil;
@@ -15,7 +14,6 @@ import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.wm.ToolWindow;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -93,20 +91,6 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
                                  @NotNull Project project,
                                  @NotNull MatrixConnection connection,
                                  @NotNull ConsoleManager consoleManager) {
-        ToolWindow window = UIUtil.getToolWindow(project, "MQLExecutor");
-        if (window != null) {
-            SwingUtilities.invokeLater(() -> window.show(() -> {
-                MQLExecutorToolWindow toolWindow = UIUtil.getMQLExecutorToolWindow(project);
-                if (toolWindow == null) {
-                    UIUtil.showWarningNotification(project, "MQL Executor", "MQL Executor initialize delayed, please retry.");
-                    return;
-                }
-                toolWindow.reloadConsoleTree();
-                log.info("consoleName: {}", consoleName);
-                toolWindow.selectNode(consoleName);
-            }));
-        }
-
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         for (int i = 0; i < commandList.size(); i++) {
             if (indicator.isCanceled()) {
@@ -117,7 +101,8 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
             String command = commandEntry.command();
             long startTime = System.currentTimeMillis();
             indicator.setText2("Processing " + (i + 1) + " / " + commandList.size());
-            SwingUtilities.invokeLater(() -> consoleManager.print("MQL>" + command));
+            consoleManager.printSync("MQL>" + command);
+            int consoleResultOffset = consoleManager.getCurrentOutputOffset();
 
             try {
                 MatrixStatement statement = connection.executeStatement(command);
@@ -125,26 +110,26 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
                 if (resultSet.isSuccess()) {
                     String successMessage = normalizeMessage("Success", true);
                     MQLExecutionGutterManager.markResult(project, consoleManager.getConsoleFile(), commandEntry.lineNumber(), true, successMessage);
-                    recordExecutionEntry(project, consoleManager, commandEntry, true, successMessage);
-                    SwingUtilities.invokeLater(() -> consoleManager.print(resultSet.getResult(), ConsoleViewContentType.LOG_INFO_OUTPUT));
+                    recordExecutionEntry(project, consoleManager, commandEntry, consoleResultOffset, true, successMessage);
+                    consoleManager.printSync(resultSet.getResult(), ConsoleViewContentType.LOG_INFO_OUTPUT);
                 } else {
                     String errorMessage = normalizeMessage(resultSet.getMessage(), false);
                     MQLExecutionGutterManager.markResult(project, consoleManager.getConsoleFile(), commandEntry.lineNumber(), false, errorMessage);
-                    recordExecutionEntry(project, consoleManager, commandEntry, false, errorMessage);
-                    SwingUtilities.invokeLater(() -> consoleManager.error(errorMessage));
+                    recordExecutionEntry(project, consoleManager, commandEntry, consoleResultOffset, false, errorMessage);
+                    consoleManager.printSync("[ERROR] " + errorMessage, ConsoleViewContentType.LOG_ERROR_OUTPUT);
                 }
             } catch (MQLException e) {
                 String errorMessage = normalizeMessage(e.getLocalizedMessage(), false);
                 MQLExecutionGutterManager.markResult(project, consoleManager.getConsoleFile(), commandEntry.lineNumber(), false, errorMessage);
-                recordExecutionEntry(project, consoleManager, commandEntry, false, errorMessage);
-                SwingUtilities.invokeLater(() -> consoleManager.error(errorMessage));
+                recordExecutionEntry(project, consoleManager, commandEntry, consoleResultOffset, false, errorMessage);
+                consoleManager.printSync("[ERROR] " + errorMessage, ConsoleViewContentType.LOG_ERROR_OUTPUT);
             }
 
             long endTime = System.currentTimeMillis();
             String formatStr = "Start Time: %s, End Time: %s, Duration: %dms";
-            SwingUtilities.invokeLater(() -> consoleManager.print(
+            consoleManager.printSync(
                     String.format(formatStr, dateFormat.format(new Date(startTime)), dateFormat.format(new Date(endTime)), endTime - startTime),
-                    ConsoleViewContentType.LOG_VERBOSE_OUTPUT));
+                    ConsoleViewContentType.LOG_VERBOSE_OUTPUT);
             indicator.setFraction((double) (i + 1) / commandList.size());
         }
     }
@@ -152,16 +137,18 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
     private void recordExecutionEntry(@NotNull Project project,
                                       @NotNull ConsoleManager consoleManager,
                                       @NotNull MQLCommandEntry commandEntry,
+                                      int consoleResultOffset,
                                       boolean success,
                                       @NotNull String message) {
-        consoleManager.addExecutionEntry(new MQLExecutionEntry(commandEntry.lineNumber(), commandEntry.command(), success, message));
-        SwingUtilities.invokeLater(() -> {
-            MQLExecutorToolWindow toolWindow = UIUtil.getMQLExecutorToolWindow(project);
-            if (toolWindow != null) {
-                toolWindow.reloadConsoleTree();
-                toolWindow.selectNode(consoleManager.getConsoleName());
-            }
-        });
+        consoleManager.addExecutionEntry(new MQLExecutionEntry(
+                commandEntry.lineNumber(),
+                commandEntry.sourceStartOffset(),
+                commandEntry.sourceEndOffset(),
+                consoleResultOffset,
+                commandEntry.command(),
+                success,
+                message
+        ));
     }
 
     private @NotNull String normalizeMessage(@Nullable String message, boolean success) {

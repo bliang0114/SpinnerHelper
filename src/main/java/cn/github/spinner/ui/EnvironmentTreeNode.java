@@ -16,6 +16,7 @@ public class EnvironmentTreeNode extends DefaultMutableTreeNode {
         // 添加详细信息作为子节点
         add(new DetailTreeNode("Host URL", environment.getHostUrl()));
         add(new DetailTreeNode("User", environment.getUser()));
+        add(new DetailTreeNode("CAS", environment.isCas() ? "Yes" : "No"));
         add(new DetailTreeNode("Vault", environment.getVault()));
         add(new DetailTreeNode("Security Context", environment.getSecurityContext()));
     }

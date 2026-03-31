@@ -36,6 +36,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
     private final JBTextField usernameField;
     private final JBPasswordField passwordField;
     private final JBTextField vaultField;
+    private final JCheckBox casCheckBox;
     private final ComboBox<String> securityContextComboBox;
     private final ComboBox<String> driverComboBox;
 
@@ -51,6 +52,8 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
         usernameField = new JBTextField();
         passwordField = new JBPasswordField();
         vaultField = new JBTextField("eService Production");
+        casCheckBox = new JCheckBox("Use CAS / 3DPassport");
+        casCheckBox.setSelected(true);
         ExtendableTextComponent.Extension loadExtension =
                 ExtendableTextComponent.Extension.create(
                         AllIcons.Actions.Refresh,
@@ -81,6 +84,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
             usernameField.setText(environment.getUser());
             passwordField.setText(environment.getPassword());
             vaultField.setText(environment.getVault());
+            casCheckBox.setSelected(environment.isCas());
             securityContextComboBox.setItem(environment.getSecurityContext());
             driverComboBox.setItem(environment.getDriver());
         }
@@ -98,6 +102,8 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                 .addTooltip("E.g., https://r2023x.mydomain.com/3dspace")
                 .addLabeledComponent("Username:", usernameField)
                 .addLabeledComponent("Password:", passwordField)
+                .addLabeledComponent("CAS:", casCheckBox)
+                .addTooltip("Enable this for 3DPassport / CAS environments")
                 .addSeparator()
                 .addLabeledComponent("Vault:", vaultField)
                 .addTooltip("E.g., eService production")
@@ -112,6 +118,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
         usernameField.setText(environment.getUser());
         passwordField.setText(environment.getPassword());
         vaultField.setText(environment.getVault());
+        casCheckBox.setSelected(environment.isCas());
         securityContextComboBox.setItem(environment.getSecurityContext());
         driverComboBox.setItem(environment.getDriver());
     }
@@ -134,6 +141,10 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
 
     private String getVault() {
         return vaultField.getText().trim();
+    }
+
+    private boolean isCas() {
+        return casCheckBox.isSelected();
     }
 
     private String getSecurityContext() {
@@ -193,12 +204,13 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
 
     public EnvironmentConfig getEnvironment() {
         if (environment == null) {
-            return new EnvironmentConfig(getName(), getHostUrl(), getUsername(), getPassword(), getVault(), getSecurityContext(), getDriver());
+            return new EnvironmentConfig(getName(), getHostUrl(), getUsername(), getPassword(), getVault(), getSecurityContext(), getDriver(), isCas());
         } else {
             environment.setHostUrl(getHostUrl());
             environment.setUser(getUsername());
             environment.setPassword(getPassword());
             environment.setVault(getVault());
+            environment.setCas(isCas());
             environment.setSecurityContext(getSecurityContext());
             environment.setDriver(getDriver());
             return environment;
@@ -215,7 +227,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
             List<File> driverFiles = MatrixDriversConfig.getInstance().getDriverFiles(getDriver());
             try (MatrixJarClassLoader classLoader = new MatrixJarClassLoader(driverFiles, this.getClass().getClassLoader())) {
                 Class.forName(driverInfo.getDriverClass(), true, classLoader);
-                MatrixConnection connection = MatrixDriverManager.getConnection(getHostUrl(), getUsername(), getPassword(), getVault(), classLoader);
+                MatrixConnection connection = MatrixDriverManager.getConnection(getHostUrl(), getUsername(), getPassword(), getVault(), isCas(), classLoader);
                 MatrixStatement statement = connection.executeStatement("list person '" + getUsername() + "' select assignment dump");
                 MatrixResultSet resultSet = statement.executeQuery();
                 if (!resultSet.isSuccess()) {
