@@ -4,6 +4,7 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.constant.TitleConstant;
 import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -131,10 +132,16 @@ public class WorkspaceUtil {
         return connection.invokeJPOMethod("SpinnerDeployJPO", "runScript", cmdArray, String.class);
     }
 
-    public static String runJPOImport(MatrixConnection connection, String spinnerBaseDir, String baseDir, String jpoName) throws Exception {
+    public static String runJPOImport(MatrixConnection connection, String spinnerBaseDir, String baseDir, String jpoName, String packageName) throws Exception {
         String script = "mql";
         String output = spinnerBaseDir + "/spinner.log";
-        String[] cmdArray = new String[]{script, "-c", "set context user creator;insert prog " + baseDir + "/" + jpoName + "_mxJPO.java;compile prog " + jpoName + " force update;print context;quit;", spinnerBaseDir, output};
+        String className;
+        if(StrUtil.isNotEmpty(packageName)){
+            className = packageName + "." + jpoName;
+        }else{
+            className = jpoName;
+        }
+        String[] cmdArray = new String[]{script, "-c", "set context user creator;insert prog " + baseDir + "/" + jpoName + "_mxJPO.java;compile prog " + className + " force update;print context;quit;", spinnerBaseDir, output};
         return connection.invokeJPOMethod("SpinnerDeployJPO", "runScript", cmdArray, String.class);
     }
 

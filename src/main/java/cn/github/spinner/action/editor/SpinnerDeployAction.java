@@ -21,7 +21,10 @@ import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class SpinnerDeployAction extends AnAction {
@@ -179,17 +182,34 @@ public class SpinnerDeployAction extends AnAction {
             String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
             WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
             WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, jpoFile.getName(), codeContent);
-
+            String packageName = extractPackageName(jpoFile);
             String jpoName = jpoFile.getName().replace("_mxJPO.java", "");
             runDeployTask(project, remoteBaseDir, remoteSpinnerDir, () -> WorkspaceUtil.runJPOImport(
                     connection,
                     remoteBaseDir + "/" + remoteSpinnerDir,
                     remoteBaseDir + "/" + remoteRelativePath,
-                    jpoName
+                    jpoName,
+                    packageName
             ));
         } catch (Exception e) {
             showDeployError(project, e);
         }
+    }
+
+    public static String extractPackageName(File javaFile) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new FileReader(javaFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith("package ")) {
+                    return line.substring(8).replace(";", "").trim();
+                }
+                if (!line.isEmpty() && !line.startsWith("//") && !line.startsWith("/*")) {
+                    break;
+                }
+            }
+        }
+        return ""; // 默认包
     }
 
     private void runDeployTask(Project project, String remoteBaseDir, String remoteSpinnerDir, DeployOperation deployOperation) {
