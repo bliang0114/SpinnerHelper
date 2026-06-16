@@ -1,6 +1,7 @@
 package cn.github.spinner.action.editor;
 
 import cn.github.spinner.editor.MatrixDataViewFileType;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.fileEditor.FileEditorManager;
@@ -18,5 +19,10 @@ public class RelationshipViewAction extends AnAction {
         LightVirtualFile file = new LightVirtualFile("Relationship View");
         file.setFileType(MatrixDataViewFileType.RELATIONSHIP);
         FileEditorManager.getInstance(project).openFile(file, true);
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 }

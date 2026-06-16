@@ -1,6 +1,7 @@
 package cn.github.spinner.util;
 
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.Nullable;
@@ -26,7 +27,7 @@ public final class MatrixConnectionUtil {
             try {
                 connection.close();
             } catch (IOException e) {
-                UIUtil.showErrorNotification(project, actionName, "Close connection failed: " + e.getLocalizedMessage());
+                UIUtil.showErrorNotification(project, actionName, SpinnerBundle.message("message.close.connection.failed", e.getLocalizedMessage()));
             } finally {
                 if (afterClose != null) {
                     afterClose.run();

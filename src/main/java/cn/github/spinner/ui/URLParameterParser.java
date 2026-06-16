@@ -1,5 +1,7 @@
 package cn.github.spinner.ui;
 
+import cn.github.spinner.i18n.SpinnerBundle;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -21,7 +23,7 @@ public class URLParameterParser extends JFrame {
     private JTextField searchField;
     private java.util.List<Integer> searchResults;
     private int currentSearchIndex = -1;
-    String title = "URL Parameter Parse Tool";
+    String title = SpinnerBundle.message("dialog.url.parameter.title");
     public URLParameterParser() {
         initializeComponents();
         setupLayout();
@@ -42,7 +44,10 @@ public class URLParameterParser extends JFrame {
         searchField.setPreferredSize(new Dimension(150, 30));
 
         // 创建表格模型和表格
-        String[] columnNames = {"ParameterName", "ParameterValue"};
+        String[] columnNames = {
+                SpinnerBundle.message("table.column.parameter.name"),
+                SpinnerBundle.message("table.column.parameter.value")
+        };
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -75,14 +80,14 @@ public class URLParameterParser extends JFrame {
 
         // 顶部面板：URL输入框和按钮
         JPanel topPanel = new JPanel(new FlowLayout());
-        topPanel.add(new JLabel("URL:"));
+        topPanel.add(new JLabel(SpinnerBundle.message("label.url")));
         topPanel.add(urlField);
 
-        JButton parseButton = new JButton("Parse");
+        JButton parseButton = new JButton(SpinnerBundle.message("button.parse"));
         topPanel.add(parseButton);
 
         // 添加搜索组件到同一行
-        topPanel.add(new JLabel("Search:"));
+        topPanel.add(new JLabel(SpinnerBundle.message("label.search")));
         topPanel.add(searchField);
         /*JButton searchButton = new JButton("搜索");
         topPanel.add(searchButton);*/
@@ -147,7 +152,7 @@ public class URLParameterParser extends JFrame {
             Object value = paramTable.getValueAt(selectedRow, selectedColumn);
             if (value != null) {
                 copyToClipboard(value.toString());
-                showMessage("已复制到剪贴板: " + value.toString());
+                showMessage(SpinnerBundle.message("message.copied.to.clipboard", value.toString()));
             }
         }
     }
@@ -157,7 +162,7 @@ public class URLParameterParser extends JFrame {
         Object value = paramTable.getValueAt(row, column);
         if (value != null) {
             copyToClipboard(value.toString());
-            showMessage("已复制到剪贴板: " + value.toString());
+            showMessage(SpinnerBundle.message("message.copied.to.clipboard", value.toString()));
         }
     }
 
@@ -191,7 +196,7 @@ public class URLParameterParser extends JFrame {
     private void parseURL() {
         String urlText = urlField.getText().trim();
         if (urlText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please Input URL First", "Tips", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, SpinnerBundle.message("message.url.required"), SpinnerBundle.message("notification.title.tips"), JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -210,7 +215,7 @@ public class URLParameterParser extends JFrame {
                 tableModel.addRow(new Object[]{entry.getKey(), entry.getValue()});
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "URL Format: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, SpinnerBundle.message("message.url.format", ex.getMessage()), SpinnerBundle.message("notification.title.error"), JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -262,7 +267,7 @@ public class URLParameterParser extends JFrame {
         }
 
         if (searchResults.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No Match Parameter", "Search Result", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, SpinnerBundle.message("message.no.match.parameter"), SpinnerBundle.message("notification.title.search.result"), JOptionPane.INFORMATION_MESSAGE);
             clearHighlights();
         } else {
             // 自动导航到下一个匹配项
@@ -293,8 +298,7 @@ public class URLParameterParser extends JFrame {
 
         // 显示状态信息
         String searchText = searchField.getText().trim();
-        setTitle(String.format(title + " (find %d matches, current %d)",
-                searchResults.size(), currentSearchIndex + 1));
+        setTitle(SpinnerBundle.message("window.url.parameter.search.title", title, searchResults.size(), currentSearchIndex + 1));
     }
 
     private void clearHighlights() {

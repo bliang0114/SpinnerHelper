@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.spinner;
 
 import cn.github.spinner.components.ComboBoxWithFilter;
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.ui.components.fields.ExpandableTextField;
@@ -147,7 +148,7 @@ public class SpinnerSettingsComponent extends JPanel {
 
     public class AddSettingAction extends AnAction {
         public AddSettingAction() {
-            super("Add Setting", "Add Setting", AllIcons.General.Add);
+            super(SpinnerBundle.message("action.add.setting.text"), SpinnerBundle.message("action.add.setting.description"), AllIcons.General.Add);
         }
 
         @Override
@@ -168,13 +169,13 @@ public class SpinnerSettingsComponent extends JPanel {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
     public class RemoveSettingAction extends AnAction {
         public RemoveSettingAction() {
-            super("Remove Setting", "Remove Setting", AllIcons.General.Remove);
+            super(SpinnerBundle.message("action.remove.setting.text"), SpinnerBundle.message("action.remove.setting.description"), AllIcons.General.Remove);
         }
 
         @Override
@@ -202,13 +203,13 @@ public class SpinnerSettingsComponent extends JPanel {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
     public class CommentAction extends AnAction {
         public CommentAction() {
-            super("Comment", "Comment", AllIcons.Actions.RefactoringBulb);
+            super(SpinnerBundle.message("action.comment.text"), SpinnerBundle.message("action.comment.description"), AllIcons.Actions.RefactoringBulb);
         }
 
         @Override
@@ -232,7 +233,7 @@ public class SpinnerSettingsComponent extends JPanel {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 }

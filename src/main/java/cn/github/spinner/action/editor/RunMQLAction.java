@@ -4,6 +4,7 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.MQLFileType;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.ExecuteMQLCommand;
 import cn.github.spinner.task.MQLCommandEntry;
 import cn.github.spinner.ui.MQLPlaceholderInputDialog;
@@ -49,7 +50,7 @@ public class RunMQLAction extends AnAction {
 
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
-            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Please connect to a matrix server first.");
+            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, SpinnerBundle.message("message.connect.required"));
             return;
         }
         Editor editor = e.getData(CommonDataKeys.EDITOR);
@@ -66,7 +67,7 @@ public class RunMQLAction extends AnAction {
         List<MQLCommandEntry> commandList;
         if (!isMqlFile) {
             if (StrUtil.isEmpty(selectedText)) {
-                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Please select the MQL statement to execute.");
+                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, SpinnerBundle.message("message.select.mql.statement"));
                 return;
             }
             commandList = getSelectedTextCommandEntries(editor, spinnerSettings.getLineDelimiter());

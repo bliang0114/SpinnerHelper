@@ -4,6 +4,7 @@ import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -53,7 +54,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
     protected void initComponents() {
         super.initComponents();
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        table.getEmptyText().setText("Loading bus files...");
+        table.getEmptyText().setText(SpinnerBundle.message("message.loading.bus.files"));
         table.setEnabled(true);
         table.setFocusable(true);
         table.setRowSelectionAllowed(true);
@@ -67,7 +68,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (isLoading) {
-                    UIUtil.showNotification(project,"提示", "文件正在下载中，请稍候...");
+                    UIUtil.showNotification(project, SpinnerBundle.message("notification.title.tips"), SpinnerBundle.message("message.file.downloading"));
                     return;
                 }
                 if (e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() >= 2) {
@@ -78,7 +79,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                         String documentId = String.valueOf(tableModel.getValueAt(modelRowIndex, 0));
                         String fileName = String.valueOf(tableModel.getValueAt(modelRowIndex, 1));
                         String format = String.valueOf(tableModel.getValueAt(modelRowIndex, 2));
-                        new Task.Backgroundable(project, "Downloading File: " + fileName, false) {
+                        new Task.Backgroundable(project, SpinnerBundle.message("progress.downloading.file", fileName), false) {
                             private File downloadedFile;
                             private String errorMsg;
 
@@ -93,9 +94,9 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                                 if (downloadedFile != null && downloadedFile.exists()) {
                                     try {
                                         Desktop.getDesktop().open(downloadedFile);
-                                        UIUtil.showNotification(project, "提示","文件已保存至：" + downloadedFile.getAbsolutePath());
+                                        UIUtil.showNotification(project, SpinnerBundle.message("notification.title.tips"), SpinnerBundle.message("message.file.saved", downloadedFile.getAbsolutePath()));
                                     } catch (Exception ex) {
-                                        String msg = "文件下载成功，但打开失败：" + ex.getMessage();
+                                        String msg = SpinnerBundle.message("message.file.downloaded.open.failed", ex.getMessage());
                                         logger.error(msg, ex);
                                     }
                                 }
@@ -106,7 +107,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                                 isLoading = false;
                                 table.setEnabled(true);
                                 table.setCursor(Cursor.getDefaultCursor());
-                                errorMsg = "下载异常：" + t.getMessage();
+                                errorMsg = SpinnerBundle.message("message.download.exception", t.getMessage());
                                 logger.error(errorMsg, t);
                             }
 
@@ -118,11 +119,11 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                                         table.setEnabled(false);
                                         table.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
                                     });
-                                    indicator.setText("正在下载：" + fileName);
+                                    indicator.setText(SpinnerBundle.message("progress.downloading", fileName));
                                     indicator.setIndeterminate(true);
                                     MatrixConnection connection = UserInput.getInstance().connection.get(project);
                                     if (connection == null) {
-                                        throw new IllegalStateException("未获取到有效连接，请检查配置");
+                                        throw new IllegalStateException(SpinnerBundle.message("message.no.valid.connection"));
                                     }
                                     downloadedFile = connection.downloadBusinessAttachment(
                                             documentId, fileName, format
@@ -146,7 +147,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
     protected void loadData() {
         if (isLoading) return;
 
-        new Task.Backgroundable(project, "Loading bus files", false) {
+        new Task.Backgroundable(project, SpinnerBundle.message("progress.loading.bus.files"), false) {
             private List<String[]> loadedData;
             private String errorMessage;
 
@@ -164,17 +165,17 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                         for (String[] row : loadedData) {
                             tableModel.addRow(row);
                         }
-                        table.getEmptyText().setText("No bus connections found");
+                        table.getEmptyText().setText(SpinnerBundle.message("message.no.bus.connections"));
                     });
                 } else {
-                    table.getEmptyText().setText("No bus connections found");
+                    table.getEmptyText().setText(SpinnerBundle.message("message.no.bus.connections"));
                 }
             }
 
             @Override
             public void onThrowable(@NotNull Throwable t) {
                 isLoading = false;
-                errorMessage = "Error loading bus connections: " + t.getMessage();
+                errorMessage = SpinnerBundle.message("message.error.loading.bus.files", t.getMessage());
                 SwingUtilities.invokeLater(() -> table.getEmptyText().setText(errorMessage));
             }
 
@@ -185,13 +186,13 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                 errorMessage = null;
 
                 try {
-                    indicator.setText("Fetching bus connections...");
+                    indicator.setText(SpinnerBundle.message("progress.fetching.bus.connections"));
                     indicator.setIndeterminate(true);
                     getBusFiles(id, loadedData);
                 } catch (MQLException e) {
-                    errorMessage = "Error: print " + id + " error. " + e.getMessage();
+                    errorMessage = SpinnerBundle.message("message.error.print", id, e.getMessage());
                 } catch (Exception e) {
-                    errorMessage = "Unexpected error: " + e.getMessage();
+                    errorMessage = SpinnerBundle.message("message.unexpected.error", e.getMessage());
                 } finally {
                     indicator.setIndeterminate(false);
                 }
@@ -208,10 +209,10 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
         var a = result.split(",");
         var n = a.length / 3;
         for (var i = 0; i < n; i++) {
-            String format = "Error file format";
-            String name = "Error file name";
+            String format = SpinnerBundle.message("message.error.file.format");
+            String name = SpinnerBundle.message("message.error.file.name");
             String size;
-            String sSize = "Error file size 2";
+            String sSize = SpinnerBundle.message("message.error.file.size");
             try {
                 format = a[i];
                 name = a[n + i];

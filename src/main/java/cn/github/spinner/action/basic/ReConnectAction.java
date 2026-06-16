@@ -7,6 +7,7 @@ import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.MQLKeywords;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.ConnectMatrixServer;
 import cn.github.spinner.util.DeployUtil;
 import cn.github.spinner.util.MatrixConnectionUtil;
@@ -27,18 +28,18 @@ public class ReConnectAction extends AnAction {
         Project project = e.getProject();
         if (project == null) return;
 
-        MatrixConnection connection = UserInput.getInstance().connection.get(project);
+            MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection != null) {
             EnvironmentConfig connectEnvironment = UserInput.getInstance().connectEnvironment.get(project);
             if (connectEnvironment == null) {
-                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Connected environment is missing.");
+                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.connected.environment.missing"));
                 return;
             }
             UserInput.getInstance().connection.remove(project);
             UserInput.getInstance().connectEnvironment.remove(project);
 
             UserInput.getInstance().connectingEnvironment.put(project, connectEnvironment);
-            MatrixConnectionUtil.closeAsync(project, connection, "Reconnect Matrix Server", () -> {
+            MatrixConnectionUtil.closeAsync(project, connection, SpinnerBundle.message("action.Spinner Config.ReConnect.text"), () -> {
                 ConnectMatrixServer task = new ConnectMatrixServer(project, connectEnvironment);
                 task.setSuccessHandler(() -> {
                     DeployUtil.installDeployJpo(project);
@@ -51,7 +52,7 @@ public class ReConnectAction extends AnAction {
                             MQLKeywords.TYPE_INSTANCES.clear();
                             List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
                             MQLKeywords.TYPE_INSTANCES.addAll(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-                            builder.append("Load Type Definition Successfully<br/>");
+                            builder.append(SpinnerBundle.message("message.load.type.definition.success"));
                         }
                         statement = newConnection.executeStatement("list relationship");
                         resultSet = statement.executeQuery();
@@ -59,7 +60,7 @@ public class ReConnectAction extends AnAction {
                             MQLKeywords.RELATIONSHIP_INSTANCES.clear();
                             List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
                             MQLKeywords.RELATIONSHIP_INSTANCES.addAll(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-                            builder.append("Load Relationship Definition Successfully<br/>");
+                            builder.append(SpinnerBundle.message("message.load.relationship.definition.success"));
                         }
                         if (!builder.isEmpty()) {
                             UIUtil.showNotification(project, UserInput.NOTIFICATION_TITLE_LOAD_DATA, builder.toString());

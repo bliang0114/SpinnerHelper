@@ -2,6 +2,7 @@ package cn.github.spinner.action.basic;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MatrixConnectionUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -19,7 +20,7 @@ public class DisconnectAction extends AnAction {
         if (connection != null) {
             UserInput.getInstance().connection.remove(project);
             UserInput.getInstance().connectEnvironment.remove(project);
-            MatrixConnectionUtil.closeAsync(project, connection, "Disconnect Matrix Server", null);
+            MatrixConnectionUtil.closeAsync(project, connection, SpinnerBundle.message("action.Spinner Config.Disconnect.text"), null);
         }
     }
 

@@ -1,5 +1,6 @@
 package cn.github.spinner.editor.spinner;
 
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.ui.URLFormatterDialog;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
@@ -87,7 +88,7 @@ public class SpinnerTextFieldComponent extends JPanel {
 
     public class CommentAction extends AnAction {
         public CommentAction() {
-            super("Comment", "Comment", AllIcons.Actions.RefactoringBulb);
+            super(SpinnerBundle.message("action.comment.text"), SpinnerBundle.message("action.comment.description"), AllIcons.Actions.RefactoringBulb);
         }
 
         @Override
@@ -107,13 +108,13 @@ public class SpinnerTextFieldComponent extends JPanel {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
     public class URLParserAction extends AnAction {
         public URLParserAction() {
-            super("URL Parser", "URL Parser", AllIcons.General.Web);
+            super(SpinnerBundle.message("action.url.parser.text"), SpinnerBundle.message("action.url.parser.description"), AllIcons.General.Web);
         }
 
         @Override
@@ -142,7 +143,7 @@ public class SpinnerTextFieldComponent extends JPanel {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 }

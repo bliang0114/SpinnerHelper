@@ -6,9 +6,11 @@ import cn.github.spinner.components.PaginatedFilterTableComponent;
 import cn.github.spinner.components.bean.TableRowBean;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -53,15 +55,15 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
     protected void setPageData() {
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null || CharSequenceUtil.isBlank(name)) {
-            table.getEmptyText().setText("Connection is closed");
+            table.getEmptyText().setText(SpinnerBundle.message("message.connection.closed"));
             return;
         }
         tableModel.setRowCount(0);
         if (totalCount != 0) {
             updatePaginationStatus();
         }
-        table.getEmptyText().setText("Loading data...");
-        new Task.Backgroundable(project, "Loading data...") {
+        table.getEmptyText().setText(SpinnerBundle.message("message.loading.data"));
+        new Task.Backgroundable(project, SpinnerBundle.message("message.loading.data")) {
             private Throwable error;
 
             @Override
@@ -79,7 +81,7 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
                 super.onSuccess();
                 if (error != null) {
                     log.error(error.getLocalizedMessage(), error);
-                    UIUtil.showErrorNotification(project, "Loading Data", error.getLocalizedMessage());
+                    UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.loading.data"), error.getLocalizedMessage());
                     return;
                 }
                 SwingUtilities.invokeLater(() -> {
@@ -90,7 +92,7 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
                         }
                     });
                     updatePaginationStatus();
-                    table.getEmptyText().setText("Nothing to show");
+                    table.getEmptyText().setText(SpinnerBundle.message("message.nothing.to.show"));
                 });
             }
         }.queue();
@@ -107,7 +109,7 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
 
     public class RefreshAction extends AnAction {
         public RefreshAction() {
-            super("Refresh", "Refresh", AllIcons.Actions.Refresh);
+            super(SpinnerBundle.message("action.refresh.text"), SpinnerBundle.message("action.refresh.description"), AllIcons.Actions.Refresh);
         }
 
         @Override
@@ -115,6 +117,11 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
             table.getFilterComponent().reset();
             loaded = false;
             reloadData();
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
         }
     }
 }

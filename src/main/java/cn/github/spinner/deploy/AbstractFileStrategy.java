@@ -2,6 +2,7 @@ package cn.github.spinner.deploy;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.TitleConstant;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
 import cn.hutool.core.lang.UUID;
@@ -104,14 +105,14 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
         String res = executeDeployCommand(fullRemoteSpinnerDir, fullRemoteRelativePath, fileNames);
         log.info("deploy.result==>{}", res);
 
-        String title = "Deploy success";
+        String title = SpinnerBundle.message("message.deploy.success.title");
         // 处理部署结果
         if (CharSequenceUtil.isEmpty(res) || (!res.contains("Error") && !res.contains("failed"))) {
             afterDeploySuccess(fullRemoteSpinnerDir, remoteBaseDir);
         } else {
-            title = "Deploy failed";
+            title = SpinnerBundle.message("message.deploy.failed.title");
         }
-        UIUtil.showNotification(context.getProject(), title, res == null ? "success" : res);
+        UIUtil.showNotification(context.getProject(), title, res == null ? SpinnerBundle.message("message.deploy.success.short") : res);
     }
 
     protected  void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
@@ -120,7 +121,7 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
-                indicator.setText("Starting delete deploy temp dir...");
+                indicator.setText(SpinnerBundle.message("progress.delete.deploy.temp.dir"));
                 try {
                     WorkspaceUtil.deleteRemoteTempDir(context.getMatrixConnection(), fullRemoteSpinnerDir, remoteBaseDir);
                 } catch (Exception e) {
@@ -140,7 +141,7 @@ public abstract class AbstractFileStrategy implements FileOperationStrategy {
      */
     protected void handleException(Exception e) {
         log.error("Batch processing failed", e);
-        String message = "部署失败: " + e.getLocalizedMessage();
-        JOptionPane.showMessageDialog(null, message, "Deploy Error", JOptionPane.ERROR_MESSAGE);
+        String message = SpinnerBundle.message("message.batch.processing.failed", e.getLocalizedMessage());
+        JOptionPane.showMessageDialog(null, message, SpinnerBundle.message("notification.title.deploy.error"), JOptionPane.ERROR_MESSAGE);
     }
 }

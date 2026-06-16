@@ -3,8 +3,10 @@ package cn.github.spinner.action.editor;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.TitleConstant;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -13,7 +15,6 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
@@ -25,7 +26,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 public class SpinnerDeployAction extends AnAction {
 
@@ -42,19 +42,19 @@ public class SpinnerDeployAction extends AnAction {
             logger.info("Deploy Action start");
             PsiFile file = e.getData(CommonDataKeys.PSI_FILE);
             if (file == null) {
-                UIUtil.showWarningNotification(project, "Deploy", "File is unavailable.");
+                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.file.unavailable"));
                 return;
             }
 
             PsiDirectory parent = file.getParent();
             if (parent == null) {
-                UIUtil.showWarningNotification(project, "Deploy", "Parent directory is unavailable.");
+                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.parent.directory.unavailable"));
                 return;
             }
 
             MatrixConnection connection = UserInput.getInstance().connection.get(project);
             if (connection == null) {
-                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, "Please connect to a matrix server first.");
+                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.connect.required"));
                 return;
             }
 
@@ -68,7 +68,7 @@ public class SpinnerDeployAction extends AnAction {
             if (fileName.endsWith(".xls")) {
                 Editor editor = e.getData(CommonDataKeys.EDITOR);
                 if (editor == null) {
-                    UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, "Editor is unavailable for the selected file.");
+                    UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.editor.unavailable"));
                     return;
                 }
                 WorkspaceUtil.importSpinnerFile(connection, project, filePath, buildSelectedSpinnerContent(editor));
@@ -76,11 +76,11 @@ public class SpinnerDeployAction extends AnAction {
             }
 
             if (fileName.endsWith(".properties") && "PageFiles".equals(parent.getName())) {
-                importPageFile(connection, project, file);
+                importPageFile(connection, project, file.getName(), file.getText());
                 return;
             }
 
-            UIUtil.showErrorNotification(project, "Unsupported File Type", "Supports .java, .xls and PageFiles/.properties");
+            UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.unsupported.file.type"), SpinnerBundle.message("message.unsupported.deploy.file.type"));
         } catch (Exception ex) {
             showDeployError(project, ex);
         }
@@ -115,26 +115,23 @@ public class SpinnerDeployAction extends AnAction {
         return firstLineText + "\n" + selectedLineContent;
     }
 
-    private void importPageFile(MatrixConnection connection, Project project, PsiFile file) {
-        try {
+    private void importPageFile(MatrixConnection connection, Project project, String fileName, String originalContent) {
+        runDeployTask(project, () -> {
             String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
             String remoteSpinnerDir = WorkspaceUtil.createRemoteSpinnerDirName();
             String remoteRelativePath = remoteSpinnerDir + "/Business/PageFiles";
             WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
 
-            byte[] content = file.getVirtualFile().contentsToByteArray();
-            String originalContent = new String(content, StandardCharsets.UTF_8);
-            WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, file.getName(), originalContent);
+            WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, fileName, originalContent);
 
-            runDeployTask(project, remoteBaseDir, remoteSpinnerDir, () -> WorkspaceUtil.runPageImport(
+            String result = WorkspaceUtil.runPageImport(
                     connection,
                     remoteBaseDir + "/" + remoteSpinnerDir,
-                    remoteBaseDir + "/" + remoteRelativePath + "/" + file.getName(),
-                    file.getName()
-            ));
-        } catch (Exception e) {
-            showDeployError(project, e);
-        }
+                    remoteBaseDir + "/" + remoteRelativePath + "/" + fileName,
+                    fileName
+            );
+            return normalizeDeployResult(result, remoteBaseDir, remoteSpinnerDir);
+        });
     }
 
     public static String encodeToUnicode(String str) {
@@ -170,10 +167,10 @@ public class SpinnerDeployAction extends AnAction {
     }
 
     private void importJpoFile(MatrixConnection connection, Project project, String filePath, String codeContent) {
-        try {
+        runDeployTask(project, () -> {
             File jpoFile = new File(filePath);
             if (!jpoFile.exists()) {
-                throw new IllegalStateException("File not found.");
+                throw new IllegalStateException(SpinnerBundle.message("message.file.not.found"));
             }
 
             String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
@@ -184,16 +181,15 @@ public class SpinnerDeployAction extends AnAction {
             WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, jpoFile.getName(), codeContent);
             String packageName = extractPackageName(jpoFile);
             String jpoName = jpoFile.getName().replace("_mxJPO.java", "");
-            runDeployTask(project, remoteBaseDir, remoteSpinnerDir, () -> WorkspaceUtil.runJPOImport(
+            String result = WorkspaceUtil.runJPOImport(
                     connection,
                     remoteBaseDir + "/" + remoteSpinnerDir,
                     remoteBaseDir + "/" + remoteRelativePath,
                     jpoName,
                     packageName
-            ));
-        } catch (Exception e) {
-            showDeployError(project, e);
-        }
+            );
+            return normalizeDeployResult(result, remoteBaseDir, remoteSpinnerDir);
+        });
     }
 
     public static String extractPackageName(File javaFile) throws IOException {
@@ -212,33 +208,42 @@ public class SpinnerDeployAction extends AnAction {
         return ""; // 默认包
     }
 
-    private void runDeployTask(Project project, String remoteBaseDir, String remoteSpinnerDir, DeployOperation deployOperation) {
-        ProgressManager.getInstance().run(new Task.Backgroundable(project, TitleConstant.SPINNER_DEPLOY) {
+    private void runDeployTask(Project project, DeployOperation deployOperation) {
+        new Task.Backgroundable(project, TitleConstant.SPINNER_DEPLOY) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
-                indicator.setText("Starting deployment...");
+                indicator.setText(SpinnerBundle.message("progress.starting.deployment"));
                 try {
                     String result = deployOperation.execute();
-                    if (result == null || result.isEmpty()) {
-                        result = WorkspaceUtil.buildDeploySuccessMessage(remoteBaseDir, remoteSpinnerDir);
-                    }
-                    UIUtil.showNotification(project, "Deploy Result", result);
+                    UIUtil.showNotification(project, SpinnerBundle.message("notification.title.deploy.result"), result);
                 } catch (Exception e) {
                     logger.error("Deploy Error", e);
-                    UIUtil.showErrorNotification(project, "Deploy Error", e.getLocalizedMessage());
+                    UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.deploy.error"), e.getLocalizedMessage());
                 }
             }
-        });
+        }.queue();
+    }
+
+    private String normalizeDeployResult(String result, String remoteBaseDir, String remoteSpinnerDir) {
+        if (result == null || result.isEmpty()) {
+            return WorkspaceUtil.buildDeploySuccessMessage(remoteBaseDir, remoteSpinnerDir);
+        }
+        return result;
     }
 
     private void showDeployError(Project project, Exception exception) {
         logger.error("Deploy Error", exception);
-        UIUtil.showErrorNotification(project, "Deploy Error", exception.getLocalizedMessage());
+        UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.deploy.error"), exception.getLocalizedMessage());
     }
 
     @FunctionalInterface
     private interface DeployOperation {
         String execute() throws Exception;
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 }

@@ -1,11 +1,11 @@
 package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
-import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.deploy.BatchFileCommand;
 import cn.github.spinner.deploy.FileOperationCommand;
 import cn.github.spinner.deploy.FileOperationContext;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.diagnostic.Logger;
@@ -34,7 +34,7 @@ public class SpinnerBatchDeployAction extends AnAction {
 
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
-            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, "Please connect to a matrix server first.");
+            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.connect.required"));
             return;
         }
         PsiElement[] psiElements = ObjectUtils.notNull(PlatformCoreDataKeys.PSI_ELEMENT_ARRAY.getData(e.getDataContext()), PsiElement.EMPTY_ARRAY);
@@ -58,5 +58,8 @@ public class SpinnerBatchDeployAction extends AnAction {
         return psiElementList;
     }
 
-
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
+    }
 }

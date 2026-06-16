@@ -2,10 +2,12 @@ package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.driver.MQLException;
 import cn.github.spinner.customize.CellCopyTransferHandler;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -231,14 +233,14 @@ public class ObjectPathsComponent extends JPanel {
                 }
             }
         } catch (MQLException e) {
-            busTable.getEmptyText().setText("Error: print " + id + " error. " + e.getMessage());
-            connectionTable.getEmptyText().setText("Error: print " + id + " error. " + e.getMessage());
+            busTable.getEmptyText().setText(SpinnerBundle.message("message.error.print", id, e.getMessage()));
+            connectionTable.getEmptyText().setText(SpinnerBundle.message("message.error.print", id, e.getMessage()));
         }
     }
 
     public class RefreshAction extends AnAction {
         public RefreshAction() {
-            super("Refresh", "Refresh", AllIcons.Actions.Refresh);
+            super(SpinnerBundle.message("action.refresh.text"), SpinnerBundle.message("action.refresh.description"), AllIcons.Actions.Refresh);
         }
 
         @Override
@@ -246,6 +248,11 @@ public class ObjectPathsComponent extends JPanel {
             filterComponent.reset();
             loaded = false;
             reload();
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
         }
     }
 }

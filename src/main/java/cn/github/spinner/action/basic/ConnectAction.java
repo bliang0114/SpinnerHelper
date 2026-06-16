@@ -8,6 +8,7 @@ import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.MQLKeywords;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.ConnectMatrixServer;
 import cn.github.spinner.util.DeployUtil;
 import cn.github.spinner.util.UIUtil;
@@ -48,7 +49,7 @@ public class ConnectAction extends AnAction {
                     MQLKeywords.TYPE_INSTANCES.clear();
                     List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
                     MQLKeywords.TYPE_INSTANCES.addAll(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-                    builder.append("Load Type Definition Successfully<br/>");
+                    builder.append(SpinnerBundle.message("message.load.type.definition.success"));
                 }
                 statement = connection.executeStatement("list relationship");
                 resultSet = statement.executeQuery();
@@ -56,7 +57,7 @@ public class ConnectAction extends AnAction {
                     MQLKeywords.RELATIONSHIP_INSTANCES.clear();
                     List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
                     MQLKeywords.RELATIONSHIP_INSTANCES.addAll(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-                    builder.append("Load Relationship Definition Successfully<br/>");
+                    builder.append(SpinnerBundle.message("message.load.relationship.definition.success"));
                 }
                 if (!builder.isEmpty()) {
                     UIUtil.showNotification(project, UserInput.NOTIFICATION_TITLE_LOAD_DATA, builder.toString());

@@ -10,6 +10,7 @@ import cn.github.spinner.components.RowNumberTableModel;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.map.MapUtil;
@@ -85,8 +86,8 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         idTextField = new JBTextField("");
         physicalIdTextField = new JBTextField("");
         whereClauseTextArea = new JBTextArea(3, 0);
-        queryBtn = new JButton("Query");
-        resetBtn = new JButton("Reset");
+        queryBtn = new JButton(SpinnerBundle.message("button.query"));
+        resetBtn = new JButton(SpinnerBundle.message("button.reset"));
         tableModel = new RowNumberTableModel(COLUMNS, 0);
         table = new FilterTable(tableModel);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
@@ -124,7 +125,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         stateComboBox.getEditor().getEditorComponent().addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                new Task.Backgroundable(project, "Load Policy State") {
+                new Task.Backgroundable(project, SpinnerBundle.message("progress.load.policy.state")) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         indicator.setIndeterminate(true);
@@ -189,56 +190,56 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         gbc.gridy = 0;
         gbc.gridwidth = 1;
         gbc.weighty = 0; // 垂直不拉伸
-        conditionPanel.add(new JBLabel("Type"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.type")), gbc);
         gbc.gridx = 1;
         conditionPanel.add(typeComboBox, gbc);
         gbc.gridx = 2;
-        conditionPanel.add(new JBLabel("Name"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.name")), gbc);
         gbc.gridx = 3;
         conditionPanel.add(nameTextField, gbc);
         gbc.gridx = 4;
-        conditionPanel.add(new JBLabel("Revision"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.revision")), gbc);
         gbc.gridx = 5;
         conditionPanel.add(revisionTextField, gbc);
         // 第1行：ID + Physical ID
         gbc.gridx = 0;
         gbc.gridy = 1;
-        conditionPanel.add(new JBLabel("ID"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.id")), gbc);
         gbc.gridx = 1;
         conditionPanel.add(idTextField, gbc);
         gbc.gridx = 2;
-        conditionPanel.add(new JBLabel("Physical ID"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.physical.id")), gbc);
         gbc.gridx = 3;
         conditionPanel.add(physicalIdTextField, gbc);
         // 第2行：Policy + State
         gbc.gridx = 0;
         gbc.gridy = 2;
-        conditionPanel.add(new JBLabel("Policy"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.policy")), gbc);
         gbc.gridx = 1;
         conditionPanel.add(policyComboBox, gbc);
         gbc.gridx = 2;
-        conditionPanel.add(new JBLabel("State"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.state")), gbc);
         gbc.gridx = 3;
         conditionPanel.add(stateComboBox, gbc);
         // 第3行：Organization + Collaborative Space + Owner
         gbc.gridx = 0;
         gbc.gridy = 3;
-        conditionPanel.add(new JBLabel("Organization"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.organization")), gbc);
         gbc.gridx = 1;
         conditionPanel.add(organizationComboBox, gbc);
         gbc.gridx = 2;
-        conditionPanel.add(new JBLabel("Collaborative Space"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.collaborative.space")), gbc);
         gbc.gridx = 3;
         conditionPanel.add(projectComboBox, gbc);
         gbc.gridx = 4;
-        conditionPanel.add(new JBLabel("Owner"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.owner")), gbc);
         gbc.gridx = 5;
         conditionPanel.add(ownerComboBox, gbc);
         // 第4行：Where Expression + 文本域
         gbc.gridx = 0;
         gbc.gridy = 4;
         gbc.gridwidth = 1;
-        conditionPanel.add(new JBLabel("Where Expression"), gbc);
+        conditionPanel.add(new JBLabel(SpinnerBundle.message("label.where.expression")), gbc);
         gbc.gridx = 1;
         gbc.gridwidth = 5;
         gbc.weighty = 1.0; // 垂直拉伸
@@ -348,17 +349,17 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
 
     private void handleQuery() {
         if (emptyExpression()) {
-            UIUtil.showWarningNotification(project, "Search from Server", "Conditional is empty");
+            UIUtil.showWarningNotification(project, SpinnerBundle.message("notification.title.search.from.server"), SpinnerBundle.message("message.condition.empty"));
             return;
         }
         tableModel.setRowCount(0);
-        table.getEmptyText().setText("Searching from server ......");
+        table.getEmptyText().setText(SpinnerBundle.message("message.searching.from.server"));
         final var typePattern = CharSequenceUtil.isBlank(typeComboBox.getItem()) ? "*" : typeComboBox.getItem();
         final var namePattern = CharSequenceUtil.isBlank(nameTextField.getText()) ? "*" : nameTextField.getText();
         final var revisionPattern = CharSequenceUtil.isBlank(revisionTextField.getText()) ? "*" : revisionTextField.getText();
         final var ownerPattern = CharSequenceUtil.isBlank(ownerComboBox.getItem()) ? "*" : ownerComboBox.getItem();
         final var whereExpression = buildWhereExpression();
-        new Task.Backgroundable(project, "Search from Server") {
+        new Task.Backgroundable(project, SpinnerBundle.message("progress.search.from.server")) {
             private List<Object[]> dataList = Collections.emptyList();
             private Throwable error;
 
@@ -373,7 +374,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
                 objectQuery.setWhereExpression(whereExpression);
                 try {
                     MatrixConnection connection = UserInput.getInstance().connection.get(project);
-                    if (connection == null) throw new MQLException("connection is closed");
+                    if (connection == null) throw new MQLException(SpinnerBundle.message("message.connection.closed"));
 
                     MatrixQueryResult queryResult = connection.queryObject(objectQuery, List.of("type", "name", "revision", "id", "paths", "physicalid", "description", "originated", "modified", "lattice", "policy", "owner", "current", "organization", "project"));
                     dataList = new ArrayList<>();
@@ -409,7 +410,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
                 super.onSuccess();
                 if (error != null) {
                     log.error(error.getLocalizedMessage(), error);
-                    UIUtil.showErrorNotification(project, "Search from Server", error.getLocalizedMessage());
+                    UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.search.from.server"), error.getLocalizedMessage());
                     return;
                 }
                 SwingUtilities.invokeLater(() -> {
@@ -418,7 +419,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
                             tableModel.addRow(rowValues);
                         }
                     });
-                    table.getEmptyText().setText("Nothing to show");
+                    table.getEmptyText().setText(SpinnerBundle.message("message.nothing.to.show"));
                 });
             }
         }.queue();

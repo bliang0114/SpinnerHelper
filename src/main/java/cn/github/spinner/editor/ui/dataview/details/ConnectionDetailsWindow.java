@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.driver.MQLException;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
@@ -22,7 +23,7 @@ public class ConnectionDetailsWindow extends JFrame {
         this.project = project;
         this.id = id;
         setSize(JBUI.size(1200, 800));
-        setTitle("Connections of " + id);
+        setTitle(SpinnerBundle.message("dialog.connections.of.title", id));
         initComponents();
     }
 
@@ -41,7 +42,7 @@ public class ConnectionDetailsWindow extends JFrame {
     }
 
     protected void createCenterPanel() {
-        tabbedPane.add("Details", new ConnectionBasicInformationComponent(project, id));
+        tabbedPane.add(SpinnerBundle.message("tab.details"), new ConnectionBasicInformationComponent(project, id));
         try {
             String result = MQLUtil.execute(project, "print connection {} select from.id fromrel.id to.id torel.id", id);
             String[] array = result.split("\n");
@@ -53,10 +54,10 @@ public class ConnectionDetailsWindow extends JFrame {
                 String attributeValue = attribute.length > 1 ? attribute[1] : "";
                 if (CharSequenceUtil.isNotBlank(attributeValue)) {
                     switch (attributeName) {
-                        case "from.id" -> tabbedPane.add("From", new ObjectBasicInformationComponent(project, attributeValue));
-                        case "fromrel.id" -> tabbedPane.add("From Rel", new ConnectionBasicInformationComponent(project, attributeValue));
-                        case "to.id" -> tabbedPane.add("To", new ObjectBasicInformationComponent(project, attributeValue));
-                        case "torel.id" -> tabbedPane.add("To Rel", new ConnectionBasicInformationComponent(project, attributeValue));
+                        case "from.id" -> tabbedPane.add(SpinnerBundle.message("tab.from"), new ObjectBasicInformationComponent(project, attributeValue));
+                        case "fromrel.id" -> tabbedPane.add(SpinnerBundle.message("tab.from.rel"), new ConnectionBasicInformationComponent(project, attributeValue));
+                        case "to.id" -> tabbedPane.add(SpinnerBundle.message("tab.to"), new ObjectBasicInformationComponent(project, attributeValue));
+                        case "torel.id" -> tabbedPane.add(SpinnerBundle.message("tab.to.rel"), new ConnectionBasicInformationComponent(project, attributeValue));
                     }
                 }
             }

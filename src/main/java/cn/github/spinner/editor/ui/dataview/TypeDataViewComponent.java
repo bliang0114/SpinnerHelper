@@ -6,6 +6,7 @@ import cn.github.driver.connection.MatrixResultSet;
 import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
@@ -119,10 +120,10 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
         listModel.clear();
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
-            uiList.setEmptyText("Connection is closed");
+            uiList.setEmptyText(SpinnerBundle.message("message.connection.closed"));
             return;
         }
-        uiList.setEmptyText("Loading Matrix type...");
+        uiList.setEmptyText(SpinnerBundle.message("message.loading.matrix.type"));
         executor.schedule(() -> {
             try {
                 MatrixStatement statement = connection.executeStatement("list type");
@@ -131,11 +132,17 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
                     throw new MQLException(resultSet.getMessage());
                 }
                 List<String> allTypes = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                rowList.addAll(allTypes.stream().filter(CharSequenceUtil::isNotBlank).sorted(String.CASE_INSENSITIVE_ORDER).toList());
-                listModel.addAll(rowList);
-                uiList.setEmptyText("Nothing to show");
+                List<String> loadedTypes = allTypes.stream()
+                        .filter(CharSequenceUtil::isNotBlank)
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .toList();
+                SwingUtilities.invokeLater(() -> {
+                    rowList.addAll(loadedTypes);
+                    listModel.addAll(rowList);
+                    uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
+                });
             } catch (MQLException e) {
-                uiList.setEmptyText(e.getLocalizedMessage());
+                SwingUtilities.invokeLater(() -> uiList.setEmptyText(e.getLocalizedMessage()));
             }
         }, 100, TimeUnit.MILLISECONDS);
     }
@@ -152,13 +159,13 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
 
         tabbedPane.removeAll();
         AttributesTableComponent attributesTableComponent = new AttributesTableComponent(project, virtualFile);
-        tabbedPane.add("Attributes", attributesTableComponent);
-        tabbedPane.add("Properties", new PropertiesTableComponent(project, virtualFile));
-        tabbedPane.add("Interfaces", new InterfacesTableComponent(project, virtualFile));
-        tabbedPane.add("Relations", new RelationsTableComponent(project, virtualFile));
-        tabbedPane.add("Triggers", new TriggersTableComponent(project, virtualFile));
-        tabbedPane.add("Policy Triggers", new PolicyTriggersTableComponent(project, virtualFile));
-        tabbedPane.add("Objects", new ObjectsTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.attributes"), attributesTableComponent);
+        tabbedPane.add(SpinnerBundle.message("tab.properties"), new PropertiesTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.interfaces"), new InterfacesTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.relations"), new RelationsTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.triggers"), new TriggersTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.policy.triggers"), new PolicyTriggersTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.objects"), new ObjectsTableComponent(project, virtualFile));
 
         tabbedPane.setSelectedComponent(attributesTableComponent);
         int selectedIndex = uiList.getSelectedIndex();
@@ -192,7 +199,7 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
 
     public class RefreshAction extends AnAction {
         public RefreshAction() {
-            super("Refresh", "Refresh", AllIcons.Actions.Refresh);
+            super(SpinnerBundle.message("action.refresh.text"), SpinnerBundle.message("action.refresh.description"), AllIcons.Actions.Refresh);
         }
 
         @Override
@@ -200,6 +207,11 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
             searchTextField.reset();
             searchTextField.setText("");
             loadType();
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
         }
     }
 }

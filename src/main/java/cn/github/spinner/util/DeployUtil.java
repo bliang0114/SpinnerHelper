@@ -1,5 +1,6 @@
 package cn.github.spinner.util;
 
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.openapi.project.Project;
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,7 +48,7 @@ public class DeployUtil {
             //     // MQLUtil.execute(project, "escape mod program EnoBrowserJPO code " + code2);
             // }
         } catch (Exception ex2) {
-            UIUtil.showErrorNotification(project, "Install " + fileName, ex2.getLocalizedMessage());
+            UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.install", fileName), ex2.getLocalizedMessage());
         }
     }
 

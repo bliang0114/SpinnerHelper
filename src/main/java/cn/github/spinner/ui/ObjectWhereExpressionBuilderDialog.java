@@ -2,6 +2,7 @@ package cn.github.spinner.ui;
 
 import cn.github.spinner.config.ObjectWhereExpression;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBTextField;
@@ -24,9 +25,9 @@ public class ObjectWhereExpressionBuilderDialog extends DialogWrapper {
     public ObjectWhereExpressionBuilderDialog(Project project) {
         super(true);
         this.project = project;
-        setTitle("Where Expression");
+        setTitle(SpinnerBundle.message("dialog.where.expression.title"));
         setSize(600, 400);
-        setOKButtonText("OK");
+        setOKButtonText(SpinnerBundle.message("button.ok"));
         initComponents();
         setupValue();
         init();
@@ -60,14 +61,14 @@ public class ObjectWhereExpressionBuilderDialog extends DialogWrapper {
     @Override
     protected @Nullable JComponent createCenterPanel() {
         return FormBuilder.createFormBuilder()
-                .addLabeledComponent("Name = ", nameField)
-                .addLabeledComponent("Revision = ", revisionField)
-                .addLabeledComponent("ID = ", idField)
-                .addLabeledComponent("Physical ID = ", physicalIdField)
-                .addLabeledComponent("Policy = ", policyField)
-                .addLabeledComponent("State = ", stateField)
-                .addLabeledComponent("Organization = ", organizationField)
-                .addLabeledComponent("Collaborative Space = ", collaborativeField)
+                .addLabeledComponent(SpinnerBundle.message("label.name.equals"), nameField)
+                .addLabeledComponent(SpinnerBundle.message("label.revision.equals"), revisionField)
+                .addLabeledComponent(SpinnerBundle.message("label.id.equals"), idField)
+                .addLabeledComponent(SpinnerBundle.message("label.physical.id.equals"), physicalIdField)
+                .addLabeledComponent(SpinnerBundle.message("label.policy.equals"), policyField)
+                .addLabeledComponent(SpinnerBundle.message("label.state.equals"), stateField)
+                .addLabeledComponent(SpinnerBundle.message("label.organization.equals"), organizationField)
+                .addLabeledComponent(SpinnerBundle.message("label.collaborative.space.equals"), collaborativeField)
                 .getPanel();
     }
 

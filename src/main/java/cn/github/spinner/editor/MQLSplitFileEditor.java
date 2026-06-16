@@ -3,6 +3,7 @@ package cn.github.spinner.editor;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutionEntry;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.ConsoleManager;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
@@ -91,8 +92,8 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
 
-        JLabel title = new JLabel("Execution Result");
-        title.setToolTipText("Drag to dock to top, left, bottom, or right");
+        JLabel title = new JLabel(SpinnerBundle.message("panel.execution.result"));
+        title.setToolTipText(SpinnerBundle.message("tooltip.drag.execution.result"));
         title.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
         headerPanel.add(title, BorderLayout.WEST);
 
@@ -100,7 +101,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         title.addMouseListener(dockDragHandler);
         title.addMouseMotionListener(dockDragHandler);
 
-        JCheckBox wrapToggle = new JCheckBox("Wrap");
+        JCheckBox wrapToggle = new JCheckBox(SpinnerBundle.message("checkbox.wrap"));
         wrapToggle.setOpaque(false);
         wrapToggle.setSelected(consoleManager.isSoftWrapsEnabled());
         wrapToggle.addActionListener(e -> consoleManager.setSoftWrapsEnabled(wrapToggle.isSelected()));
@@ -303,10 +304,10 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
     }
 
     private enum ResultPosition {
-        TOP("Top", true, true, 0.35f),
-        LEFT("Left", false, true, 0.35f),
-        BOTTOM("Bottom", true, false, 0.65f),
-        RIGHT("Right", false, false, 0.65f);
+        TOP("enum.position.top", true, true, 0.35f),
+        LEFT("enum.position.left", false, true, 0.35f),
+        BOTTOM("enum.position.bottom", true, false, 0.65f),
+        RIGHT("enum.position.right", false, false, 0.65f);
 
         private final String displayName;
         private final boolean verticalSplit;
@@ -333,7 +334,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
 
         @Override
         public String toString() {
-            return displayName;
+            return SpinnerBundle.message(displayName);
         }
     }
 

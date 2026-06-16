@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.driver.MQLException;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import com.intellij.openapi.project.Project;
 
@@ -41,7 +42,7 @@ public class ObjectHistoryComponent extends AbstractObjectDetailsTableComponent 
                 tableModel.addRow(new String[]{time, user, action, state, description});
             }
         } catch (MQLException e) {
-            table.getEmptyText().setText("Error: print " + id + " error. " + e.getMessage());
+            table.getEmptyText().setText(SpinnerBundle.message("message.error.print", id, e.getMessage()));
         }
     }
 }

@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.driver.MQLException;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.application.ApplicationManager;
@@ -119,7 +120,7 @@ public class ObjectRelConnectionsComponent extends AbstractObjectDetailsTableCom
         SwingUtilities.invokeLater(() -> {
             DefaultTableModel model = (DefaultTableModel) table.getModel();
             model.setRowCount(0);
-            table.getEmptyText().setText("Loading connections...");
+            table.getEmptyText().setText(SpinnerBundle.message("message.loading.bus.connections"));
             table.setEnabled(false);
         });
 
@@ -130,9 +131,9 @@ public class ObjectRelConnectionsComponent extends AbstractObjectDetailsTableCom
             try {
                 loadedData = fetchAllConnectionData(id);
             } catch (MQLException e) {
-                exception = new RuntimeException("MQL query failed", e);
+                exception = new RuntimeException(SpinnerBundle.message("message.mql.query.failed"), e);
             } catch (Exception e) {
-                exception = new RuntimeException("Data processing failed", e);
+                exception = new RuntimeException(SpinnerBundle.message("message.data.processing.failed"), e);
             } finally {
                 Exception finalException = exception;
                 List<String[]> finalLoadedData = loadedData;
@@ -141,7 +142,7 @@ public class ObjectRelConnectionsComponent extends AbstractObjectDetailsTableCom
                     try {
                         if (finalException != null) {
                             table.getEmptyText().setText(String.format(
-                                    "Error: %s (Bus ID: %s)",
+                                    "%s (Bus ID: %s)",
                                     finalException.getMessage(), id
                             ));
                         } else {
@@ -149,7 +150,7 @@ public class ObjectRelConnectionsComponent extends AbstractObjectDetailsTableCom
                                 model.addRow(row);
                             }
                             if (finalLoadedData.isEmpty()) {
-                                table.getEmptyText().setText("No connections found.");
+                                table.getEmptyText().setText(SpinnerBundle.message("message.no.connections"));
                             }
                         }
                     } finally {

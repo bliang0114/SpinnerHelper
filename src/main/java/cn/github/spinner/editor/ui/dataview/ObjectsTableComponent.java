@@ -6,6 +6,7 @@ import cn.github.spinner.config.ObjectWhereExpression;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.editor.ui.dataview.bean.ObjectsRow;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.ui.ObjectWhereExpressionBuilderDialog;
 import cn.github.spinner.util.MQLUtil;
 import cn.hutool.core.text.CharSequenceUtil;
@@ -34,7 +35,7 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
     @Override
     protected void initComponents() {
         super.initComponents();
-        whereBtn = new JButton("Where");
+        whereBtn = new JButton(SpinnerBundle.message("button.where"));
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     }
 
@@ -49,21 +50,24 @@ public class ObjectsTableComponent extends AbstractDataViewTableComponent<Object
                 String tooltip = CharSequenceUtil.format("""
                                 <table>
                                     <tr>
-                                        <td><strong>Name</strong></td>
+                                        <td><strong>{}</strong></td>
                                         <td>{}</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Revision</strong></td>
+                                        <td><strong>{}</strong></td>
                                         <td>{}</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Where</strong></td>
+                                        <td><strong>{}</strong></td>
                                         <td>{}</td>
                                     </tr>
                                 </table>
                                 """,
+                        SpinnerBundle.message("label.name"),
                         whereExpression.getName(),
+                        SpinnerBundle.message("label.revision"),
                         whereExpression.getRevision(),
+                        SpinnerBundle.message("label.where.expression"),
                         whereExpression.build());
                 whereBtn.setToolTipText(tooltip);
                 currentPage = 1;

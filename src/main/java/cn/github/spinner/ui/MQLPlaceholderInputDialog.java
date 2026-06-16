@@ -1,5 +1,6 @@
 package cn.github.spinner.ui;
 
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBTextField;
@@ -22,9 +23,9 @@ public class MQLPlaceholderInputDialog extends DialogWrapper {
                                      @NotNull Consumer<Map<String, String>> submitHandler) {
         super(project);
         this.submitHandler = submitHandler;
-        setTitle("MQL Placeholder Input");
-        setOKButtonText("OK");
-        setCancelButtonText("Cancel");
+        setTitle(SpinnerBundle.message("dialog.placeholder.title"));
+        setOKButtonText(SpinnerBundle.message("button.ok"));
+        setCancelButtonText(SpinnerBundle.message("button.cancel"));
         setModal(false);
         placeholders.forEach(placeholder -> fieldMap.put(placeholder, new JBTextField()));
         init();

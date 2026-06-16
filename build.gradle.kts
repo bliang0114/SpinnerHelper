@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.1.0"
-    id("org.jetbrains.intellij.platform") version "2.11.0"
+    id("org.jetbrains.intellij.platform") version "2.16.0"
     id("org.jetbrains.grammarkit") version "2022.3.2.2"
 }
 
@@ -30,6 +30,8 @@ dependencies {
 
     implementation("com.fifesoft:rsyntaxtextarea:3.6.0")
     implementation("net.sourceforge.plantuml:plantuml:1.2023.10")
+
+    testImplementation("junit:junit:4.13.2")
 
     intellijPlatform {
         create("IC", "2025.1")

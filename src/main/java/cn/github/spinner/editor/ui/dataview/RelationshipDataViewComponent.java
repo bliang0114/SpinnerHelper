@@ -5,6 +5,7 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.context.UserInput;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.config.SpinnerToken;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
@@ -117,19 +118,25 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
         listModel.clear();
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
-            uiList.setEmptyText("Connection is closed");
+            uiList.setEmptyText(SpinnerBundle.message("message.connection.closed"));
             return;
         }
-        uiList.setEmptyText("Loading Matrix Relationship...");
+        uiList.setEmptyText(SpinnerBundle.message("message.loading.matrix.relationship"));
         executor.schedule(() -> {
             try {
                 var result = MQLUtil.execute(project, "list relationship");
                 List<String> allRelationships = CharSequenceUtil.split(result, "\n");
-                rowList.addAll(allRelationships.stream().filter(CharSequenceUtil::isNotBlank).sorted(String.CASE_INSENSITIVE_ORDER).toList());
-                listModel.addAll(rowList);
-                uiList.setEmptyText("Nothing to show");
+                List<String> loadedRelationships = allRelationships.stream()
+                        .filter(CharSequenceUtil::isNotBlank)
+                        .sorted(String.CASE_INSENSITIVE_ORDER)
+                        .toList();
+                SwingUtilities.invokeLater(() -> {
+                    rowList.addAll(loadedRelationships);
+                    listModel.addAll(rowList);
+                    uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
+                });
             } catch (MQLException e) {
-                uiList.setEmptyText(e.getLocalizedMessage());
+                SwingUtilities.invokeLater(() -> uiList.setEmptyText(e.getLocalizedMessage()));
             }
         }, 100, TimeUnit.MILLISECONDS);
     }
@@ -146,12 +153,12 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
 
         tabbedPane.removeAll();
         AttributesTableComponent attributesTableComponent = new AttributesTableComponent(project, virtualFile);
-        tabbedPane.add("Attributes", attributesTableComponent);
-        tabbedPane.add("Properties", new PropertiesTableComponent(project, virtualFile));
-        tabbedPane.add("Interfaces", new InterfacesTableComponent(project, virtualFile));
-        tabbedPane.add("Relations", new RelationsTableComponent(project, virtualFile));
-        tabbedPane.add("Triggers", new TriggersTableComponent(project, virtualFile));
-        tabbedPane.add("Connections", new ConnectionsTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.attributes"), attributesTableComponent);
+        tabbedPane.add(SpinnerBundle.message("tab.properties"), new PropertiesTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.interfaces"), new InterfacesTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.relations"), new RelationsTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.triggers"), new TriggersTableComponent(project, virtualFile));
+        tabbedPane.add(SpinnerBundle.message("tab.connections"), new ConnectionsTableComponent(project, virtualFile));
         tabbedPane.setSelectedComponent(attributesTableComponent);
         int selectedIndex = uiList.getSelectedIndex();
         if (selectedIndex < 0) return;
@@ -184,7 +191,7 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
 
     public class RefreshAction extends AnAction {
         public RefreshAction() {
-            super("Refresh", "Refresh", AllIcons.Actions.Refresh);
+            super(SpinnerBundle.message("action.refresh.text"), SpinnerBundle.message("action.refresh.description"), AllIcons.Actions.Refresh);
         }
 
         @Override
@@ -192,6 +199,11 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
             searchTextField.reset();
             searchTextField.setText("");
             loadRelationship();
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
         }
     }
 }

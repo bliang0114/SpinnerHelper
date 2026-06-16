@@ -2,6 +2,7 @@ package cn.github.spinner.context;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.EnvironmentConfig;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.ConsoleManager;
 import com.intellij.openapi.project.Project;
 
@@ -25,10 +26,10 @@ public class UserInput {
         return instance;
     }
 
-    public static final String NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER = "Connect Matrix Server";
-    public static final String NOTIFICATION_TITLE_LOAD_DATA = "Load Data";
-    public static final String NOTIFICATION_TITLE_MQL_EXECUTE = "MQL Execute";
-    public static final String NOTIFICATION_TITLE_DEPLOY = "Deploy";
+    public static final String NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER = SpinnerBundle.message("notification.title.connect.matrix.server");
+    public static final String NOTIFICATION_TITLE_LOAD_DATA = SpinnerBundle.message("notification.title.load.data");
+    public static final String NOTIFICATION_TITLE_MQL_EXECUTE = SpinnerBundle.message("notification.title.mql.execute");
+    public static final String NOTIFICATION_TITLE_DEPLOY = SpinnerBundle.message("notification.title.deploy");
     public static final String DEFAULT_MQL_CONSOLE = "Default MQL Console";
 
     public Map<Project, EnvironmentConfig> connectEnvironment = new ConcurrentHashMap<>();

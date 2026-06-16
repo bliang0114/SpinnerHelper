@@ -1,5 +1,6 @@
 package cn.github.spinner.editor.spinner;
 
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
@@ -119,7 +120,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
 
     public class AddValueAction extends AnAction {
         public AddValueAction() {
-            super("Add Value", "Add Value", AllIcons.General.Add);
+            super(SpinnerBundle.message("action.add.value.text"), SpinnerBundle.message("action.add.value.description"), AllIcons.General.Add);
         }
 
         @Override
@@ -138,13 +139,13 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
     public class RemoveValueAction extends AnAction {
         public RemoveValueAction() {
-            super("Remove Value", "Remove Value", AllIcons.General.Remove);
+            super(SpinnerBundle.message("action.remove.value.text"), SpinnerBundle.message("action.remove.value.description"), AllIcons.General.Remove);
         }
 
         @Override
@@ -171,13 +172,13 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
     public class CommentAction extends AnAction {
         public CommentAction() {
-            super("Comment", "Comment", AllIcons.Actions.RefactoringBulb);
+            super(SpinnerBundle.message("action.comment.text"), SpinnerBundle.message("action.comment.description"), AllIcons.Actions.RefactoringBulb);
         }
 
         @Override
@@ -201,7 +202,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 }

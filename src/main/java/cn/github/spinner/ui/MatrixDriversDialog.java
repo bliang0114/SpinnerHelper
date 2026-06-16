@@ -2,6 +2,7 @@ package cn.github.spinner.ui;
 
 import cn.github.driver.MatrixDriver;
 import cn.github.spinner.config.MatrixDriversConfig;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MatrixJarClassLoader;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.CommonBundle;
@@ -47,7 +48,7 @@ public class MatrixDriversDialog extends DialogWrapper {
     public MatrixDriversDialog(@Nullable Project project) {
         super(true); // 使用当前窗口作为父窗口
         this.project = project;
-        setTitle("Matrix Drivers");
+        setTitle(SpinnerBundle.message("dialog.matrix.drivers.title"));
         setSize(1000, 600);
         initComponent();
         init();
@@ -57,7 +58,10 @@ public class MatrixDriversDialog extends DialogWrapper {
         driverNameField = new JBTextField();
         driverClassComboBox = new ComboBox<>();
 
-        driverTableModel = new DefaultTableModel(new Object[]{"Driver Jar", "Path"}, 0) {
+        driverTableModel = new DefaultTableModel(new Object[]{
+                SpinnerBundle.message("table.column.driver.jar"),
+                SpinnerBundle.message("table.column.path")
+        }, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // 禁止编辑
@@ -115,8 +119,8 @@ public class MatrixDriversDialog extends DialogWrapper {
         panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         JPanel formPanel = FormBuilder.createFormBuilder()
-                .addLabeledComponent("Name: ", driverNameField)
-                .addLabeledComponent("Class: ", driverClassComboBox)
+                .addLabeledComponent(SpinnerBundle.message("label.name"), driverNameField)
+                .addLabeledComponent(SpinnerBundle.message("label.class"), driverClassComboBox)
                 .addSeparator()
                 .getPanel();
         panel.add(formPanel, BorderLayout.NORTH);
@@ -138,8 +142,8 @@ public class MatrixDriversDialog extends DialogWrapper {
      */
     private void addJarFiles() {
         FileChooserDescriptor descriptor = new FileChooserDescriptor(false, false, true, false, false, true)
-                .withExtensionFilter("Jar File (*.jar)", "jar")
-                .withTitle("Select Jar File");
+                .withExtensionFilter(SpinnerBundle.message("filechooser.jar.filter"), "jar")
+                .withTitle(SpinnerBundle.message("filechooser.select.jar.title"));
         VirtualFile[] files = FileChooser.chooseFiles(descriptor, null, null);
         for (VirtualFile file : files) {
             if (!existedJars.contains(file.getCanonicalPath())) {
@@ -178,7 +182,7 @@ public class MatrixDriversDialog extends DialogWrapper {
         if (selectedIndex < 0) return;
 
         driverClassComboBox.removeAllItems();
-        driverClassComboBox.addItem("Not Specified");
+        driverClassComboBox.addItem(SpinnerBundle.message("message.driver.not.specified"));
         driverTableModel.setRowCount(0);
         existedJars.clear();
 
@@ -202,7 +206,7 @@ public class MatrixDriversDialog extends DialogWrapper {
     }
 
     private void addDriver() {
-        String driverName = "User Driver";
+        String driverName = SpinnerBundle.message("message.user.driver");
         int count = 0;
         for (int i = 0; i < driverListModel.getSize(); i++) {
             if (driverListModel.get(i).startsWith(driverName)) {
@@ -225,7 +229,7 @@ public class MatrixDriversDialog extends DialogWrapper {
 
     private void reloadDriverImplementation() {
         driverClassComboBox.removeAllItems();
-        driverClassComboBox.addItem("Not Specified");
+        driverClassComboBox.addItem(SpinnerBundle.message("message.driver.not.specified"));
         int rowCount = driverTableModel.getRowCount();
         List<File> files = new ArrayList<>(rowCount);
         for (int i = 0; i < rowCount; i++) {
@@ -253,7 +257,7 @@ public class MatrixDriversDialog extends DialogWrapper {
 
         String newDriverName = driverNameField.getText().trim();
         if (newDriverName.isEmpty()) {
-            setErrorText("Driver name must no be empty", driverNameField);
+            setErrorText(SpinnerBundle.message("message.driver.name.required"), driverNameField);
             return;
         }
 
@@ -265,7 +269,7 @@ public class MatrixDriversDialog extends DialogWrapper {
         }
         driverInfo = new MatrixDriversConfig.DriverInfo();
         String driverClass = driverClassComboBox.getItem().trim();
-        driverClass = "Not Specified".equals(driverClass) ? "" : driverClass;
+        driverClass = SpinnerBundle.message("message.driver.not.specified").equals(driverClass) ? "" : driverClass;
         driverInfo.setDriverClass(driverClass);
 
         List<MatrixDriversConfig.DriverFile> driverFiles = new ArrayList<>();
@@ -278,7 +282,7 @@ public class MatrixDriversDialog extends DialogWrapper {
         driverInfo.setDriverFiles(driverFiles);
         MatrixDriversConfig.getInstance().putDriver(newDriverName, driverInfo);
         driverListModel.set(selectedIndex, newDriverName);
-        UIUtil.showNotification(this.project, "Matrix Drivers", "Driver " + newDriverName + " Saved Successfully");
+        UIUtil.showNotification(this.project, SpinnerBundle.message("notification.title.matrix.drivers"), SpinnerBundle.message("message.driver.saved", newDriverName));
     }
 
     @Override

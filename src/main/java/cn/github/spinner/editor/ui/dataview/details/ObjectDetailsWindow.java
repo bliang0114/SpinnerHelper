@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.driver.MQLException;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBTabbedPane;
@@ -57,12 +58,12 @@ public class ObjectDetailsWindow extends JFrame {
     }
 
     protected void createCenterPanel() {
-        tabbedPane.add("Details", new ObjectBasicInformationComponent(project, id));
-        tabbedPane.add("History", new ObjectHistoryComponent(project, id));
-        tabbedPane.add("Connections (bus)", new ObjectBusConnectionsComponent(project, id));
-        tabbedPane.add("Connections (rel)", new ObjectRelConnectionsComponent(project, id));
-        tabbedPane.add("Paths", new ObjectPathsComponent(project, id));
-        tabbedPane.add("Files", new ObjectFilesComponent(project, id));
+        tabbedPane.add(SpinnerBundle.message("tab.details"), new ObjectBasicInformationComponent(project, id));
+        tabbedPane.add(SpinnerBundle.message("tab.history"), new ObjectHistoryComponent(project, id));
+        tabbedPane.add(SpinnerBundle.message("tab.connections.bus"), new ObjectBusConnectionsComponent(project, id));
+        tabbedPane.add(SpinnerBundle.message("tab.connections.rel"), new ObjectRelConnectionsComponent(project, id));
+        tabbedPane.add(SpinnerBundle.message("tab.paths"), new ObjectPathsComponent(project, id));
+        tabbedPane.add(SpinnerBundle.message("tab.files"), new ObjectFilesComponent(project, id));
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
         panel.add(tabbedPane, BorderLayout.CENTER);

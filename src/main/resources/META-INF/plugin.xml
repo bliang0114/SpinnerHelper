@@ -115,13 +115,12 @@
         <fileEditorProvider implementation="cn.github.spinner.editor.MQLSplitEditorProvider"/>
     </extensions>
     <actions>
-        <action id="SpinnerDeploy" class="cn.github.spinner.action.editor.SpinnerDeployAction" text="SpinnerDeploy"
+        <action id="SpinnerDeploy" class="cn.github.spinner.action.editor.SpinnerDeployAction"
                 icon="AllIcons.Actions.Upload">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </action>
         <action id="SpinnerBatchDeploy"
                 class="cn.github.spinner.action.editor.SpinnerBatchDeployAction"
-                text="SpinnerDeploy"
                 icon="AllIcons.Actions.Upload">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
             <add-to-group group-id="Vcs.Log.ChangesBrowser.Popup" anchor="first"/>

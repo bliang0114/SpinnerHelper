@@ -1,5 +1,6 @@
 package cn.github.spinner.editor.ui.dataview.details;
 
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
@@ -96,7 +97,7 @@ public class ObjectBasicInformationComponent extends AbstractObjectDetailsTableC
                 tableModel.addRow(new String[]{attributeName, attributeValue});
             }
         } catch (Exception e) {
-            table.getEmptyText().setText("Error: print " + id + " error. " + e.getMessage());
+            table.getEmptyText().setText(SpinnerBundle.message("message.error.print", id, e.getMessage()));
         }
     }
 }

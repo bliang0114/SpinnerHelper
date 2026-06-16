@@ -5,6 +5,7 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MatrixJarLoadManager;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -26,9 +27,9 @@ public class ConnectMatrixServer extends Task.Backgroundable {
     private Runnable successHandler;
 
     public ConnectMatrixServer(@Nullable Project project, EnvironmentConfig environment) {
-        super(project, "Connect to 3DExperience", true);
+        super(project, SpinnerBundle.message("progress.connect.3dexperience"), true);
         this.environment = environment;
-        setCancelText("Cancel Connect");
+        setCancelText(SpinnerBundle.message("progress.cancel.connect"));
     }
 
     @Override
@@ -36,12 +37,12 @@ public class ConnectMatrixServer extends Task.Backgroundable {
         indicator.setIndeterminate(true);
         MatrixConnection connection = UserInput.getInstance().connection.get(myProject);
         if (connection != null) {
-            UIUtil.showWarningNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Server is connected.");
+            UIUtil.showWarningNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.server.connected"));
             return;
         }
         MatrixDriversConfig.DriverInfo driverInfo = MatrixDriversConfig.getInstance().putDriver(environment.getDriver());
         if (driverInfo == null || driverInfo.getDriverClass() == null || driverInfo.getDriverClass().isEmpty()) {
-            UIUtil.showWarningNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Load Driver Error<br/>" + environment.getDriver() + " Driver is empty.");
+            UIUtil.showWarningNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.load.driver.empty", environment.getDriver()));
             return;
         }
         List<File> driverFiles = MatrixDriversConfig.getInstance().getDriverFiles(environment.getDriver());
@@ -49,7 +50,7 @@ public class ConnectMatrixServer extends Task.Backgroundable {
         try {
             Class.forName(driverInfo.getDriverClass(), true, classLoader);
         } catch (ClassNotFoundException e) {
-            UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Load Driver Error<br/>" + environment.getDriver() + " Driver class not found.");
+            UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.load.driver.class.not.found", environment.getDriver()));
             return;
         }
         ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -69,18 +70,18 @@ public class ConnectMatrixServer extends Task.Backgroundable {
             MatrixConnection newConnection = future.get(20, TimeUnit.SECONDS);
             UserInput.getInstance().connection.put(myProject, newConnection);
             UserInput.getInstance().connectEnvironment.put(myProject, environment);
-            UIUtil.showNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Server connect successfully.");
+            UIUtil.showNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.server.connect.success"));
             if (successHandler != null) {
                 successHandler.run();
             }
         } catch (TimeoutException e) {
             future.cancel(true);
-            UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Connect timeout (20s exceeded).");
+            UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.connect.timeout", 20));
         } catch (InterruptedException e) {
             future.cancel(true);
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
-            UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, "Connect failed: " + e.getCause().getMessage());
+            UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.connect.failed", e.getCause().getMessage()));
         } finally {
             executor.shutdownNow();
         }

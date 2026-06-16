@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.driver.MQLException;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -57,7 +58,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
     protected void initComponents() {
         super.initComponents();
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        table.getEmptyText().setText("Loading bus connections...");
+        table.getEmptyText().setText(SpinnerBundle.message("message.loading.bus.connections"));
     }
 
     @Override
@@ -99,7 +100,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
     @Override
     protected void loadData() {
         if (isLoading) return;
-        new Task.Backgroundable(project, "Loading bus connections", false) {
+        new Task.Backgroundable(project, SpinnerBundle.message("progress.loading.bus.connections"), false) {
             private List<String[]> loadedData;
             private String errorMessage;
 
@@ -116,17 +117,17 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
                         for (String[] row : loadedData) {
                             tableModel.addRow(row);
                         }
-                        table.getEmptyText().setText("No bus connections found");
+                        table.getEmptyText().setText(SpinnerBundle.message("message.no.bus.connections"));
                     });
                 } else {
-                    table.getEmptyText().setText("No bus connections found");
+                    table.getEmptyText().setText(SpinnerBundle.message("message.no.bus.connections"));
                 }
             }
 
             @Override
             public void onThrowable(@NotNull Throwable t) {
                 isLoading = false;
-                errorMessage = "Error loading bus connections: " + t.getMessage();
+                errorMessage = SpinnerBundle.message("message.error.loading.bus.connections", t.getMessage());
                 SwingUtilities.invokeLater(() -> table.getEmptyText().setText(errorMessage));
             }
 
@@ -136,14 +137,14 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
                 loadedData = new ArrayList<>();
                 errorMessage = null;
                 try {
-                    indicator.setText("Fetching bus connections...");
+                    indicator.setText(SpinnerBundle.message("progress.fetching.bus.connections"));
                     indicator.setIndeterminate(true);
                     getDataForBus(id, indicator, loadedData);
 
                 } catch (MQLException e) {
-                    errorMessage = "Error: print " + id + " error. " + e.getMessage();
+                    errorMessage = SpinnerBundle.message("message.error.print", id, e.getMessage());
                 } catch (Exception e) {
-                    errorMessage = "Unexpected error: " + e.getMessage();
+                    errorMessage = SpinnerBundle.message("message.unexpected.error", e.getMessage());
                 } finally {
                     indicator.setIndeterminate(false);
                 }
@@ -158,7 +159,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
         String res;
         String[] a;
         StringBuilder where = new StringBuilder();
-        indicator.setText("Fetching self connections...");
+        indicator.setText(SpinnerBundle.message("progress.fetching.self.connections"));
         res = MQLUtil.execute(project, "print bus " + id + " select to.id dump");
         if (!StrUtil.isEmpty(res)) {
             var connections = res.split(",");
@@ -175,7 +176,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
             }
         }
 
-        indicator.setText("Fetching 'From' connections...");
+        indicator.setText(SpinnerBundle.message("progress.fetching.from.connections"));
         if (!StrUtil.isEmpty(where.toString())) {
             where = new StringBuilder("[|" + where.substring(2) + "]");
         }
@@ -193,7 +194,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
             }
         }
 
-        indicator.setText("Fetching 'To' connections...");
+        indicator.setText(SpinnerBundle.message("progress.fetching.to.connections"));
         res = MQLUtil.execute(project, "print bus " + id + " select from" + where + ".id dump");
         if (!StrUtil.isEmpty(res)) {
             var connections = res.split(",");
@@ -208,7 +209,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
             }
         }
 
-        indicator.setText("Fetching middle connections...");
+        indicator.setText(SpinnerBundle.message("progress.fetching.middle.connections"));
         res = MQLUtil.execute(project, "print bus " + id + " select to.id from.id dump");
         if (!StrUtil.isEmpty(res)) {
             var connections = res.split(",");
@@ -229,7 +230,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
         String[] a;
         StringBuilder where = new StringBuilder();
 
-        indicator.setText("Processing middle connection: " + id);
+        indicator.setText(SpinnerBundle.message("progress.processing.middle.connection", id));
         var relation = MQLUtil.execute(project, "print connection " + id + " select type dump");
 
         res = MQLUtil.execute(project, "print connection " + id + " select frommid.id dump");

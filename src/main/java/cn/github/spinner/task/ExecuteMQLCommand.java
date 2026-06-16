@@ -7,6 +7,7 @@ import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutionEntry;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.ConsoleManager;
 import cn.github.spinner.util.MQLExecutionGutterManager;
 import cn.github.spinner.util.UIUtil;
@@ -35,8 +36,8 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
     private final String consoleName;
 
     public ExecuteMQLCommand(@Nullable Project project, @NotNull String consoleName, @NotNull List<MQLCommandEntry> commandList) {
-        super(project, "Executing MQL Command", true);
-        setCancelText("Stop Execute");
+        super(project, SpinnerBundle.message("progress.executing.mql"), true);
+        setCancelText(SpinnerBundle.message("progress.stop.execute"));
         this.consoleName = consoleName;
         this.commandList = commandList;
     }
@@ -51,13 +52,13 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
 
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) {
-            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Please connect to a matrix server first.");
+            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, SpinnerBundle.message("message.connect.required"));
             return;
         }
 
         ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, consoleName);
         if (consoleManager == null) {
-            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Console not found: " + consoleName);
+            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, SpinnerBundle.message("message.console.not.found", consoleName));
             return;
         }
 
@@ -75,13 +76,13 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
             future.get(timeoutMinutes, TimeUnit.MINUTES);
         } catch (TimeoutException e) {
             future.cancel(true);
-            UIUtil.showErrorNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Execute timeout (" + timeoutMinutes + "min exceeded).");
+            UIUtil.showErrorNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, SpinnerBundle.message("message.execute.timeout", timeoutMinutes));
         } catch (InterruptedException e) {
             future.cancel(true);
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
             Throwable cause = e.getCause() == null ? e : e.getCause();
-            UIUtil.showErrorNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, "Execute failed: " + cause.getMessage());
+            UIUtil.showErrorNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, SpinnerBundle.message("message.execute.failed", cause.getMessage()));
         } finally {
             executor.shutdownNow();
         }
@@ -100,7 +101,7 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
             MQLCommandEntry commandEntry = commandList.get(i);
             String command = commandEntry.command();
             long startTime = System.currentTimeMillis();
-            indicator.setText2("Processing " + (i + 1) + " / " + commandList.size());
+            indicator.setText2(SpinnerBundle.message("progress.processing", i + 1, commandList.size()));
             consoleManager.printSync("MQL>" + command);
             int consoleResultOffset = consoleManager.getCurrentOutputOffset();
 

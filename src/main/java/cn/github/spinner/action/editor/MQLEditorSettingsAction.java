@@ -2,6 +2,7 @@ package cn.github.spinner.action.editor;
 
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.ui.MQLEditorSettingsDialog;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
@@ -22,5 +23,10 @@ public class MQLEditorSettingsAction extends AnAction {
             spinnerSettings.setLineDelimiter(dialog.getLineDelimiter().getText());
             spinnerSettings.setTimeoutMinutes(Integer.parseInt(dialog.getTimeoutMinutes().getText()));
         }
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 }

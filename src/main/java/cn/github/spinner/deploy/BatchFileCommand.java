@@ -2,6 +2,7 @@ package cn.github.spinner.deploy;
 
 import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.constant.TitleConstant;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -35,7 +36,7 @@ public class BatchFileCommand implements FileOperationCommand {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
-                indicator.setText("Starting deployment...");
+                indicator.setText(SpinnerBundle.message("progress.starting.deployment"));
                 try {
                     Map<String, List<PsiElement>> typeFilesMap = files.stream()
                             .filter(file -> file.getContainingFile().getVirtualFile().getExtension() != null)
@@ -50,7 +51,7 @@ public class BatchFileCommand implements FileOperationCommand {
                                     },
                                     HashMap::putAll);
                     if (typeFilesMap.isEmpty()) {
-                        UIUtil.showNotification(context.getProject(), "Spinner Deploy Tip", "不支持的文件");
+                        UIUtil.showNotification(context.getProject(), SpinnerBundle.message("notification.title.spinner.deploy.tip"), SpinnerBundle.message("message.unsupported.file"));
                         return;
                     }
 
@@ -64,7 +65,7 @@ public class BatchFileCommand implements FileOperationCommand {
                         }
                     }
                 } catch (Exception e) {
-                    UIUtil.showErrorNotification(context.getProject(), "Error", e.getLocalizedMessage());
+                    UIUtil.showErrorNotification(context.getProject(), SpinnerBundle.message("notification.title.error"), e.getLocalizedMessage());
                 }
 
             }

@@ -1,6 +1,7 @@
 package cn.github.spinner.components;
 
 import cn.github.spinner.components.bean.TableRowBean;
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.actionSystem.ex.ComboBoxAction;
@@ -173,7 +174,9 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
 
     public class HomePageAction extends AnAction {
         public HomePageAction() {
-            super("Home Page", "Home Page", AllIcons.Actions.Play_first);
+            super(SpinnerBundle.message("action.pagination.home.text"),
+                    SpinnerBundle.message("action.pagination.home.description"),
+                    AllIcons.Actions.Play_first);
         }
 
         @Override
@@ -190,13 +193,15 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
     public class PrevPageAction extends AnAction {
         public PrevPageAction() {
-            super("Previous Page", "Previous Page", AllIcons.Actions.Play_back);
+            super(SpinnerBundle.message("action.pagination.previous.text"),
+                    SpinnerBundle.message("action.pagination.previous.description"),
+                    AllIcons.Actions.Play_back);
         }
 
         @Override
@@ -213,13 +218,15 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
     public class NextPageAction extends AnAction {
         public NextPageAction() {
-            super("Next Page", "Next Page", AllIcons.Actions.Play_forward);
+            super(SpinnerBundle.message("action.pagination.next.text"),
+                    SpinnerBundle.message("action.pagination.next.description"),
+                    AllIcons.Actions.Play_forward);
         }
 
         @Override
@@ -236,13 +243,15 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
     public class LastPageAction extends AnAction {
         public LastPageAction() {
-            super("Last Page", "Last Page", AllIcons.Actions.Play_last);
+            super(SpinnerBundle.message("action.pagination.last.text"),
+                    SpinnerBundle.message("action.pagination.last.description"),
+                    AllIcons.Actions.Play_last);
         }
 
         @Override
@@ -261,7 +270,7 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 
@@ -269,7 +278,7 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
         private final int pageSize;
 
         public PageSizeAction(int pageSize) {
-            super(String.valueOf(pageSize == 0 ? "All" : pageSize));
+            super(pageSize == 0 ? SpinnerBundle.message("action.pagination.all.text") : String.valueOf(pageSize));
             this.pageSize = pageSize;
         }
 
@@ -278,6 +287,11 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
             PaginatedFilterTableComponent.this.currentPage = 1;
             PaginatedFilterTableComponent.this.pageSize = pageSize;
             setPageData();
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
         }
     }
 
@@ -318,6 +332,11 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
                 comboBoxButton.repaint();
             });
         }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
+        }
     }
 
     public class TotalSizeAction extends AnAction implements CustomComponentAction {
@@ -331,6 +350,11 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
         }
 
         @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
+        }
+
+        @Override
         public @NotNull JComponent createCustomComponent(@NotNull Presentation presentation, @NotNull String place) {
             label = new JBLabel("");
             return label;
@@ -340,7 +364,7 @@ public class PaginatedFilterTableComponent<T extends TableRowBean> extends JPane
             // 确保在 UI 线程中更新组件（IDEA 要求所有 UI 操作必须在 EDT 线程执行）
             SwingUtilities.invokeLater(() -> {
                 if (label != null) {
-                    label.setText(" of " + totalCount);
+                    label.setText(SpinnerBundle.message("pagination.total", totalCount));
                     label.repaint(); // 强制重绘，避免文本未刷新
                 }
             });

@@ -5,6 +5,7 @@ import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.ui.EnvironmentSettingsDialog;
 import cn.github.spinner.ui.EnvironmentToolWindow;
 import cn.github.spinner.util.UIUtil;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
@@ -24,5 +25,10 @@ public class NewEnvAction extends AnAction {
             SpinnerSettings.getInstance(project).replaceEnvironment(environment);
             toolWindow.refreshTree();
         }
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 }

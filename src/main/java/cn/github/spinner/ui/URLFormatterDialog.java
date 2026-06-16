@@ -1,6 +1,7 @@
 package cn.github.spinner.ui;
 
 import cn.github.spinner.components.FilterTable;
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.FormBuilder;
@@ -28,7 +29,7 @@ public class URLFormatterDialog extends JFrame {
     private DefaultTableModel tableModel;
 
     public URLFormatterDialog() {
-        setTitle("URL Parameter Parse Tool");
+        setTitle(SpinnerBundle.message("dialog.url.parameter.title"));
         setSize(800, 600);
         initComponents();
         setupListener();
@@ -39,7 +40,10 @@ public class URLFormatterDialog extends JFrame {
 
     private void initComponents() {
         textField = new JBTextField();
-        tableModel = new DefaultTableModel(new String[]{"Parameter Name", "Parameter Value"}, 0);
+        tableModel = new DefaultTableModel(new String[]{
+                SpinnerBundle.message("table.column.parameter.name.spaced"),
+                SpinnerBundle.message("table.column.parameter.value.spaced")
+        }, 0);
         table = new FilterTable(tableModel);
     }
 
@@ -68,7 +72,10 @@ public class URLFormatterDialog extends JFrame {
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
-        panel.add(FormBuilder.createFormBuilder().addLabeledComponent("URL", textField).addComponent(table.getFilterComponent()).getPanel(), BorderLayout.NORTH);
+        panel.add(FormBuilder.createFormBuilder()
+                .addLabeledComponent(SpinnerBundle.message("label.url"), textField)
+                .addComponent(table.getFilterComponent())
+                .getPanel(), BorderLayout.NORTH);
         JScrollPane scrollPane = ScrollPaneFactory.createScrollPane(table);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);

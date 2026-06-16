@@ -3,6 +3,7 @@ package cn.github.spinner.editor.spinner;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.components.ComboBoxWithFilter;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
 import cn.hutool.core.io.FileUtil;
@@ -155,19 +156,19 @@ public class SpinnerDataRecordBuilder {
 
     public class DeployAction extends AnAction {
         public DeployAction() {
-            super("Deploy", "Deploy", AllIcons.Nodes.Deploy);
+            super(SpinnerBundle.message("action.deploy.text"), SpinnerBundle.message("action.deploy.description"), AllIcons.Nodes.Deploy);
         }
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
-           String finalValue = apply();
+            String finalValue = apply();
             if (project == null) {
-                UIUtil.showWarningNotification(null, "Spinner Data View", "project is null, deploy failure");
+                UIUtil.showWarningNotification(null, SpinnerBundle.message("notification.title.spinner.data.view"), SpinnerBundle.message("message.batch.processing.failed", "project is null"));
                 return;
             }
             MatrixConnection connection = UserInput.getInstance().connection.get(project);
             if (connection == null) {
-                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, "Please connect to a matrix server first.");
+                UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.connect.required"));
                 return;
             }
             List<String> lines = FileUtil.readLines(virtualFile.getPath(), virtualFile.getCharset());
@@ -176,7 +177,7 @@ public class SpinnerDataRecordBuilder {
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 

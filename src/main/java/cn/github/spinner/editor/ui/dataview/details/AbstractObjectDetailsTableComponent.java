@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.spinner.components.FilterTable;
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.Project;
@@ -106,7 +107,7 @@ public abstract class AbstractObjectDetailsTableComponent extends JPanel {
 
     public class RefreshAction extends AnAction {
         public RefreshAction() {
-            super("Refresh", "Refresh", AllIcons.Actions.Refresh);
+            super(SpinnerBundle.message("action.refresh.text"), SpinnerBundle.message("action.refresh.description"), AllIcons.Actions.Refresh);
         }
 
         @Override
@@ -114,6 +115,11 @@ public abstract class AbstractObjectDetailsTableComponent extends JPanel {
             table.getFilterComponent().reset();
             loaded = false;
             reload();
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
         }
     }
 }

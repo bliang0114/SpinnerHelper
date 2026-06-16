@@ -2,6 +2,7 @@ package cn.github.spinner.deploy;
 
 import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.constant.TitleConstant;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -52,7 +53,7 @@ public class XlsFileStrategy extends AbstractFileStrategy {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
-                indicator.setText("Starting delete deploy temp dir...");
+                indicator.setText(SpinnerBundle.message("progress.delete.deploy.temp.dir"));
                 try {
                     WorkspaceUtil.reloadSpinnerCache(context.getMatrixConnection());
                 } catch (Exception e) {

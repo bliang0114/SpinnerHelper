@@ -21,7 +21,6 @@ public class ObjectBrowserAction extends AnAction {
         Project project = e.getData(PlatformDataKeys.PROJECT);
         if (project == null) return;
 
-        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
         LightVirtualFile file = new LightVirtualFile("Matrix Object Browser");
         file.setFileType(MatrixDataViewFileType.OBJECT_BROWSER);
         FileEditorManager.getInstance(project).openFile(file, true);
@@ -41,6 +40,6 @@ public class ObjectBrowserAction extends AnAction {
 
     @Override
     public @NotNull ActionUpdateThread getActionUpdateThread() {
-        return ActionUpdateThread.EDT;
+        return ActionUpdateThread.BGT;
     }
 }

@@ -1,6 +1,8 @@
 package cn.github.spinner.deploy;
 
 import cn.github.spinner.constant.FileConstant;
+import cn.github.spinner.constant.TitleConstant;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.WorkspaceUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -43,11 +45,11 @@ public class PropertiesFileStrategy extends AbstractFileStrategy {
 
     @Override
     protected void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
-        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), "Spinner Deploy") {
+        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), TitleConstant.SPINNER_DEPLOY) {
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
-                indicator.setText("Starting reCache Page...");
+                indicator.setText(SpinnerBundle.message("progress.recache.page"));
                 try {
                     WorkspaceUtil.deleteRemoteTempDir(context.getMatrixConnection(), fullRemoteSpinnerDir, remoteBaseDir);
                     WorkspaceUtil.reloadPageCache(context.getMatrixConnection());

@@ -4,6 +4,7 @@ import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.editor.MQLLanguage;
 import cn.github.spinner.editor.ui.dataview.bean.ProgramsRow;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.Disposable;
@@ -42,11 +43,12 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
 
     private void setupBusinessListener() {
         super.table.getSelectionModel().addListSelectionListener(e -> {
-            int selectedRow = ProgramTableComponent.super.table.getSelectedRow();
-            String programName = ProgramTableComponent.super.tableModel.getValueAt(selectedRow, 0).toString();
             if (e.getValueIsAdjusting()) return;
+            int selectedRow = ProgramTableComponent.super.table.getSelectedRow();
             if (selectedRow == -1) return;
+            String programName = ProgramTableComponent.super.tableModel.getValueAt(selectedRow, 0).toString();
             if (programName.startsWith("Failed") || programName.startsWith("No ")) return;
+            if (programName.equals(SpinnerBundle.message("message.no.programs.found"))) return;
             openProgramInNativeEditor(programName);
         });
     }
@@ -57,7 +59,7 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
         try {
             String allProgram = MQLUtil.execute(project, "list prog select name Originated Modified dump");
             if (CharSequenceUtil.isBlank(allProgram)) {
-                programDataList.add(new ProgramsRow("No programs found", "", ""));
+                programDataList.add(new ProgramsRow(SpinnerBundle.message("message.no.programs.found"), "", ""));
                 return programDataList;
             }
 
@@ -73,9 +75,9 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
             programDataList.sort(Comparator.comparing(ProgramsRow::getName));
 
         } catch (MQLException e) {
-            String errorMsg = "Failed to load programs: " + e.getMessage();
+            String errorMsg = SpinnerBundle.message("message.programs.load.failed", e.getMessage());
             programDataList.add(new ProgramsRow());
-            Messages.showWarningDialog(project, errorMsg, "Program List Load Error");
+            Messages.showWarningDialog(project, errorMsg, SpinnerBundle.message("dialog.program.list.load.error.title"));
             throw e;
         }
         return programDataList;
@@ -86,7 +88,7 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
             String programCode = generateJavaCode(programName);
             String programType = getProgType(programName);
             if (programCode.contains("the program is empty")) {
-                Messages.showInfoMessage(project, programCode, "Empty Program");
+                Messages.showInfoMessage(project, SpinnerBundle.message("message.program.empty.content"), SpinnerBundle.message("message.empty.program"));
                 return;
             }
             FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
@@ -112,7 +114,7 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
                 }
 
                 VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByIoFile(tempFile);
-                if (virtualFile == null) throw new IOException("Temporary file not found");
+                if (virtualFile == null) throw new IOException(SpinnerBundle.message("message.temporary.file.not.found"));
 
                 fileEditorManager.openFile(virtualFile, true);
                 for (FileEditor editor : fileEditorManager.getAllEditors(virtualFile)) {
@@ -124,7 +126,7 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
                 }
             }
         } catch (IOException | MQLException e) {
-            Messages.showErrorDialog(project, "Open failed: " + e.getMessage(), "Error");
+            Messages.showErrorDialog(project, SpinnerBundle.message("message.open.failed", e.getMessage()), SpinnerBundle.message("notification.title.error"));
         }
     }
 

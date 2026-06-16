@@ -8,6 +8,7 @@ import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.config.SpinnerSettings;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MatrixJarClassLoader;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.icons.AllIcons;
@@ -44,21 +45,21 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
         super(true); // 使用当前窗口作为父窗口
         this.project = project;
         this.environment = environment;
-        setTitle(environment != null ? "Edit Environment" : "New Environment");
-        setOKButtonText("OK");
+        setTitle(environment != null ? SpinnerBundle.message("dialog.environment.title.edit") : SpinnerBundle.message("dialog.environment.title.new"));
+        setOKButtonText(SpinnerBundle.message("button.ok"));
         // 初始化字段
         environmentField = new JBTextField();
         hostUrlField = new JBTextField();
         usernameField = new JBTextField();
         passwordField = new JBPasswordField();
         vaultField = new JBTextField("eService Production");
-        casCheckBox = new JCheckBox("Use CAS / 3DPassport");
+        casCheckBox = new JCheckBox(SpinnerBundle.message("checkbox.cas"));
         casCheckBox.setSelected(true);
         ExtendableTextComponent.Extension loadExtension =
                 ExtendableTextComponent.Extension.create(
                         AllIcons.Actions.Refresh,
                         AllIcons.Actions.Refresh,
-                        "Load Security Context",
+                        SpinnerBundle.message("tooltip.load.security.context"),
                         loadSecurityContext()
                 );
         securityContextComboBox = new ComboBox<>();
@@ -94,21 +95,21 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
     @Override
     protected JComponent createCenterPanel() {
         return FormBuilder.createFormBuilder()
-                .addLabeledComponent("Environment:", environmentField)
-                .addTooltip("Enter a unique name for this environment")
-                .addLabeledComponent("Driver:", driverComboBox)
+                .addLabeledComponent(SpinnerBundle.message("label.environment"), environmentField)
+                .addTooltip(SpinnerBundle.message("tooltip.environment.name"))
+                .addLabeledComponent(SpinnerBundle.message("label.driver"), driverComboBox)
                 .addSeparator()
-                .addLabeledComponent("Host URL:", hostUrlField)
-                .addTooltip("E.g., https://r2023x.mydomain.com/3dspace")
-                .addLabeledComponent("Username:", usernameField)
-                .addLabeledComponent("Password:", passwordField)
-                .addLabeledComponent("CAS:", casCheckBox)
-                .addTooltip("Enable this for 3DPassport / CAS environments")
+                .addLabeledComponent(SpinnerBundle.message("label.host.url"), hostUrlField)
+                .addTooltip(SpinnerBundle.message("tooltip.host.url"))
+                .addLabeledComponent(SpinnerBundle.message("label.username"), usernameField)
+                .addLabeledComponent(SpinnerBundle.message("label.password"), passwordField)
+                .addLabeledComponent(SpinnerBundle.message("label.cas"), casCheckBox)
+                .addTooltip(SpinnerBundle.message("tooltip.cas"))
                 .addSeparator()
-                .addLabeledComponent("Vault:", vaultField)
-                .addTooltip("E.g., eService production")
-                .addLabeledComponent("Security Context:", securityContextComboBox)
-                .addTooltip("E.g., VPLMAdmin.Company Name.Common Space")
+                .addLabeledComponent(SpinnerBundle.message("label.vault"), vaultField)
+                .addTooltip(SpinnerBundle.message("tooltip.vault"))
+                .addLabeledComponent(SpinnerBundle.message("label.security.context"), securityContextComboBox)
+                .addTooltip(SpinnerBundle.message("tooltip.security.context"))
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
     }
@@ -165,37 +166,37 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
 
     private boolean validateInput() {
         if (getName().isEmpty()) {
-            setErrorText("Environment is required", environmentField);
+            setErrorText(SpinnerBundle.message("message.environment.required"), environmentField);
             return false;
         }
         SpinnerSettings spinnerSettings = SpinnerSettings.getInstance(project);
         Optional<EnvironmentConfig> optional = spinnerSettings.getEnvironment(getName());
         if (optional.isPresent() && environment == null) {
-            setErrorText("Environment is exist", environmentField);
+            setErrorText(SpinnerBundle.message("message.environment.exists"), environmentField);
             return false;
         }
         if (getHostUrl().isEmpty()) {
-            setErrorText("Host URL is required", hostUrlField);
+            setErrorText(SpinnerBundle.message("message.host.url.required"), hostUrlField);
             return false;
         }
         if (getUsername().isEmpty()) {
-            setErrorText("Username is required", usernameField);
+            setErrorText(SpinnerBundle.message("message.username.required"), usernameField);
             return false;
         }
         if (getPassword().isEmpty()) {
-            setErrorText("Password is required", passwordField);
+            setErrorText(SpinnerBundle.message("message.password.required"), passwordField);
             return false;
         }
         if (getVault().isEmpty()) {
-            setErrorText("Vault is required", vaultField);
+            setErrorText(SpinnerBundle.message("message.vault.required"), vaultField);
             return false;
         }
         if (getSecurityContext().isEmpty()) {
-            setErrorText("Security Context is required", securityContextComboBox);
+            setErrorText(SpinnerBundle.message("message.security.context.required"), securityContextComboBox);
             return false;
         }
         if (getDriver().isEmpty()) {
-            setErrorText("Driver is required", driverComboBox);
+            setErrorText(SpinnerBundle.message("message.driver.required"), driverComboBox);
             return false;
         }
         setErrorText(null); // 清除错误信息
@@ -247,10 +248,10 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                     securityContextComboBox.setItem(environment.getSecurityContext());
                 }
             } catch (ClassNotFoundException e) {
-                UIUtil.showErrorNotification(project, "Spinner Environment", "Load Driver Error<br/>" + getDriver());
+                UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.spinner.environment"), SpinnerBundle.message("message.load.driver.error", getDriver()));
             } catch (Exception e) {
                 log.error(e.getLocalizedMessage(), e);
-                UIUtil.showErrorNotification(project, "Spinner Environment", "Get Security Context Error<br/>" + e.getLocalizedMessage());
+                UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.spinner.environment"), SpinnerBundle.message("message.security.context.error", e.getLocalizedMessage()));
             }
         };
     }

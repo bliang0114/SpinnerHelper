@@ -3,6 +3,7 @@ package cn.github.spinner.ui;
 import cn.github.driver.MQLException;
 import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.StrUtil;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.ui.bean.MenuCommandNode;
 import cn.github.spinner.util.MQLUtil;
 import com.intellij.icons.AllIcons;
@@ -80,7 +81,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         JBPanel panel = new JBPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         panel.setBorder(JBUI.Borders.customLineBottom(JBColor.LIGHT_GRAY));
 
-        JButton setRootButton = new JButton("Set Root");
+        JButton setRootButton = new JButton(SpinnerBundle.message("button.set.root"));
         setRootButton.setPreferredSize(new Dimension(80, 30));
         setRootButton.addActionListener(e -> {
             String searchText = rootInputField.getText().trim();
@@ -94,7 +95,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         panel.add(rootInputField);
 
         panel.add(Box.createHorizontalStrut(20));
-        panel.add(new JBLabel("Filter:"));
+        panel.add(new JBLabel(SpinnerBundle.message("label.filter")));
 
         filterField = new JBTextField();
         filterField.setPreferredSize(new Dimension(200, 30));
@@ -117,7 +118,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         panel.add(filterField);
         panel.add(Box.createHorizontalStrut(10));
 
-        JButton resetButton = new JButton("Reset");
+        JButton resetButton = new JButton(SpinnerBundle.message("button.reset"));
         resetButton.setPreferredSize(new Dimension(80, 30));
         resetButton.addActionListener(e -> resetToDefaultRoot());
         panel.add(resetButton);
@@ -147,7 +148,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
     private JComponent createTreePanel() {
         JBPanel panel = new JBPanel(new BorderLayout());
         panel.setBorder(JBUI.Borders.compound(
-                BorderFactory.createTitledBorder("Menu Structure"),
+                BorderFactory.createTitledBorder(SpinnerBundle.message("panel.menu.structure")),
                 JBUI.Borders.empty(5)
         ));
 
@@ -286,9 +287,9 @@ public class MenuAndCommandView extends BorderLayoutPanel {
                     }
                 }
             } catch (MQLException e) {
-                log.error("获取子节点失败", e);
+                log.error("Failed to load child nodes", e);
                 SwingUtilities.invokeLater(() ->
-                        JOptionPane.showMessageDialog(this, "获取子节点失败: " + e.getMessage())
+                        JOptionPane.showMessageDialog(this, SpinnerBundle.message("message.child.nodes.load.failed", e.getMessage()))
                 );
             }
         }
@@ -298,7 +299,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
     private JComponent createListPanel() {
         JBPanel panel = new JBPanel(new BorderLayout());
         panel.setBorder(JBUI.Borders.compound(
-                BorderFactory.createTitledBorder("Commands"),
+                BorderFactory.createTitledBorder(SpinnerBundle.message("panel.commands")),
                 JBUI.Borders.empty(5)
         ));
         listModel = new DefaultListModel<>();
@@ -313,7 +314,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
 
         JBScrollPane scrollPane = new JBScrollPane(commandList);
         scrollPane.setBorder(JBUI.Borders.empty());
-        JBLabel emptyLabel = new JBLabel("请从左侧选择菜单节点或勾选底部类型筛选");
+        JBLabel emptyLabel = new JBLabel(SpinnerBundle.message("panel.empty.menu.selection"));
         emptyLabel.setHorizontalAlignment(SwingConstants.CENTER);
         emptyLabel.setForeground(JBColor.GRAY);
         panel.add(emptyLabel, BorderLayout.CENTER);
@@ -351,7 +352,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
     private JComponent createLabeledField(String labelText, int width) {
         JBPanel panel = new JBPanel(new BorderLayout(10, 0));
 
-        JBLabel label = new JBLabel(labelText + ":");
+        JBLabel label = new JBLabel(getDetailLabel(labelText) + ":");
         label.setPreferredSize(new Dimension(80, 30));
         panel.add(label, BorderLayout.WEST);
 
@@ -390,12 +391,26 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         return panel;
     }
 
+    private String getDetailLabel(String labelText) {
+        return switch (labelText) {
+            case "Description" -> SpinnerBundle.message("label.description");
+            case "Label" -> SpinnerBundle.message("label.label");
+            case "Href" -> SpinnerBundle.message("label.href");
+            case "Alt" -> SpinnerBundle.message("label.alt");
+            case "Code" -> SpinnerBundle.message("label.code");
+            default -> labelText;
+        };
+    }
+
     private JComponent createSettingsSection() {
         JBPanel panel = new JBPanel(new BorderLayout());
-        JBLabel label = new JBLabel("Settings");
+        JBLabel label = new JBLabel(SpinnerBundle.message("label.settings"));
         label.setFont(label.getFont().deriveFont(Font.BOLD));
         panel.add(label, BorderLayout.NORTH);
-        settingsTableModel = new DefaultTableModel(new Object[][]{}, new Object[]{"Key", "Value"});
+        settingsTableModel = new DefaultTableModel(new Object[][]{}, new Object[]{
+                SpinnerBundle.message("table.column.key"),
+                SpinnerBundle.message("table.column.value")
+        });
         JBTable table = new JBTable(settingsTableModel);
         table.setPreferredScrollableViewportSize(new Dimension(400, 100));
         table.setShowGrid(true);
@@ -416,7 +431,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
 
     private JComponent createAccessForSection() {
         JBPanel panel = new JBPanel(new BorderLayout(10, 0));
-        JBLabel label = new JBLabel("Access for:");
+        JBLabel label = new JBLabel(SpinnerBundle.message("label.access.for"));
         label.setPreferredSize(new Dimension(80, 30));
         panel.add(label, BorderLayout.WEST);
         ComboBox<String> accessCombo = new ComboBox<>(new String[]{"admin_platform", "user_platform", "guest"});
@@ -427,13 +442,13 @@ public class MenuAndCommandView extends BorderLayoutPanel {
 
     private JComponent createRoleSection() {
         JBPanel panel = new JBPanel(new BorderLayout());
-        JBLabel label = new JBLabel("Role");
+        JBLabel label = new JBLabel(SpinnerBundle.message("label.role"));
         label.setFont(label.getFont().deriveFont(Font.BOLD));
         panel.add(label, BorderLayout.NORTH);
 
         DefaultTableModel model = new DefaultTableModel(
                 new Object[][]{{"Admin", "Full Access"}, {"Editor", "Modify Access"}, {"Viewer", "Read Only"}},
-                new Object[]{"Role", "Access"}
+                new Object[]{SpinnerBundle.message("table.column.role"), SpinnerBundle.message("table.column.access")}
         );
         JBTable table = new JBTable(model);
         table.setPreferredScrollableViewportSize(new Dimension(400, 80));
@@ -449,10 +464,14 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         JBPanel panel = new JBPanel(new FlowLayout(FlowLayout.LEFT, 20, 5));
         panel.setBorder(JBUI.Borders.customLineTop(JBColor.LIGHT_GRAY));
 
-        commandCheckBox = new JBCheckBox("Commands", false);
-        menuCheckBox = new JBCheckBox("Menus", false);
-        channelCheckBox = new JBCheckBox("Channels", false);
-        portalCheckBox = new JBCheckBox("Portals", false);
+        commandCheckBox = new JBCheckBox(SpinnerBundle.message("checkbox.commands"), false);
+        commandCheckBox.setActionCommand("Commands");
+        menuCheckBox = new JBCheckBox(SpinnerBundle.message("checkbox.menus"), false);
+        menuCheckBox.setActionCommand("Menus");
+        channelCheckBox = new JBCheckBox(SpinnerBundle.message("checkbox.channels"), false);
+        channelCheckBox.setActionCommand("Channels");
+        portalCheckBox = new JBCheckBox(SpinnerBundle.message("checkbox.portals"), false);
+        portalCheckBox.setActionCommand("Portals");
 
         commandCheckBox.addActionListener(this::createActionListener);
         menuCheckBox.addActionListener(this::createActionListener);
@@ -519,7 +538,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
             } catch (MQLException e) {
                 log.error("MQL execute error", e);
                 SwingUtilities.invokeLater(() ->
-                        JOptionPane.showMessageDialog(null, "获取数据失败: " + e.getMessage())
+                        JOptionPane.showMessageDialog(null, SpinnerBundle.message("message.data.fetch.failed", e.getMessage()))
                 );
                 return;
             }
@@ -562,7 +581,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
 
     private void searchAndUpdateTree(String searchText) {
         if (StrUtil.isEmpty(searchText)) {
-            JOptionPane.showMessageDialog(this, "请输入搜索内容");
+            JOptionPane.showMessageDialog(this, SpinnerBundle.message("message.search.input.required"));
             return;
         }
 
@@ -582,7 +601,7 @@ public class MenuAndCommandView extends BorderLayoutPanel {
                     throw new MQLException("Command not found");
                 }
             } catch (MQLException ex) {
-                JOptionPane.showMessageDialog(this, "未找到匹配的节点: " + searchText);
+                JOptionPane.showMessageDialog(this, SpinnerBundle.message("message.node.not.found", searchText));
                 return;
             }
         }

@@ -2,6 +2,7 @@ package cn.github.spinner.editor.spinner;
 
 import cn.github.spinner.components.FilterTable;
 import cn.github.spinner.components.RowNumberTableModel;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
@@ -69,7 +70,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         tableModel = new RowNumberTableModel(headers, 0);
         table = new FilterTable(tableModel);
         recordPane = new JBTabbedPane();
-        recordPane.add("Record", new JPanel());
+        recordPane.add(SpinnerBundle.message("tab.record"), new JPanel());
         recordPaneVisibleAction = new RecordPaneVisibleAction();
         actionGroup = new DefaultActionGroup();
         addHierarchyListener(event -> {
@@ -331,7 +332,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
 
     public class RecordPaneVisibleAction extends ToggleAction {
         public RecordPaneVisibleAction() {
-            super("Show / Hide Record View", "Show / hide record view", AllIcons.Nodes.Record);
+            super(SpinnerBundle.message("action.record.view.toggle.text"), SpinnerBundle.message("action.record.view.toggle.description"), AllIcons.Nodes.Record);
         }
 
         @Override
@@ -351,7 +352,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
 
         @Override
         public @NotNull ActionUpdateThread getActionUpdateThread() {
-            return super.getActionUpdateThread();
+            return ActionUpdateThread.EDT;
         }
     }
 }

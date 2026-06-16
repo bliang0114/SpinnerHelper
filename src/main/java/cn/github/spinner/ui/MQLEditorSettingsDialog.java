@@ -1,6 +1,7 @@
 package cn.github.spinner.ui;
 
 import cn.github.spinner.config.SpinnerSettings;
+import cn.github.spinner.i18n.SpinnerBundle;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.components.JBCheckBox;
@@ -25,10 +26,10 @@ public class MQLEditorSettingsDialog extends DialogWrapper {
     public MQLEditorSettingsDialog(Project project) {
         super(true);
         this.project = project;
-        setTitle("MQL Editor Settings");
-        setOKButtonText("OK");
+        setTitle(SpinnerBundle.message("dialog.mql.editor.settings.title"));
+        setOKButtonText(SpinnerBundle.message("button.ok"));
         // 初始化字段
-        keepExecHistory = new JBCheckBox("Keep executing history");
+        keepExecHistory = new JBCheckBox(SpinnerBundle.message("checkbox.keep.executing.history"));
         lineDelimiter = new JBTextField();
         timeoutMinutes = new JBTextField();
         setupValue();
@@ -49,8 +50,8 @@ public class MQLEditorSettingsDialog extends DialogWrapper {
     protected JComponent createCenterPanel() {
         return FormBuilder.createFormBuilder()
                 .addComponent(keepExecHistory)
-                .addLabeledComponent("Line delimiter", lineDelimiter)
-                .addLabeledComponent("Timeout minutes", timeoutMinutes)
+                .addLabeledComponent(SpinnerBundle.message("label.line.delimiter"), lineDelimiter)
+                .addLabeledComponent(SpinnerBundle.message("label.timeout.minutes"), timeoutMinutes)
                 .getPanel();
     }
 

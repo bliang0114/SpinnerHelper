@@ -1,6 +1,7 @@
 package cn.github.spinner.ui;
 
 import cn.github.driver.MQLException;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.MQLUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
@@ -58,8 +59,8 @@ public class FormsAndTablesView extends JBPanel implements Disposable {
     private final JBList<String> itemList = new JBList<>(listModel);
     private final JTextPane contentPane = new JTextPane();
     private final JTextField filterField = new JTextField(20);
-    private final JCheckBox formsCb = new JCheckBox("Forms", true);
-    private final JCheckBox tablesCb = new JCheckBox("Tables", true);
+    private final JCheckBox formsCb = new JCheckBox(SpinnerBundle.message("checkbox.forms"), true);
+    private final JCheckBox tablesCb = new JCheckBox(SpinnerBundle.message("checkbox.tables"), true);
     private final List<Item> allItems = new ArrayList<>();
     private final List<Disposable> disposables = new ArrayList<>();
     private final MutableAttributeSet normalAttr;
@@ -101,7 +102,7 @@ public class FormsAndTablesView extends JBPanel implements Disposable {
 
     private void initComponents() {
         JBPanel topPanel = new JBPanel<>(new FlowLayout(FlowLayout.LEFT, 5, 5));
-        topPanel.add(new JBLabel("Filter:"));
+        topPanel.add(new JBLabel(SpinnerBundle.message("label.filter")));
         topPanel.add(filterField);
         topPanel.add(Box.createHorizontalStrut(10));
         add(topPanel, BorderLayout.NORTH);
@@ -159,7 +160,9 @@ public class FormsAndTablesView extends JBPanel implements Disposable {
             } catch (MQLException e) {
                 LOG.error("Failed to load items", e);
                 ApplicationManager.getApplication().invokeLater(() ->
-                        Messages.showErrorDialog(myProject, "Failed to load items: " + e.getMessage(), "Data Load Error"));
+                        Messages.showErrorDialog(myProject,
+                                SpinnerBundle.message("message.data.load.failed", e.getMessage()),
+                                SpinnerBundle.message("dialog.data.load.error.title")));
             }
         });
     }
@@ -228,7 +231,9 @@ public class FormsAndTablesView extends JBPanel implements Disposable {
                         } catch (MQLException ex) {
                             LOG.error("Failed to load content", ex);
                             ApplicationManager.getApplication().invokeLater(() ->
-                                    Messages.showErrorDialog(myProject, "Failed to load content: " + ex.getMessage(), "Content Error"));
+                                    Messages.showErrorDialog(myProject,
+                                            SpinnerBundle.message("message.content.load.failed", ex.getMessage()),
+                                            SpinnerBundle.message("dialog.content.error.title")));
                         }
                     });
                 }

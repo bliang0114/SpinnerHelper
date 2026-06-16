@@ -1,6 +1,7 @@
 package cn.github.spinner.action.basic;
 
 import cn.github.spinner.ui.MatrixDriversDialog;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
@@ -13,5 +14,10 @@ public class MatrixDriverSettingsAction extends AnAction {
         Project project = e.getProject();
         MatrixDriversDialog dialog = new MatrixDriversDialog(project);
         dialog.show();
+    }
+
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 }

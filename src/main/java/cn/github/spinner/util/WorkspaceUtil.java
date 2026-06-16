@@ -3,10 +3,10 @@ package cn.github.spinner.util;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.constant.TitleConstant;
+import cn.github.spinner.i18n.SpinnerBundle;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import lombok.extern.slf4j.Slf4j;
@@ -20,41 +20,34 @@ import java.util.concurrent.ThreadLocalRandom;
 public class WorkspaceUtil {
 
     public static void importSpinnerFile(MatrixConnection connection, Project project, String filePath, String content) {
-        try {
-            File spinnerFile = new File(filePath);
-            if (!spinnerFile.exists()) {
-                throw new RuntimeException("File not found.");
-            }
-            String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
-            String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
-            String remoteSpinnerDir = createRemoteSpinnerDirName();
-            String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
-            //创建目录
-            WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
-            //上传文件
-            WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, spinnerFile.getName(), content);
-            ProgressManager.getInstance().run(new Task.Backgroundable(project, TitleConstant.SPINNER_DEPLOY) {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    indicator.setIndeterminate(false);
-                    indicator.setText("Starting deployment...");
-                    try {
-                        //编译JPO
-                        String res = WorkspaceUtil.runSpinnerImport(connection, remoteBaseDir + "/" + remoteSpinnerDir);
-                        if (res == null || res.isEmpty()) {
-                            res = buildDeploySuccessMessage(remoteBaseDir, remoteSpinnerDir);
-                        }
-//                        WorkspaceUtil.reloadSpinnerCache(connection);
-                        UIUtil.showNotification(project, "Deploy Result",res);
-                    } catch (Exception e) {
-                        UIUtil.showErrorNotification(project, "Error", e.getLocalizedMessage());
+        new Task.Backgroundable(project, TitleConstant.SPINNER_DEPLOY) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(false);
+                indicator.setText(SpinnerBundle.message("progress.starting.deployment"));
+                try {
+                    File spinnerFile = new File(filePath);
+                    if (!spinnerFile.exists()) {
+                        throw new RuntimeException(SpinnerBundle.message("message.file.not.found"));
                     }
+                    String spinnerPath = WorkspaceUtil.extractSpinnerSubPath(filePath);
+                    String remoteBaseDir = WorkspaceUtil.getTmpDir(connection);
+                    String remoteSpinnerDir = createRemoteSpinnerDirName();
+                    String remoteRelativePath = remoteSpinnerDir + "/" + spinnerPath;
+                    WorkspaceUtil.createRemoteTempDir(connection, remoteBaseDir, remoteRelativePath);
+                    WorkspaceUtil.uploadTempFile(connection, remoteBaseDir + "/" + remoteRelativePath, spinnerFile.getName(), content);
+
+                    String res = WorkspaceUtil.runSpinnerImport(connection, remoteBaseDir + "/" + remoteSpinnerDir);
+                    if (res == null || res.isEmpty()) {
+                        res = buildDeploySuccessMessage(remoteBaseDir, remoteSpinnerDir);
+                    }
+                    UIUtil.showNotification(project, SpinnerBundle.message("notification.title.deploy.result"), res);
+                } catch (Exception e) {
+                    log.error("Deploy Error", e);
+                    UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.deploy.error"), e.getLocalizedMessage());
                 }
-            });
-        } catch (Exception e) {
-            log.error("Deploy Error", e);
-            UIUtil.showErrorNotification(project, "Deploy Error", e.getLocalizedMessage());
-        }
+            }
+        }.queue();
     }
 
     public static String createRemoteSpinnerDirName() {
@@ -62,28 +55,23 @@ public class WorkspaceUtil {
     }
 
     public static String buildDeploySuccessMessage(String remoteBaseDir, String remoteSpinnerDir) {
-        return "Deploy success, log path is: " + remoteBaseDir + "/" + remoteSpinnerDir + "/spinner.log";
+        return SpinnerBundle.message("message.deploy.success", remoteBaseDir, remoteSpinnerDir);
     }
 
     public static String extractSpinnerSubPath(String fullPath) {
-        // 统一替换为标准斜杠
         fullPath = fullPath.replace("\\", "/");
 
-        // 查找 spinner 出现的位置
         int spinnerIndex = fullPath.indexOf("/spinner");
         if (spinnerIndex == -1) {
-            throw new IllegalArgumentException("The path does not contain the 'spinner' folder");
+            throw new IllegalArgumentException(SpinnerBundle.message("message.spinner.path.missing"));
         }
-        // 截取 spinner 后面的部分
         String subPath = fullPath.substring(spinnerIndex + "/spinner".length());
-        // 去除文件名部分（保留目录）
         int lastSlashIndex = subPath.lastIndexOf("/");
         if (lastSlashIndex == -1) {
-            subPath = "";  // 如果没有目录结构，直接返回空
+            subPath = "";
         } else {
             subPath = subPath.substring(0, lastSlashIndex);
         }
-        // 去除开头和结尾的斜杠
         if (subPath.startsWith("/")) {
             subPath = subPath.substring(1);
         }
@@ -112,7 +100,7 @@ public class WorkspaceUtil {
         connection.invokeJPOMethod("SpinnerDeployJPO", "runScript", cmdArray);
     }
 
-    public static void deleteRemoteTempDir(MatrixConnection connection, String deleteDir,String logDir) throws Exception {
+    public static void deleteRemoteTempDir(MatrixConnection connection, String deleteDir, String logDir) throws Exception {
         String script = "rm";
         String output = logDir + "/mkdir.txt";
         String[] cmdArray = new String[]{script, "-rf", deleteDir, logDir, output};
@@ -136,9 +124,9 @@ public class WorkspaceUtil {
         String script = "mql";
         String output = spinnerBaseDir + "/spinner.log";
         String className;
-        if(StrUtil.isNotEmpty(packageName)){
+        if (StrUtil.isNotEmpty(packageName)) {
             className = packageName + "." + jpoName;
-        }else{
+        } else {
             className = jpoName;
         }
         String[] cmdArray = new String[]{script, "-c", "set context user creator;insert prog " + baseDir + "/" + jpoName + "_mxJPO.java;compile prog " + className + " force update;print context;quit;", spinnerBaseDir, output};
@@ -151,7 +139,14 @@ public class WorkspaceUtil {
         StringBuilder cmdBuild = new StringBuilder();
         cmdBuild.append("set context user creator;");
         for (String fileName : fileNames) {
-            cmdBuild.append("insert prog ").append(baseDir).append("/").append(fileName).append(";").append("compile prog ").append(fileName.replace(FileConstant.SUFFIX_JPO, "")).append(" force update;");
+            cmdBuild.append("insert prog ")
+                    .append(baseDir)
+                    .append("/")
+                    .append(fileName)
+                    .append(";")
+                    .append("compile prog ")
+                    .append(fileName.replace(FileConstant.SUFFIX_JPO, ""))
+                    .append(" force update;");
         }
         cmdBuild.append("print context;quit;");
         String[] cmdArray = new String[]{script, "-c", cmdBuild.toString(), spinnerBaseDir, output};
@@ -173,7 +168,7 @@ public class WorkspaceUtil {
         cmdBuild.append("set context user creator;");
         for (String fileName : fileNames) {
             String execute = MQLUtil.execute(project, "list page " + fileName);
-            if(CharSequenceUtil.isEmpty(execute)) {
+            if (CharSequenceUtil.isEmpty(execute)) {
                 cmdBuild.append("add");
             } else {
                 cmdBuild.append("mod");
@@ -190,7 +185,6 @@ public class WorkspaceUtil {
         connection.invokeJPOMethod("SpinnerDeployJPO", "reloadPageCache", new String[]{}, String.class);
     }
 
-
     public static void reloadSpinnerCache(MatrixConnection connection) throws Exception {
         connection.invokeJPOMethod("SpinnerDeployJPO", "reloadSpinnerCache", new String[]{}, String.class);
     }
@@ -198,5 +192,4 @@ public class WorkspaceUtil {
     public static void reloadCache(MatrixConnection connection) throws Exception {
         connection.invokeJPOMethod("SpinnerDeployJPO", "reloadCache", new String[]{}, String.class);
     }
-
 }
