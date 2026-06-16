@@ -4,6 +4,7 @@ import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutionEntry;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.util.ConsoleFileManager;
 import cn.github.spinner.util.ConsoleManager;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
@@ -54,9 +55,10 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         this.file = file;
         this.textEditor = (TextEditor) TextEditorProvider.getInstance().createEditor(project, file);
         this.spinnerSettings = SpinnerSettings.getInstance(project);
-        this.consoleManager = UserInput.getInstance().getConsole(project, file.getName()) != null
-                ? UserInput.getInstance().getConsole(project, file.getName())
-                : createConsoleManager(project, file);
+        String consoleName = ConsoleFileManager.getConsoleName(project, file);
+        this.consoleManager = UserInput.getInstance().getConsole(project, consoleName) != null
+                ? UserInput.getInstance().getConsole(project, consoleName)
+                : createConsoleManager(project, consoleName, file);
         this.rootPanel = new JPanel(new BorderLayout());
         this.editorContainer = wrapComponent(textEditor.getComponent());
         this.resultContentComponent = consoleManager.createResultComponent();
@@ -74,8 +76,8 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         this.textEditor.getEditor().getCaretModel().addCaretListener(caretListener);
     }
 
-    private ConsoleManager createConsoleManager(@NotNull Project project, @NotNull VirtualFile file) {
-        ConsoleManager manager = new ConsoleManager(project, file.getName(), file);
+    private ConsoleManager createConsoleManager(@NotNull Project project, @NotNull String consoleName, @NotNull VirtualFile file) {
+        ConsoleManager manager = new ConsoleManager(project, consoleName, file);
         UserInput.getInstance().putConsole(project, manager.getConsoleName(), manager);
         return manager;
     }

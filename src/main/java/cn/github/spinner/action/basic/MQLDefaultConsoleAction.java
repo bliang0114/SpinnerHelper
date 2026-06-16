@@ -1,19 +1,17 @@
 package cn.github.spinner.action.basic;
 
 import cn.github.spinner.context.UserInput;
-import cn.github.spinner.editor.MQLLanguage;
+import cn.github.spinner.ui.EnvironmentToolWindow;
+import cn.github.spinner.util.ConsoleFileManager;
 import cn.github.spinner.util.ConsoleManager;
+import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.testFramework.LightVirtualFile;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
-
-import java.nio.charset.StandardCharsets;
 
 @Slf4j
 public class MQLDefaultConsoleAction extends AnAction {
@@ -23,17 +21,13 @@ public class MQLDefaultConsoleAction extends AnAction {
         Project project = e.getData(PlatformDataKeys.PROJECT);
         if (project == null) return;
 
-        ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, UserInput.DEFAULT_MQL_CONSOLE);
-        if (consoleManager == null) {
-            LightVirtualFile consoleFile = new LightVirtualFile(UserInput.DEFAULT_MQL_CONSOLE);
-            consoleFile.setLanguage(MQLLanguage.INSTANCE);
-            consoleFile.setWritable(true);
-            consoleFile.setCharset(StandardCharsets.UTF_8);
-            consoleManager = new ConsoleManager(project, UserInput.DEFAULT_MQL_CONSOLE, consoleFile);
-            UserInput.getInstance().putConsole(project, consoleManager.getConsoleName(), consoleManager);
+        ConsoleManager consoleManager = ConsoleFileManager.ensureDefaultConsole(project);
+        ConsoleFileManager.openConsole(project, consoleManager);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
+        if (toolWindow != null) {
+            toolWindow.refreshTree();
+            toolWindow.selectConsole(UserInput.DEFAULT_MQL_CONSOLE);
         }
-        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-        fileEditorManager.openFile(consoleManager.getConsoleFile(), true);
     }
 
     @Override

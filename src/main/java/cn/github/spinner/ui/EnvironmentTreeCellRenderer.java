@@ -2,6 +2,7 @@ package cn.github.spinner.ui;
 
 import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.editor.icons.MQLIcons;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.ColoredText;
@@ -25,7 +26,16 @@ public class EnvironmentTreeCellRenderer extends ColoredTreeCellRenderer {
                                       boolean leaf, int row, boolean hasFocus) {
         if (value instanceof DefaultMutableTreeNode node) {
             Object userObject = node.getUserObject();
-            if (node instanceof EnvironmentTreeNode envNode) {
+            if (node instanceof EnvironmentGroupTreeNode) {
+                setIcon(AllIcons.Nodes.Folder);
+                append(String.valueOf(userObject), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
+            } else if (node instanceof ConsoleGroupTreeNode) {
+                setIcon(AllIcons.Nodes.Console);
+                append(String.valueOf(userObject), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
+            } else if (node instanceof ConsoleTreeNode consoleNode) {
+                setIcon(MQLIcons.FILE);
+                append(consoleNode.getConsoleManager().getConsoleName(), SimpleTextAttributes.REGULAR_ATTRIBUTES);
+            } else if (node instanceof EnvironmentTreeNode envNode) {
                 setIcon(AllIcons.Nodes.Folder);
                 append(envNode.getEnvironment().getName(), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
             } else if (node instanceof DetailTreeNode detailNode) {

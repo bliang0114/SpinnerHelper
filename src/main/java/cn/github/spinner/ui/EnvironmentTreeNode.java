@@ -1,6 +1,7 @@
 package cn.github.spinner.ui;
 
 import cn.github.spinner.config.EnvironmentConfig;
+import cn.github.spinner.util.ConsoleManager;
 import lombok.Getter;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -21,6 +22,28 @@ public class EnvironmentTreeNode extends DefaultMutableTreeNode {
         add(new DetailTreeNode("Security Context", environment.getSecurityContext()));
     }
 
+}
+
+class EnvironmentGroupTreeNode extends DefaultMutableTreeNode {
+    public EnvironmentGroupTreeNode(String name) {
+        super(name);
+    }
+}
+
+class ConsoleGroupTreeNode extends DefaultMutableTreeNode {
+    public ConsoleGroupTreeNode(String name) {
+        super(name);
+    }
+}
+
+@Getter
+class ConsoleTreeNode extends DefaultMutableTreeNode {
+    private final ConsoleManager consoleManager;
+
+    public ConsoleTreeNode(ConsoleManager consoleManager) {
+        super(consoleManager.getConsoleName());
+        this.consoleManager = consoleManager;
+    }
 }
 
 @Getter

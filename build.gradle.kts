@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "3.0.1"
+version = "3.0.2"
 
 repositories {
 //    mavenCentral()
@@ -46,6 +46,12 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
+            <h2>3.0.2</h2>
+            <ul>
+            <li>国际化调整</li>
+            <li>MQL编辑器内容默认存储到项目目录中</li>
+            <li>增加MQL Console节点管理MQL编辑器</li>
+            </ul>
             <h2>3.0.1</h2>
             <ul>
             <li>完善 MQL 自动补全规则，`type`、`rel`、`relationship`、`temp query bus` 在双引号场景下支持同一对引号内的逗号分隔名称列表补全。</li>
@@ -65,7 +71,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.1"
+        version = "3.0.2"
     }
 }
 
@@ -109,6 +115,6 @@ tasks {
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.1"
+        version = "3.0.2"
     }
 }

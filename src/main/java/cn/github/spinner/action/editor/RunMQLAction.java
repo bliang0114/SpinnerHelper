@@ -7,7 +7,9 @@ import cn.github.spinner.editor.MQLFileType;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.ExecuteMQLCommand;
 import cn.github.spinner.task.MQLCommandEntry;
+import cn.github.spinner.ui.EnvironmentToolWindow;
 import cn.github.spinner.ui.MQLPlaceholderInputDialog;
+import cn.github.spinner.util.ConsoleFileManager;
 import cn.github.spinner.util.ConsoleManager;
 import cn.github.spinner.util.EditorUtil;
 import cn.github.spinner.util.UIUtil;
@@ -24,11 +26,9 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.testFramework.LightVirtualFile;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -58,8 +58,8 @@ public class RunMQLAction extends AnAction {
 
         VirtualFile sourceFile = editor.getVirtualFile();
         boolean isMqlFile = sourceFile.getFileType() == MQLFileType.INSTANCE;
-        String consoleName = sourceFile.getFileType() == MQLFileType.INSTANCE
-                ? sourceFile.getName()
+        String consoleName = isMqlFile
+                ? ConsoleFileManager.getConsoleName(project, sourceFile)
                 : UserInput.DEFAULT_MQL_CONSOLE;
         String selectedText = EditorUtil.getSelectedText(editor);
         log.info("Selected Text: {}", selectedText);
@@ -258,16 +258,13 @@ public class RunMQLAction extends AnAction {
     }
 
     private @NotNull ConsoleManager ensureDefaultConsole(@NotNull Project project) {
-        ConsoleManager consoleManager = UserInput.getInstance().getConsole(project, UserInput.DEFAULT_MQL_CONSOLE);
-        if (consoleManager == null) {
-            LightVirtualFile consoleFile = new LightVirtualFile(UserInput.DEFAULT_MQL_CONSOLE);
-            consoleFile.setLanguage(cn.github.spinner.editor.MQLLanguage.INSTANCE);
-            consoleFile.setWritable(true);
-            consoleFile.setCharset(StandardCharsets.UTF_8);
-            consoleManager = new ConsoleManager(project, UserInput.DEFAULT_MQL_CONSOLE, consoleFile);
-            UserInput.getInstance().putConsole(project, consoleManager.getConsoleName(), consoleManager);
-        }
+        ConsoleManager consoleManager = ConsoleFileManager.ensureDefaultConsole(project);
         FileEditorManager.getInstance(project).openFile(consoleManager.getConsoleFile(), true);
+        EnvironmentToolWindow toolWindow = UIUtil.getEnvironmentToolWindow(project);
+        if (toolWindow != null) {
+            toolWindow.refreshTree();
+            toolWindow.selectConsole(consoleManager.getConsoleName());
+        }
         return consoleManager;
     }
 

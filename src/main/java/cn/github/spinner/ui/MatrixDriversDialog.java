@@ -3,16 +3,24 @@ package cn.github.spinner.ui;
 import cn.github.driver.MatrixDriver;
 import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.util.MatrixConnectorPackageManager;
 import cn.github.spinner.util.MatrixJarClassLoader;
 import cn.github.spinner.util.UIUtil;
+import com.intellij.icons.AllIcons;
 import com.intellij.CommonBundle;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
+import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ActionToolbarPosition;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.AnActionButton;
+import com.intellij.ui.SimpleTextAttributes;
 import com.intellij.ui.ToolbarDecorator;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
@@ -75,6 +83,10 @@ public class MatrixDriversDialog extends DialogWrapper {
         driverTable = new JBTable(driverTableModel);
         driverTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         driverTable.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
+        driverTable.getEmptyText().setText(SpinnerBundle.message("message.driver.files.empty"));
+        driverTable.getEmptyText().appendSecondaryText(" " + SpinnerBundle.message("button.matrix.connector"),
+                SimpleTextAttributes.LINK_ATTRIBUTES,
+                e -> addMatrixConnectorJar());
         // 设置列宽
         driverTable.getColumnModel().getColumn(0).setPreferredWidth(150);
         driverTable.getColumnModel().getColumn(1).setPreferredWidth(350);
@@ -130,6 +142,7 @@ public class MatrixDriversDialog extends DialogWrapper {
                 .setAddActionUpdater(e -> true)
                 .setRemoveAction(btn -> removeSelectedJar())
                 .setRemoveActionUpdater(e -> driverTable.getSelectedRowCount() > 0)
+                .addExtraAction(new MatrixConnectorAction())
                 .setToolbarPosition(ActionToolbarPosition.TOP)
                 .disableUpDownActions() // 禁用上下移动按钮
                 .createPanel();
@@ -146,12 +159,139 @@ public class MatrixDriversDialog extends DialogWrapper {
                 .withTitle(SpinnerBundle.message("filechooser.select.jar.title"));
         VirtualFile[] files = FileChooser.chooseFiles(descriptor, null, null);
         for (VirtualFile file : files) {
-            if (!existedJars.contains(file.getCanonicalPath())) {
-                existedJars.add(file.getCanonicalPath());
-                driverTableModel.addRow(new Object[]{file.getName(), file.getCanonicalPath()});
+            String path = file.getCanonicalPath();
+            if (path != null && !existedJars.contains(path)) {
+                existedJars.add(path);
+                driverTableModel.addRow(new Object[]{file.getName(), path});
             }
         }
         reloadDriverImplementation();
+    }
+
+    private void addMatrixConnectorJar() {
+        int selectedIndex = driverUIList.getSelectedIndex();
+        if (selectedIndex < 0) {
+            return;
+        }
+        String driverName = driverListModel.elementAt(selectedIndex);
+        if (MatrixConnectorPackageManager.isDownloaded()) {
+            addMatrixConnectorJarToCurrentDriver(MatrixConnectorPackageManager.getCachedJarFile(), driverName, true);
+            return;
+        }
+
+        new Task.Backgroundable(project, SpinnerBundle.message("progress.download.matrix.connector"), true) {
+            private File connectorFile;
+
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                indicator.setText(SpinnerBundle.message("progress.downloading", MatrixConnectorPackageManager.FILE_NAME));
+                try {
+                    connectorFile = MatrixConnectorPackageManager.getOrDownload();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            @Override
+            public void onSuccess() {
+                addMatrixConnectorJarToCurrentDriver(connectorFile, driverName, false);
+            }
+
+            @Override
+            public void onThrowable(@NotNull Throwable t) {
+                UIUtil.showErrorNotification(project,
+                        SpinnerBundle.message("notification.title.matrix.drivers"),
+                        SpinnerBundle.message("message.matrix.connector.download.failed", t.getMessage()));
+            }
+        }.queue();
+    }
+
+    private void addMatrixConnectorJarToCurrentDriver(File connectorFile, String driverName, boolean reused) {
+        if (connectorFile == null || !connectorFile.exists()) {
+            return;
+        }
+        int selectedIndex = driverUIList.getSelectedIndex();
+        String selectedDriverName = selectedIndex >= 0 ? driverListModel.elementAt(selectedIndex) : "";
+        if (driverName.equals(selectedDriverName)) {
+            if (addJarFileToTable(connectorFile)) {
+                reloadDriverImplementation();
+                selectMatrixConnectorDriverClass();
+                UIUtil.showNotification(project,
+                        SpinnerBundle.message("notification.title.matrix.drivers"),
+                        reused
+                                ? SpinnerBundle.message("message.matrix.connector.reused", driverName)
+                                : SpinnerBundle.message("message.matrix.connector.added", driverName));
+            } else {
+                UIUtil.showNotification(project,
+                        SpinnerBundle.message("notification.title.matrix.drivers"),
+                        SpinnerBundle.message("message.matrix.connector.exists", driverName));
+            }
+            return;
+        }
+
+        MatrixDriversConfig.DriverInfo driverInfo = MatrixDriversConfig.getInstance().putDriver(driverName);
+        if (addMatrixConnectorToDriverInfo(driverInfo, connectorFile)) {
+            UIUtil.showNotification(project,
+                    SpinnerBundle.message("notification.title.matrix.drivers"),
+                    reused
+                            ? SpinnerBundle.message("message.matrix.connector.reused", driverName)
+                            : SpinnerBundle.message("message.matrix.connector.added", driverName));
+        } else {
+            UIUtil.showNotification(project,
+                    SpinnerBundle.message("notification.title.matrix.drivers"),
+                    SpinnerBundle.message("message.matrix.connector.exists", driverName));
+        }
+    }
+
+    private boolean addJarFileToTable(File file) {
+        String path = getJarPath(file);
+        if (existedJars.contains(path)) {
+            return false;
+        }
+        existedJars.add(path);
+        driverTableModel.addRow(new Object[]{file.getName(), path});
+        return true;
+    }
+
+    private boolean addMatrixConnectorToDriverInfo(MatrixDriversConfig.DriverInfo driverInfo, File file) {
+        String path = getJarPath(file);
+        boolean exists = driverInfo.getDriverFiles().stream().anyMatch(driverFile -> path.equals(driverFile.getPath()));
+        if (exists) {
+            return false;
+        }
+        driverInfo.getDriverFiles().add(new MatrixDriversConfig.DriverFile(file.getName(), path));
+        if (driverInfo.getDriverClass() == null || driverInfo.getDriverClass().isEmpty()) {
+            driverInfo.setDriverClass(MatrixConnectorPackageManager.DRIVER_CLASS_NAME);
+        }
+        return true;
+    }
+
+    private void selectMatrixConnectorDriverClass() {
+        String driverClassName = MatrixConnectorPackageManager.DRIVER_CLASS_NAME;
+        boolean exists = false;
+        ComboBoxModel<String> model = driverClassComboBox.getModel();
+        for (int i = 0; i < model.getSize(); i++) {
+            if (driverClassName.equals(model.getElementAt(i))) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            driverClassComboBox.addItem(driverClassName);
+        }
+        driverClassComboBox.setSelectedItem(driverClassName);
+    }
+
+    private String getJarPath(File file) {
+        try {
+            return file.getCanonicalPath();
+        } catch (IOException e) {
+            return file.getAbsolutePath();
+        }
     }
 
     /**
@@ -215,7 +355,10 @@ public class MatrixDriversDialog extends DialogWrapper {
         }
         driverName = count > 0 ? driverName + " [" + (count + 1) + "]" : driverName;
         driverListModel.addElement(driverName);
-        MatrixDriversConfig.getInstance().putDriver(driverName);
+        MatrixDriversConfig.DriverInfo driverInfo = MatrixDriversConfig.getInstance().putDriver(driverName);
+        if (MatrixConnectorPackageManager.isDownloaded()) {
+            addMatrixConnectorToDriverInfo(driverInfo, MatrixConnectorPackageManager.getCachedJarFile());
+        }
     }
 
     private void removeDriver() {
@@ -248,6 +391,8 @@ public class MatrixDriversDialog extends DialogWrapper {
             implementations.stream().distinct().forEach(driverClassComboBox::addItem);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } catch (ServiceConfigurationError | LinkageError e) {
+            log.warn("Load matrix driver implementation failed.", e);
         }
     }
 
@@ -289,6 +434,24 @@ public class MatrixDriversDialog extends DialogWrapper {
     protected Action @NotNull [] createActions() {
         ApplyAction applyAction = new ApplyAction();
         return new Action[]{this.getOKAction(), this.getCancelAction(), applyAction};
+    }
+
+    private final class MatrixConnectorAction extends AnActionButton {
+        private MatrixConnectorAction() {
+            super(SpinnerBundle.message("button.matrix.connector"),
+                    SpinnerBundle.message("tooltip.matrix.connector"),
+                    AllIcons.Actions.Download);
+        }
+
+        @Override
+        public void actionPerformed(@NotNull AnActionEvent e) {
+            addMatrixConnectorJar();
+        }
+
+        @Override
+        public @NotNull ActionUpdateThread getActionUpdateThread() {
+            return ActionUpdateThread.EDT;
+        }
     }
 
     protected final class ApplyAction extends DialogWrapperAction {
