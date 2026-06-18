@@ -7,6 +7,7 @@ import cn.github.spinner.components.bean.TableRowBean;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
@@ -14,7 +15,6 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import lombok.Getter;
@@ -63,11 +63,11 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
             updatePaginationStatus();
         }
         table.getEmptyText().setText(SpinnerBundle.message("message.loading.data"));
-        new Task.Backgroundable(project, SpinnerBundle.message("message.loading.data")) {
+        new TrackedBackgroundTask(project, SpinnerBundle.message("message.loading.data")) {
             private Throwable error;
 
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
                 try {
                     tableData = new ArrayList<>(loadDataFromMatrix(connection));

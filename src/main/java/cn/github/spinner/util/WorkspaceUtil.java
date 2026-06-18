@@ -4,10 +4,10 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.constant.TitleConstant;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -20,9 +20,9 @@ import java.util.concurrent.ThreadLocalRandom;
 public class WorkspaceUtil {
 
     public static void importSpinnerFile(MatrixConnection connection, Project project, String filePath, String content) {
-        new Task.Backgroundable(project, TitleConstant.SPINNER_DEPLOY) {
+        new TrackedBackgroundTask(project, TitleConstant.SPINNER_DEPLOY) {
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
                 indicator.setText(SpinnerBundle.message("progress.starting.deployment"));
                 try {

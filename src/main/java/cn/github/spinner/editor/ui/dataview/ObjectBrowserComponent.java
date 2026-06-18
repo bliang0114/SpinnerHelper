@@ -11,12 +11,12 @@ import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
@@ -125,9 +125,9 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         stateComboBox.getEditor().getEditorComponent().addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                new Task.Backgroundable(project, SpinnerBundle.message("progress.load.policy.state")) {
+                new TrackedBackgroundTask(project, SpinnerBundle.message("progress.load.policy.state")) {
                     @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
+                    protected void runTracked(@NotNull ProgressIndicator indicator) {
                         indicator.setIndeterminate(true);
                         String item = policyComboBox.getItem();
                         if (CharSequenceUtil.isNotBlank(item) && !"*".equals(item)) {
@@ -359,12 +359,12 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         final var revisionPattern = CharSequenceUtil.isBlank(revisionTextField.getText()) ? "*" : revisionTextField.getText();
         final var ownerPattern = CharSequenceUtil.isBlank(ownerComboBox.getItem()) ? "*" : ownerComboBox.getItem();
         final var whereExpression = buildWhereExpression();
-        new Task.Backgroundable(project, SpinnerBundle.message("progress.search.from.server")) {
+        new TrackedBackgroundTask(project, SpinnerBundle.message("progress.search.from.server")) {
             private List<Object[]> dataList = Collections.emptyList();
             private Throwable error;
 
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
                 var objectQuery = new MatrixObjectQuery();
                 objectQuery.setName(namePattern);

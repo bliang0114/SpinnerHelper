@@ -5,12 +5,12 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
@@ -79,7 +79,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                         String documentId = String.valueOf(tableModel.getValueAt(modelRowIndex, 0));
                         String fileName = String.valueOf(tableModel.getValueAt(modelRowIndex, 1));
                         String format = String.valueOf(tableModel.getValueAt(modelRowIndex, 2));
-                        new Task.Backgroundable(project, SpinnerBundle.message("progress.downloading.file", fileName), false) {
+                        new TrackedBackgroundTask(project, SpinnerBundle.message("progress.downloading.file", fileName), false) {
                             private File downloadedFile;
                             private String errorMsg;
 
@@ -112,7 +112,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
                             }
 
                             @Override
-                            public void run(@NotNull ProgressIndicator indicator) {
+                            protected void runTracked(@NotNull ProgressIndicator indicator) {
                                 try {
                                     isLoading = true;
                                     SwingUtilities.invokeLater(() -> {
@@ -147,7 +147,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
     protected void loadData() {
         if (isLoading) return;
 
-        new Task.Backgroundable(project, SpinnerBundle.message("progress.loading.bus.files"), false) {
+        new TrackedBackgroundTask(project, SpinnerBundle.message("progress.loading.bus.files"), false) {
             private List<String[]> loadedData;
             private String errorMessage;
 
@@ -180,7 +180,7 @@ public class ObjectFilesComponent extends AbstractObjectDetailsTableComponent {
             }
 
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
                 isLoading = true;
                 loadedData = new ArrayList<>();
                 errorMessage = null;

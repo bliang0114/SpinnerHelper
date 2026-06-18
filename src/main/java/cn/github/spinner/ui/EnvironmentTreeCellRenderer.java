@@ -29,6 +29,7 @@ public class EnvironmentTreeCellRenderer extends ColoredTreeCellRenderer {
             if (node instanceof EnvironmentGroupTreeNode) {
                 setIcon(AllIcons.Nodes.Folder);
                 append(String.valueOf(userObject), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
+                appendConnectedEnvironment();
             } else if (node instanceof ConsoleGroupTreeNode) {
                 setIcon(AllIcons.Nodes.Console);
                 append(String.valueOf(userObject), SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES);
@@ -53,6 +54,13 @@ public class EnvironmentTreeCellRenderer extends ColoredTreeCellRenderer {
                     append(ColoredText.singleFragment(" - [" + environmentConfig.getName() + "]", SimpleTextAttributes.ERROR_ATTRIBUTES));
                 }
             }
+        }
+    }
+
+    private void appendConnectedEnvironment() {
+        EnvironmentConfig environmentConfig = UserInput.getInstance().connectEnvironment.get(project);
+        if (environmentConfig != null) {
+            append(ColoredText.singleFragment(" - [" + environmentConfig.getName() + "]", SimpleTextAttributes.ERROR_ATTRIBUTES));
         }
     }
 }

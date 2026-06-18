@@ -24,6 +24,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.pom.Navigatable;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.JBSplitter;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -38,6 +39,10 @@ import java.beans.PropertyChangeListener;
 import java.util.Locale;
 
 public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor {
+    private static final int SPLITTER_DIVIDER_WIDTH = 8;
+    private static final int PANEL_MINIMUM_WIDTH = 120;
+    private static final int PANEL_MINIMUM_HEIGHT = 80;
+
     private final VirtualFile file;
     private final TextEditor textEditor;
     private final ConsoleManager consoleManager;
@@ -84,6 +89,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
 
     private @NotNull JPanel wrapComponent(@NotNull JComponent component) {
         JPanel panel = new JPanel(new BorderLayout());
+        panel.setMinimumSize(JBUI.size(PANEL_MINIMUM_WIDTH, PANEL_MINIMUM_HEIGHT));
         panel.add(component, BorderLayout.CENTER);
         return panel;
     }
@@ -153,7 +159,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
 
     private void applyResultPosition(@NotNull ResultPosition position) {
         JBSplitter newSplitter = new JBSplitter(position.verticalSplit, position.proportion);
-        newSplitter.setDividerWidth(1);
+        newSplitter.setDividerWidth(JBUI.scale(SPLITTER_DIVIDER_WIDTH));
         if (position.resultFirst) {
             newSplitter.setFirstComponent(resultContainer);
             newSplitter.setSecondComponent(editorContainer);

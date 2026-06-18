@@ -35,4 +35,15 @@ public class MatrixJarLoadManager {
         environmentClassLoaders.put(environment, classLoader);
         return classLoader;
     }
+
+    public static void closeAll() {
+        environmentClassLoaders.forEach((environment, classLoader) -> {
+            try {
+                classLoader.close();
+            } catch (IOException e) {
+                log.error("Close matrix jar classloader failed: {}", environment, e);
+            }
+        });
+        environmentClassLoaders.clear();
+    }
 }

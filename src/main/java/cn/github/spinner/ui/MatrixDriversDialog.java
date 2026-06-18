@@ -3,6 +3,8 @@ package cn.github.spinner.ui;
 import cn.github.driver.MatrixDriver;
 import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.service.DriverKeepAliveService;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MatrixConnectorPackageManager;
 import cn.github.spinner.util.MatrixJarClassLoader;
 import cn.github.spinner.util.UIUtil;
@@ -14,7 +16,6 @@ import com.intellij.openapi.actionSystem.ActionToolbarPosition;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -26,7 +27,6 @@ import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.table.JBTable;
-import com.intellij.util.ui.FormBuilder;
 import com.intellij.util.ui.JBUI;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -44,6 +44,8 @@ import java.util.List;
 
 @Slf4j
 public class MatrixDriversDialog extends DialogWrapper {
+    private static final int MAX_KEEP_ALIVE_MINUTES = 7 * 24 * 60;
+
     private final Project project;
     private DefaultListModel<String> driverListModel;
     private JBList<String> driverUIList;
@@ -51,6 +53,7 @@ public class MatrixDriversDialog extends DialogWrapper {
     private JBTable driverTable;
     private ComboBox<String> driverClassComboBox;
     private JBTextField driverNameField;
+    private JSpinner keepAliveSpinner;
     private final List<String> existedJars = new ArrayList<>();
 
     public MatrixDriversDialog(@Nullable Project project) {
@@ -65,6 +68,16 @@ public class MatrixDriversDialog extends DialogWrapper {
     private void initComponent() {
         driverNameField = new JBTextField();
         driverClassComboBox = new ComboBox<>();
+        keepAliveSpinner = new JSpinner(new SpinnerNumberModel(
+                MatrixDriversConfig.DEFAULT_KEEP_ALIVE_MINUTES,
+                1,
+                MAX_KEEP_ALIVE_MINUTES,
+                1
+        ));
+        keepAliveSpinner.setToolTipText(SpinnerBundle.message("tooltip.keep.alive.minutes"));
+        if (keepAliveSpinner.getEditor() instanceof JSpinner.DefaultEditor editor) {
+            editor.getTextField().setColumns(4);
+        }
 
         driverTableModel = new DefaultTableModel(new Object[]{
                 SpinnerBundle.message("table.column.driver.jar"),
@@ -130,11 +143,7 @@ public class MatrixDriversDialog extends DialogWrapper {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        JPanel formPanel = FormBuilder.createFormBuilder()
-                .addLabeledComponent(SpinnerBundle.message("label.name"), driverNameField)
-                .addLabeledComponent(SpinnerBundle.message("label.class"), driverClassComboBox)
-                .addSeparator()
-                .getPanel();
+        JComponent formPanel = createDriverSettingsPanel();
         panel.add(formPanel, BorderLayout.NORTH);
 
         JPanel tablePanel = ToolbarDecorator.createDecorator(driverTable)
@@ -147,6 +156,54 @@ public class MatrixDriversDialog extends DialogWrapper {
                 .disableUpDownActions() // 禁用上下移动按钮
                 .createPanel();
         panel.add(tablePanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private @NotNull JComponent createDriverSettingsPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(JBUI.Borders.empty(0, 0, 8, 0));
+
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridy = 0;
+        constraints.insets = JBUI.insets(0, 0, 6, 8);
+        constraints.anchor = GridBagConstraints.WEST;
+
+        constraints.gridx = 0;
+        constraints.weightx = 0;
+        panel.add(new JLabel(SpinnerBundle.message("label.name")), constraints);
+
+        constraints.gridx = 1;
+        constraints.weightx = 0.35;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(driverNameField, constraints);
+
+        constraints.gridx = 2;
+        constraints.weightx = 0;
+        constraints.fill = GridBagConstraints.NONE;
+        panel.add(new JLabel(SpinnerBundle.message("label.class")), constraints);
+
+        constraints.gridx = 3;
+        constraints.weightx = 0.65;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(driverClassComboBox, constraints);
+
+        constraints.gridy = 1;
+        constraints.gridx = 0;
+        constraints.weightx = 0;
+        constraints.fill = GridBagConstraints.NONE;
+        constraints.insets = JBUI.insets(0, 0, 0, 8);
+        panel.add(new JLabel(SpinnerBundle.message("label.keep.alive.minutes")), constraints);
+
+        constraints.gridx = 1;
+        constraints.weightx = 0;
+        panel.add(keepAliveSpinner, constraints);
+
+        constraints.gridx = 2;
+        constraints.gridwidth = 2;
+        constraints.weightx = 1;
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(Box.createHorizontalGlue(), constraints);
+
         return panel;
     }
 
@@ -179,11 +236,11 @@ public class MatrixDriversDialog extends DialogWrapper {
             return;
         }
 
-        new Task.Backgroundable(project, SpinnerBundle.message("progress.download.matrix.connector"), true) {
+        new TrackedBackgroundTask(project, SpinnerBundle.message("progress.download.matrix.connector"), true) {
             private File connectorFile;
 
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
                 indicator.setText(SpinnerBundle.message("progress.downloading", MatrixConnectorPackageManager.FILE_NAME));
                 try {
@@ -342,6 +399,7 @@ public class MatrixDriversDialog extends DialogWrapper {
             if (driverClass != null && !driverClass.isEmpty()) {
                 driverClassComboBox.setSelectedItem(driverClass);
             }
+            keepAliveSpinner.setValue(driverInfo.getKeepAliveMinutes());
         }
     }
 
@@ -416,6 +474,10 @@ public class MatrixDriversDialog extends DialogWrapper {
         String driverClass = driverClassComboBox.getItem().trim();
         driverClass = SpinnerBundle.message("message.driver.not.specified").equals(driverClass) ? "" : driverClass;
         driverInfo.setDriverClass(driverClass);
+        Object keepAliveValue = keepAliveSpinner.getValue();
+        driverInfo.setKeepAliveMinutes(keepAliveValue instanceof Number number
+                ? number.intValue()
+                : MatrixDriversConfig.DEFAULT_KEEP_ALIVE_MINUTES);
 
         List<MatrixDriversConfig.DriverFile> driverFiles = new ArrayList<>();
         int rowCount = driverTableModel.getRowCount();
@@ -426,6 +488,9 @@ public class MatrixDriversDialog extends DialogWrapper {
         }
         driverInfo.setDriverFiles(driverFiles);
         MatrixDriversConfig.getInstance().putDriver(newDriverName, driverInfo);
+        if (project != null) {
+            DriverKeepAliveService.getInstance(project).rescheduleCurrentConnectionIfDriver(newDriverName);
+        }
         driverListModel.set(selectedIndex, newDriverName);
         UIUtil.showNotification(this.project, SpinnerBundle.message("notification.title.matrix.drivers"), SpinnerBundle.message("message.driver.saved", newDriverName));
     }

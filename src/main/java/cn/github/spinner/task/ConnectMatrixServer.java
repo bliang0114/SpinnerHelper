@@ -6,10 +6,10 @@ import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.service.DriverKeepAliveService;
 import cn.github.spinner.util.MatrixJarLoadManager;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 @Slf4j
-public class ConnectMatrixServer extends Task.Backgroundable {
+public class ConnectMatrixServer extends TrackedBackgroundTask {
     private final EnvironmentConfig environment;
     @Setter
     private Runnable successHandler;
@@ -33,7 +33,7 @@ public class ConnectMatrixServer extends Task.Backgroundable {
     }
 
     @Override
-    public void run(@NotNull ProgressIndicator indicator) {
+    protected void runTracked(@NotNull ProgressIndicator indicator) {
         indicator.setIndeterminate(true);
         MatrixConnection connection = UserInput.getInstance().connection.get(myProject);
         if (connection != null) {
@@ -70,6 +70,8 @@ public class ConnectMatrixServer extends Task.Backgroundable {
             MatrixConnection newConnection = future.get(20, TimeUnit.SECONDS);
             UserInput.getInstance().connection.put(myProject, newConnection);
             UserInput.getInstance().connectEnvironment.put(myProject, environment);
+            DriverKeepAliveService.getInstance(myProject).schedule(environment);
+            UIUtil.refreshEnvironmentToolWindow(myProject);
             UIUtil.showNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.server.connect.success"));
             if (successHandler != null) {
                 successHandler.run();

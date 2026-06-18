@@ -3,7 +3,9 @@ package cn.github.spinner.util;
 import com.intellij.execution.impl.ConsoleViewImpl;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.GlobalSearchScope;
 import cn.github.spinner.execution.MQLExecutionEntry;
@@ -16,12 +18,13 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Data
-public class ConsoleManager {
+public class ConsoleManager implements Disposable {
     private final ConsoleView consoleView;
     private final ConsolePrinter consolePrinter;
     private final List<MQLExecutionEntry> executionEntries = new CopyOnWriteArrayList<>();
     private String consoleName;
     private VirtualFile consoleFile;
+    private volatile boolean disposed;
 
     public ConsoleManager(Project project, String consoleName, VirtualFile consoleFile) {
         this.consoleView = new ConsoleViewImpl(
@@ -123,5 +126,17 @@ public class ConsoleManager {
 
     public void releaseResultComponent(@Nullable JComponent component) {
         consolePrinter.releaseResultComponent(component);
+    }
+
+    @Override
+    public void dispose() {
+        if (disposed) {
+            return;
+        }
+        disposed = true;
+        clearExecutionEntries();
+        if (consoleView instanceof Disposable disposable) {
+            Disposer.dispose(disposable);
+        }
     }
 }

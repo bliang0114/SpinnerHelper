@@ -13,7 +13,6 @@ import cn.github.spinner.util.MQLExecutionGutterManager;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
-public class ExecuteMQLCommand extends Task.Backgroundable {
+public class ExecuteMQLCommand extends TrackedBackgroundTask {
     private final List<MQLCommandEntry> commandList;
     private final String consoleName;
 
@@ -43,7 +42,7 @@ public class ExecuteMQLCommand extends Task.Backgroundable {
     }
 
     @Override
-    public void run(@NotNull ProgressIndicator indicator) {
+    protected void runTracked(@NotNull ProgressIndicator indicator) {
         indicator.setIndeterminate(false);
         Project project = myProject;
         if (project == null) {

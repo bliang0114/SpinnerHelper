@@ -4,26 +4,27 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.ConsoleManager;
+import cn.github.spinner.util.MatrixJarLoadManager;
+import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class UserInput {
-    private static volatile UserInput instance;
+@Service(Service.Level.APP)
+public final class UserInput implements Disposable {
+    private static final Logger LOG = Logger.getInstance(UserInput.class);
 
-    private UserInput() {
+    public UserInput() {
     }
 
     public static UserInput getInstance() {
-        if (instance == null) {
-            synchronized (UserInput.class) {
-                if (instance == null) {
-                    instance = new UserInput();
-                }
-            }
-        }
-        return instance;
+        return ApplicationManager.getApplication().getService(UserInput.class);
     }
 
     public static final String NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER = SpinnerBundle.message("notification.title.connect.matrix.server");
@@ -37,6 +38,7 @@ public class UserInput {
     public Map<Project, EnvironmentConfig> clickEnvironment = new ConcurrentHashMap<>();
     public Map<Project, MatrixConnection> connection = new ConcurrentHashMap<>();
     public Map<Project, Map<String, ConsoleManager>> mqlConsole = new ConcurrentHashMap<>();
+    private final Map<Project, AtomicInteger> backgroundTaskCount = new ConcurrentHashMap<>();
 
     public ConsoleManager getConsole(Project project, String consoleName) {
         Map<String, ConsoleManager> consoleMap = mqlConsole.get(project);
@@ -49,5 +51,52 @@ public class UserInput {
     public void putConsole(Project project, String consoleName, ConsoleManager consoleManager) {
         Map<String, ConsoleManager> consoleMap = mqlConsole.computeIfAbsent(project, k -> new ConcurrentHashMap<>());
         consoleMap.put(consoleName, consoleManager);
+    }
+
+    public void backgroundTaskStarted(Project project) {
+        if (project == null || project.isDisposed()) {
+            return;
+        }
+        backgroundTaskCount.computeIfAbsent(project, key -> new AtomicInteger()).incrementAndGet();
+    }
+
+    public void backgroundTaskFinished(Project project) {
+        if (project == null) {
+            return;
+        }
+        AtomicInteger count = backgroundTaskCount.get(project);
+        if (count == null || count.decrementAndGet() <= 0) {
+            backgroundTaskCount.remove(project);
+        }
+    }
+
+    public boolean isBackgroundTaskRunning(Project project) {
+        AtomicInteger count = backgroundTaskCount.get(project);
+        return count != null && count.get() > 0;
+    }
+
+    @Override
+    public void dispose() {
+        for (MatrixConnection matrixConnection : connection.values()) {
+            try {
+                matrixConnection.close();
+            } catch (IOException e) {
+                LOG.warn("Failed to close Matrix connection.", e);
+            }
+        }
+        connection.clear();
+        connectEnvironment.clear();
+        connectingEnvironment.clear();
+        clickEnvironment.clear();
+
+        for (Map<String, ConsoleManager> consoleMap : mqlConsole.values()) {
+            for (ConsoleManager consoleManager : consoleMap.values()) {
+                consoleManager.dispose();
+            }
+        }
+        mqlConsole.clear();
+        backgroundTaskCount.clear();
+
+        MatrixJarLoadManager.closeAll();
     }
 }

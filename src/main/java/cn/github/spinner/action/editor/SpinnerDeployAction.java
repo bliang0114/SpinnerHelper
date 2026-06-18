@@ -4,6 +4,7 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.TitleConstant;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
@@ -15,7 +16,6 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiDirectory;
@@ -209,9 +209,9 @@ public class SpinnerDeployAction extends AnAction {
     }
 
     private void runDeployTask(Project project, DeployOperation deployOperation) {
-        new Task.Backgroundable(project, TitleConstant.SPINNER_DEPLOY) {
+        new TrackedBackgroundTask(project, TitleConstant.SPINNER_DEPLOY) {
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
                 indicator.setText(SpinnerBundle.message("progress.starting.deployment"));
                 try {

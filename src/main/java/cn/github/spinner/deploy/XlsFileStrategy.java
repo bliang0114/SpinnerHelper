@@ -3,11 +3,11 @@ package cn.github.spinner.deploy;
 import cn.github.spinner.constant.FileConstant;
 import cn.github.spinner.constant.TitleConstant;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.WorkspaceUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -49,9 +49,9 @@ public class XlsFileStrategy extends AbstractFileStrategy {
     @Override
     protected void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
         super.afterDeploySuccess(fullRemoteSpinnerDir, remoteBaseDir);
-        ProgressManager.getInstance().run(new Task.Backgroundable(context.getProject(), TitleConstant.SPINNER_DEPLOY) {
+        ProgressManager.getInstance().run(new TrackedBackgroundTask(context.getProject(), TitleConstant.SPINNER_DEPLOY) {
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(false);
                 indicator.setText(SpinnerBundle.message("progress.delete.deploy.temp.dir"));
                 try {

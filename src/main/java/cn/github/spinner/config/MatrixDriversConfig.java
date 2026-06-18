@@ -16,6 +16,8 @@ import java.util.Objects;
 @Service(Service.Level.APP)
 @State(name="SpinnerSettings", storages = @Storage("matrix-drivers-config.xml"))
 public final class MatrixDriversConfig implements PersistentStateComponent<MatrixDriversConfig> {
+    public static final int DEFAULT_KEEP_ALIVE_MINUTES = 30;
+
     @Setter
     private Map<String, DriverInfo> driversMap;
     private static final List<String> DEFAULT_DRIVER = List.of("R2021x", "R2022x", "R2023x", "R2024x", "R2025x");
@@ -54,6 +56,10 @@ public final class MatrixDriversConfig implements PersistentStateComponent<Matri
                 .toList();
     }
 
+    public int getKeepAliveMinutes(String driverName) {
+        return putDriver(driverName).getKeepAliveMinutes();
+    }
+
     public void putDriver(String driverName, DriverInfo driverInfo) {
         getDriversMap().put(driverName, driverInfo == null ? new DriverInfo() : driverInfo);
     }
@@ -71,7 +77,12 @@ public final class MatrixDriversConfig implements PersistentStateComponent<Matri
     @AllArgsConstructor
     public static class DriverInfo {
         private String driverClass;
+        private int keepAliveMinutes = DEFAULT_KEEP_ALIVE_MINUTES;
         private List<DriverFile> driverFiles;
+
+        public int getKeepAliveMinutes() {
+            return keepAliveMinutes > 0 ? keepAliveMinutes : DEFAULT_KEEP_ALIVE_MINUTES;
+        }
 
         public List<DriverFile> getDriverFiles() {
             if  (driverFiles == null) {

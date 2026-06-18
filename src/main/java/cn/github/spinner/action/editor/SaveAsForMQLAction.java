@@ -2,6 +2,7 @@ package cn.github.spinner.action.editor;
 
 import cn.github.spinner.ui.MQLFileSaveAsDialog;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
@@ -11,7 +12,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,9 +36,9 @@ public class SaveAsForMQLAction extends AnAction {
                 String content = editor.getDocument().getText();
                 Charset charset = editor.getVirtualFile().getCharset();
                 File targetFile = new File(path, name + ".mql");
-                new Task.Backgroundable(project, SpinnerBundle.message("progress.save.mql.file"), false) {
+                new TrackedBackgroundTask(project, SpinnerBundle.message("progress.save.mql.file"), false) {
                     @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
+                    protected void runTracked(@NotNull ProgressIndicator indicator) {
                         try {
                             FileUtil.writeString(content, targetFile, charset);
                             UIUtil.showNotification(project, SpinnerBundle.message("notification.title.mql.console"), SpinnerBundle.message("message.save.mql.success"));

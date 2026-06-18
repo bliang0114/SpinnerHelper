@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "3.0.2"
+version = "3.0.3"
 
 repositories {
 //    mavenCentral()
@@ -46,6 +46,12 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
+            <h2>3.0.3</h2>
+            <ul>
+            <li>新增 Trigger Query，支持类型过滤、彩色自动完成、type 关联 policy trigger 查询、本地/远程/class 源码定位</li>
+            <li>新增 Matrix 驱动 keep-alive 空闲自动重连与后台任务跟踪</li>
+            <li>优化驱动管理、matrix-connector 复用、连接生命周期清理、环境树刷新、Console 文件处理和 MQL 分割条体验</li>
+            </ul>
             <h2>3.0.2</h2>
             <ul>
             <li>国际化调整</li>
@@ -71,7 +77,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.2"
+        version = "3.0.3"
     }
 }
 
@@ -115,6 +121,6 @@ tasks {
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.2"
+        version = "3.0.3"
     }
 }

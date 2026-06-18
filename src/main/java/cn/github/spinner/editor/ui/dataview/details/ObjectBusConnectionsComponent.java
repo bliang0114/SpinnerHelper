@@ -2,11 +2,11 @@ package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.driver.MQLException;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MQLUtil;
 import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.ui.UIUtil;
 import org.jetbrains.annotations.NotNull;
@@ -100,7 +100,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
     @Override
     protected void loadData() {
         if (isLoading) return;
-        new Task.Backgroundable(project, SpinnerBundle.message("progress.loading.bus.connections"), false) {
+        new TrackedBackgroundTask(project, SpinnerBundle.message("progress.loading.bus.connections"), false) {
             private List<String[]> loadedData;
             private String errorMessage;
 
@@ -132,7 +132,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
             }
 
             @Override
-            public void run(@NotNull ProgressIndicator indicator) {
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
                 isLoading = true;
                 loadedData = new ArrayList<>();
                 errorMessage = null;

@@ -8,6 +8,7 @@ import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.MQLKeywords;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.service.DriverKeepAliveService;
 import cn.github.spinner.task.ConnectMatrixServer;
 import cn.github.spinner.util.DeployUtil;
 import cn.github.spinner.util.MatrixConnectionUtil;
@@ -35,8 +36,10 @@ public class ReConnectAction extends AnAction {
                 UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.connected.environment.missing"));
                 return;
             }
+            DriverKeepAliveService.getInstance(project).cancel();
             UserInput.getInstance().connection.remove(project);
             UserInput.getInstance().connectEnvironment.remove(project);
+            UIUtil.refreshEnvironmentToolWindow(project);
 
             UserInput.getInstance().connectingEnvironment.put(project, connectEnvironment);
             MatrixConnectionUtil.closeAsync(project, connection, SpinnerBundle.message("action.Spinner Config.ReConnect.text"), () -> {

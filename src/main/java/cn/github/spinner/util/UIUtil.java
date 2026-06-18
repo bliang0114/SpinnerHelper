@@ -5,6 +5,7 @@ import cn.hutool.core.util.NumberUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -30,6 +31,19 @@ public class UIUtil {
         if (content == null) return null;
 
         return (EnvironmentToolWindow) content.getComponent();
+    }
+
+    public static void refreshEnvironmentToolWindow(Project project) {
+        if (project == null) return;
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            if (project.isDisposed()) return;
+
+            EnvironmentToolWindow toolWindow = getEnvironmentToolWindow(project);
+            if (toolWindow != null) {
+                toolWindow.refreshTree();
+            }
+        });
     }
 
     public static ToolWindow getToolWindow(Project project, String id) {
