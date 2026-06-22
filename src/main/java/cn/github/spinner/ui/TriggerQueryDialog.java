@@ -69,8 +69,13 @@ public class TriggerQueryDialog extends JFrame {
     private final JBList<TriggerQueryUtil.AdminObjectCandidate> suggestionList = new JBList<>(suggestionListModel);
     private final JBScrollPane suggestionScrollPane = new JBScrollPane(suggestionList);
     private final JPopupMenu suggestionPopup = new JPopupMenu();
+    private final DefaultListModel<String> stateSuggestionListModel = new DefaultListModel<>();
+    private final JBList<String> stateSuggestionList = new JBList<>(stateSuggestionListModel);
+    private final JBScrollPane stateSuggestionScrollPane = new JBScrollPane(stateSuggestionList);
+    private final JPopupMenu stateSuggestionPopup = new JPopupMenu();
     private final Map<TriggerQueryUtil.SchemaType, List<TriggerQueryUtil.AdminObjectCandidate>> suggestionCache =
             new EnumMap<>(TriggerQueryUtil.SchemaType.class);
+    private final Map<String, List<String>> policyStateSuggestionCache = new HashMap<>();
     private final DefaultTableModel tableModel = new DefaultTableModel(COLUMNS, 0) {
         @Override
         public boolean isCellEditable(int row, int column) {
@@ -80,7 +85,11 @@ public class TriggerQueryDialog extends JFrame {
     private final FilterTable table = new FilterTable(tableModel);
     private List<TriggerQueryUtil.TriggerQueryResult> results = new ArrayList<>();
     private boolean loadingSuggestions;
+    private boolean loadingPolicyStates;
     private boolean applyingSuggestion;
+    private boolean applyingStateSuggestion;
+    private boolean nameSuggestionAccepted;
+    private boolean stateSuggestionAccepted;
 
     public TriggerQueryDialog(@NotNull Project project) {
         this.project = project;
@@ -206,7 +215,7 @@ public class TriggerQueryDialog extends JFrame {
         panel.add(useCacheCheckBox, constraints);
 
         setupNameAutoComplete();
-        stateFilterField.addActionListener(e -> queryTriggers());
+        setupPolicyStateAutoComplete();
         return panel;
     }
 
@@ -265,6 +274,7 @@ public class TriggerQueryDialog extends JFrame {
         boolean useCache = useCacheCheckBox.isSelected();
         setQuerying(true);
         hideSuggestions();
+        hideStateSuggestions();
         tableModel.setRowCount(0);
         table.getEmptyText().setText(SpinnerBundle.message("message.loading.data"));
 
@@ -355,31 +365,46 @@ public class TriggerQueryDialog extends JFrame {
 
         schemaTypeComboBox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
+                nameSuggestionAccepted = false;
+                stateSuggestionAccepted = false;
                 hideSuggestions();
+                hideStateSuggestions();
                 loadSuggestionsIfNeeded();
+                loadPolicyStatesIfNeeded();
             }
         });
 
         nameField.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent event) {
-                loadSuggestionsIfNeeded();
+                if (!nameSuggestionAccepted) {
+                    loadSuggestionsIfNeeded();
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent event) {
+                SwingUtilities.invokeLater(() -> {
+                    if (!suggestionList.isFocusOwner()) {
+                        hideSuggestions();
+                    }
+                });
             }
         });
         nameField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent event) {
-                refreshSuggestions();
+                nameChanged();
             }
 
             @Override
             public void removeUpdate(DocumentEvent event) {
-                refreshSuggestions();
+                nameChanged();
             }
 
             @Override
             public void changedUpdate(DocumentEvent event) {
-                refreshSuggestions();
+                nameChanged();
             }
         });
         nameField.addKeyListener(new KeyAdapter() {
@@ -406,8 +431,98 @@ public class TriggerQueryDialog extends JFrame {
         });
     }
 
+    private void setupPolicyStateAutoComplete() {
+        stateSuggestionPopup.setFocusable(false);
+        stateSuggestionPopup.setBorder(JBUI.Borders.customLine(JBColor.border()));
+        stateSuggestionPopup.add(stateSuggestionScrollPane);
+
+        stateSuggestionList.setFixedCellHeight(JBUI.scale(28));
+        stateSuggestionList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent event) {
+                if (event.getButton() == MouseEvent.BUTTON1) {
+                    applySelectedStateSuggestion();
+                }
+            }
+        });
+
+        stateFilterField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent event) {
+                if (!stateSuggestionAccepted) {
+                    loadPolicyStatesIfNeeded();
+                }
+            }
+
+            @Override
+            public void focusLost(FocusEvent event) {
+                SwingUtilities.invokeLater(() -> {
+                    if (!stateSuggestionList.isFocusOwner()) {
+                        hideStateSuggestions();
+                    }
+                });
+            }
+        });
+        stateFilterField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent event) {
+                stateFilterChanged();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent event) {
+                stateFilterChanged();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent event) {
+                stateFilterChanged();
+            }
+        });
+        stateFilterField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent event) {
+                if (event.getKeyCode() == KeyEvent.VK_DOWN) {
+                    moveStateSuggestionSelection(1);
+                    event.consume();
+                } else if (event.getKeyCode() == KeyEvent.VK_UP) {
+                    moveStateSuggestionSelection(-1);
+                    event.consume();
+                } else if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    hideStateSuggestions();
+                    event.consume();
+                }
+            }
+        });
+        stateFilterField.addActionListener(event -> {
+            if (stateSuggestionPopup.isVisible()) {
+                applySelectedStateSuggestion();
+            } else {
+                queryTriggers();
+            }
+        });
+    }
+
+    private void nameChanged() {
+        if (applyingSuggestion) {
+            return;
+        }
+        nameSuggestionAccepted = false;
+        stateSuggestionAccepted = false;
+        hideStateSuggestions();
+        refreshSuggestions();
+    }
+
+    private void stateFilterChanged() {
+        if (applyingStateSuggestion) {
+            return;
+        }
+        stateSuggestionAccepted = false;
+        refreshPolicyStateSuggestions();
+    }
+
     private void loadSuggestionsIfNeeded() {
-        if (!nameField.hasFocus() || loadingSuggestions) {
+        if (!nameField.hasFocus() || loadingSuggestions || nameSuggestionAccepted) {
             return;
         }
         TriggerQueryUtil.SchemaType schemaType = selectedSchemaType();
@@ -456,7 +571,7 @@ public class TriggerQueryDialog extends JFrame {
     }
 
     private void refreshSuggestions() {
-        if (applyingSuggestion || !nameField.hasFocus()) {
+        if (applyingSuggestion || nameSuggestionAccepted || !nameField.hasFocus()) {
             return;
         }
 
@@ -538,10 +653,159 @@ public class TriggerQueryDialog extends JFrame {
             return;
         }
         applyingSuggestion = true;
+        nameSuggestionAccepted = true;
+        stateSuggestionAccepted = false;
         nameField.setText(candidate.name());
         applyingSuggestion = false;
         hideSuggestions();
+        hideStateSuggestions();
         nameField.requestFocusInWindow();
+    }
+
+    private void loadPolicyStatesIfNeeded() {
+        if (!stateFilterField.hasFocus() || loadingPolicyStates || stateSuggestionAccepted ||
+                selectedSchemaType() != TriggerQueryUtil.SchemaType.POLICY) {
+            hideStateSuggestions();
+            return;
+        }
+
+        String policyName = nameField.getText().trim();
+        if (policyName.isEmpty()) {
+            hideStateSuggestions();
+            return;
+        }
+        String policyKey = policyName.toLowerCase(Locale.ROOT);
+        if (policyStateSuggestionCache.containsKey(policyKey)) {
+            refreshPolicyStateSuggestions();
+            return;
+        }
+
+        loadingPolicyStates = true;
+        new TrackedBackgroundTask(project, SpinnerBundle.message("progress.load.policy.state"), true) {
+            private final String requestPolicyName = policyName;
+            private final String requestPolicyKey = policyKey;
+            private List<String> loadedStates = Collections.emptyList();
+            private Throwable error;
+
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                try {
+                    loadedStates = TriggerQueryUtil.listPolicyStates(project, requestPolicyName);
+                } catch (Throwable throwable) {
+                    error = throwable;
+                }
+            }
+
+            @Override
+            public void onSuccess() {
+                loadingPolicyStates = false;
+                if (error != null) {
+                    UIUtil.showWarningNotification(project,
+                            SpinnerBundle.message("notification.title.trigger.query"),
+                            SpinnerBundle.message("message.trigger.policy.states.load.failed", error.getMessage()));
+                    return;
+                }
+                policyStateSuggestionCache.put(requestPolicyKey, loadedStates);
+                refreshPolicyStateSuggestions();
+            }
+
+            @Override
+            public void onThrowable(@NotNull Throwable t) {
+                loadingPolicyStates = false;
+                UIUtil.showWarningNotification(project,
+                        SpinnerBundle.message("notification.title.trigger.query"),
+                        SpinnerBundle.message("message.trigger.policy.states.load.failed", t.getMessage()));
+            }
+        }.queue();
+    }
+
+    private void refreshPolicyStateSuggestions() {
+        if (applyingStateSuggestion || stateSuggestionAccepted || !stateFilterField.hasFocus() ||
+                selectedSchemaType() != TriggerQueryUtil.SchemaType.POLICY) {
+            hideStateSuggestions();
+            return;
+        }
+
+        String policyKey = nameField.getText().trim().toLowerCase(Locale.ROOT);
+        List<String> states = policyStateSuggestionCache.get(policyKey);
+        if (states == null) {
+            hideStateSuggestions();
+            loadPolicyStatesIfNeeded();
+            return;
+        }
+
+        String filterText = currentStateToken().toLowerCase(Locale.ROOT);
+        stateSuggestionListModel.removeAllElements();
+        states.stream()
+                .filter(state -> filterText.isEmpty() || state.toLowerCase(Locale.ROOT).contains(filterText))
+                .limit(MAX_SUGGESTION_COUNT)
+                .forEach(stateSuggestionListModel::addElement);
+        if (stateSuggestionListModel.isEmpty()) {
+            hideStateSuggestions();
+            return;
+        }
+
+        stateSuggestionList.setSelectedIndex(0);
+        showStateSuggestions();
+    }
+
+    private @NotNull String currentStateToken() {
+        String text = stateFilterField.getText();
+        int separatorIndex = text.lastIndexOf(',');
+        return text.substring(separatorIndex + 1).trim();
+    }
+
+    private void showStateSuggestions() {
+        if (!stateFilterField.isShowing()) {
+            return;
+        }
+        int rowCount = Math.min(stateSuggestionListModel.getSize(), 8);
+        int width = Math.max(stateFilterField.getWidth(), JBUI.scale(260));
+        int height = Math.max(rowCount, 1) * stateSuggestionList.getFixedCellHeight() + JBUI.scale(4);
+        stateSuggestionScrollPane.setPreferredSize(new Dimension(width, height));
+        stateSuggestionPopup.pack();
+        if (!stateSuggestionPopup.isVisible()) {
+            stateSuggestionPopup.show(stateFilterField, 0, stateFilterField.getHeight());
+        }
+    }
+
+    private void hideStateSuggestions() {
+        stateSuggestionPopup.setVisible(false);
+    }
+
+    private void moveStateSuggestionSelection(int offset) {
+        if (!stateSuggestionPopup.isVisible()) {
+            refreshPolicyStateSuggestions();
+            return;
+        }
+        int size = stateSuggestionListModel.getSize();
+        if (size <= 0) {
+            return;
+        }
+        int selectedIndex = stateSuggestionList.getSelectedIndex();
+        int nextIndex = Math.max(0, Math.min(size - 1, selectedIndex + offset));
+        stateSuggestionList.setSelectedIndex(nextIndex);
+        stateSuggestionList.ensureIndexIsVisible(nextIndex);
+    }
+
+    private void applySelectedStateSuggestion() {
+        String state = stateSuggestionList.getSelectedValue();
+        if (state == null) {
+            queryTriggers();
+            return;
+        }
+
+        String text = stateFilterField.getText();
+        int separatorIndex = text.lastIndexOf(',');
+        String value = separatorIndex < 0 ? state : text.substring(0, separatorIndex + 1) + " " + state;
+        applyingStateSuggestion = true;
+        stateSuggestionAccepted = true;
+        stateFilterField.setText(value);
+        stateFilterField.setCaretPosition(value.length());
+        applyingStateSuggestion = false;
+        hideStateSuggestions();
+        stateFilterField.requestFocusInWindow();
     }
 
     private TriggerQueryUtil.SchemaType selectedSchemaType() {

@@ -168,10 +168,24 @@ public final class TriggerQueryUtil {
         }
         logSchemaPhase(SchemaType.TYPE, name, matched, results.size() - rowsBeforePhase, phaseStartedAt);
 
-        return results.stream().distinct().sorted(Comparator
+        return sortResults(results);
+    }
+
+    private static @NotNull List<TriggerQueryResult> sortResults(@NotNull List<TriggerQueryResult> results) {
+        List<TriggerQueryResult> distinctResults = results.stream().distinct().toList();
+        Map<ResultGroupKey, Map<String, Integer>> stateOrders = new HashMap<>();
+        for (TriggerQueryResult result : distinctResults) {
+            ResultGroupKey groupKey = new ResultGroupKey(result.schemaType(), result.schemaName());
+            Map<String, Integer> groupStateOrders = stateOrders.computeIfAbsent(groupKey, key -> new HashMap<>());
+            groupStateOrders.computeIfAbsent(result.state(), state -> groupStateOrders.size());
+        }
+
+        return distinctResults.stream().sorted(Comparator
                 .comparing(TriggerQueryResult::schemaType, String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(TriggerQueryResult::schemaName, String.CASE_INSENSITIVE_ORDER)
-                .thenComparing(TriggerQueryResult::state, String.CASE_INSENSITIVE_ORDER)
+                .thenComparingInt(result -> stateOrders
+                        .get(new ResultGroupKey(result.schemaType(), result.schemaName()))
+                        .get(result.state()))
                 .thenComparing(TriggerQueryResult::eventName, String.CASE_INSENSITIVE_ORDER)
                 .thenComparingInt(result -> result.eventKind().order())
                 .thenComparingInt(TriggerQueryResult::sequence)).toList();
@@ -197,6 +211,13 @@ public final class TriggerQueryUtil {
                 ", rows=" + candidates.size() +
                 ", elapsedMs=" + elapsedMillis(startedAt));
         return candidates;
+    }
+
+    public static @NotNull List<String> listPolicyStates(@NotNull Project project,
+                                                          @NotNull String policyName) throws MQLException {
+        String stateResult = executeMql(project, "policy-states name=" + policyName,
+                "print policy " + quote(policyName) + " select state dump");
+        return parseDumpValues(stateResult);
     }
 
     private static @NotNull List<TriggerQueryResult> queryTypeTrigger(@NotNull Project project,
@@ -251,23 +272,21 @@ public final class TriggerQueryUtil {
                                                                         @Nullable String stateFilter,
                                                                         @NotNull Map<String, String> triggerProgramCache,
                                                                         @NotNull Map<ProgramMethodKey, SourceLocation> sourceLocationCache) throws MQLException {
-        String stateResult = executeMql(project, "policy-states name=" + policyName,
-                "print policy " + quote(policyName) + " select state dump");
-        if (CharSequenceUtil.isBlank(stateResult)) {
+        List<String> policyStates = listPolicyStates(project, policyName);
+        if (policyStates.isEmpty()) {
             return List.of();
         }
 
         List<String> targetStates = parseStateFilter(stateFilter);
         List<TriggerQueryResult> results = new ArrayList<>();
-        for (String state : stateResult.split(",")) {
-            String normalizedState = state.trim();
-            if (normalizedState.isEmpty() || (!targetStates.isEmpty() && !targetStates.contains(normalizedState))) {
+        for (String state : policyStates) {
+            if (!targetStates.isEmpty() && !targetStates.contains(state)) {
                 continue;
             }
             String triggerResult = executeMql(project,
-                    "policy-state-trigger name=" + policyName + ", state=" + normalizedState,
-                    "print policy " + quote(policyName) + " select state[" + normalizedState + "].trigger dump");
-            results.addAll(queryTriggerPrograms(project, "policy", policyName, normalizedState,
+                    "policy-state-trigger name=" + policyName + ", state=" + state,
+                    "print policy " + quote(policyName) + " select state[" + state + "].trigger dump");
+            results.addAll(queryTriggerPrograms(project, "policy", policyName, state,
                     triggerResult, triggerProgramCache, sourceLocationCache));
         }
         return results;
@@ -947,6 +966,9 @@ public final class TriggerQueryUtil {
     }
 
     private record TriggerEventType(@NotNull String eventName, @NotNull TriggerEventKind eventKind) {
+    }
+
+    private record ResultGroupKey(@NotNull String schemaType, @NotNull String schemaName) {
     }
 
     public record ClassLookupResult(@Nullable VirtualFile virtualFile, int offset) {

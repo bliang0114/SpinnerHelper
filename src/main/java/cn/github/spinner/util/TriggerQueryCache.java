@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TriggerQueryCache {
+    private static final String QUERY_FORMAT_VERSION = "2";
+
     private TriggerQueryCache() {
     }
 
@@ -304,7 +306,7 @@ public final class TriggerQueryCache {
                                             @NotNull String name,
                                             @Nullable String stateFilter,
                                             boolean includeRelatedPolicies) {
-            String cacheSchemaType = schemaType.name();
+            String cacheSchemaType = QUERY_FORMAT_VERSION + "|" + schemaType.name();
             if (!includeRelatedPolicies && schemaType.includes(TriggerQueryUtil.SchemaType.TYPE)) {
                 cacheSchemaType += "|WITHOUT_RELATED_POLICIES";
             }
