@@ -9,20 +9,27 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Key;
 import com.intellij.testFramework.LightVirtualFile;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class ObjectBrowserAction extends AnAction {
+    private static final Key<LightVirtualFile> OBJECT_BROWSER_FILE_KEY =
+            Key.create("SpinnerHelper.ObjectBrowserFile");
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
         Project project = e.getData(PlatformDataKeys.PROJECT);
         if (project == null) return;
 
-        LightVirtualFile file = new LightVirtualFile("Matrix Object Browser");
-        file.setFileType(MatrixDataViewFileType.OBJECT_BROWSER);
+        LightVirtualFile file = project.getUserData(OBJECT_BROWSER_FILE_KEY);
+        if (file == null || !file.isValid()) {
+            file = new LightVirtualFile("Matrix Object Browser");
+            file.setFileType(MatrixDataViewFileType.OBJECT_BROWSER);
+            project.putUserData(OBJECT_BROWSER_FILE_KEY, file);
+        }
         FileEditorManager.getInstance(project).openFile(file, true);
     }
 

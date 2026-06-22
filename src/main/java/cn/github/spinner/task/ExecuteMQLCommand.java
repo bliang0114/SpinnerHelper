@@ -3,13 +3,14 @@ package cn.github.spinner.task;
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
-import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutionEntry;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.ConsoleManager;
+import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.MQLExecutionGutterManager;
+import cn.github.spinner.util.MatrixConnectionUtil;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -24,7 +25,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -69,7 +69,7 @@ public class ExecuteMQLCommand extends TrackedBackgroundTask {
         MQLExecutionGutterManager.clear(project, consoleManager.getConsoleFile());
 
         int timeoutMinutes = settings.getTimeoutMinutes();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = MatrixConnectionUtil.newDaemonSingleThreadExecutor("spinner-mql-command");
         Future<?> future = executor.submit(() -> executeCommands(indicator, project, connection, consoleManager));
         try {
             future.get(timeoutMinutes, TimeUnit.MINUTES);
@@ -105,8 +105,7 @@ public class ExecuteMQLCommand extends TrackedBackgroundTask {
             int consoleResultOffset = consoleManager.getCurrentOutputOffset();
 
             try {
-                MatrixStatement statement = connection.executeStatement(command);
-                MatrixResultSet resultSet = statement.executeQuery();
+                MatrixResultSet resultSet = MQLUtil.executeQuery(project, connection, command);
                 if (resultSet.isSuccess()) {
                     String successMessage = normalizeMessage("Success", true);
                     MQLExecutionGutterManager.markResult(project, consoleManager.getConsoleFile(), commandEntry.lineNumber(), true, successMessage);

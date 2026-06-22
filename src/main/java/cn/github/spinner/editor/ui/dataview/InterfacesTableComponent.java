@@ -57,11 +57,13 @@ public class InterfacesTableComponent extends AbstractDataViewTableComponent<Int
 
     private List<InterfacesRow> loadInterfacesFromMatrix(String whereExpression) throws MQLException {
         List<InterfacesRow> list = new ArrayList<>();
-        var result = MQLUtil.execute(project, "list interface * where \"" + whereExpression + "\" select name dump");
+        var result = MQLUtil.execute(project,
+                "list interface * where \"" + whereExpression + "\" select name dump");
         var interfaceList = CharSequenceUtil.split(result, "\n");
         interfaceList = interfaceList.stream().filter(CharSequenceUtil::isNotBlank).sorted(String.CASE_INSENSITIVE_ORDER).toList();
         for (var interfaceName : interfaceList) {
-            result = MQLUtil.execute(project, "print interface '" + interfaceName + "' select attribute.owner attribute dump");
+            result = MQLUtil.execute(project,
+                    "print interface '" + interfaceName + "' select attribute.owner attribute dump");
             var attributes = CharSequenceUtil.split(result, ",");
             var midIndex = attributes.size() / 2;
             List<InterfacesRow> singleList = new ArrayList<>();
@@ -72,7 +74,8 @@ public class InterfacesTableComponent extends AbstractDataViewTableComponent<Int
         }
         for (InterfacesRow row : list) {
             var attribute = CharSequenceUtil.isNotBlank(row.getAttributeOwner()) ? row.getAttributeOwner() + "." + row.getAttributeName() : row.getAttributeName();
-            result = MQLUtil.execute(project, "print attribute '" + attribute + "' select name owner type default multiline range dump");
+            result = MQLUtil.execute(project,
+                    "print attribute '" + attribute + "' select name owner type default multiline range dump");
             var s = result.split(",", 6);
             if (s[2].equals("string") && s[4].equalsIgnoreCase("TRUE")) {
                 s[2] = "string multiline";

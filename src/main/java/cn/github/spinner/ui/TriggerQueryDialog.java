@@ -1,6 +1,7 @@
 package cn.github.spinner.ui;
 
 import cn.github.spinner.components.FilterTable;
+import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.TriggerQueryUtil;
@@ -11,12 +12,11 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.pom.Navigatable;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.SmartPsiElementPointer;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBList;
 import com.intellij.testFramework.LightVirtualFile;
 import com.intellij.ui.components.JBScrollPane;
@@ -37,18 +37,22 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class TriggerQueryDialog extends JFrame {
     private static final int MAX_SUGGESTION_COUNT = 80;
+    private static final Map<Project, TriggerQueryDialog> WINDOWS = new HashMap<>();
     private static final Object[] COLUMNS = {
-            "Schema Type", "Schema Name", "State", "Event", "Sequence", "Trigger", "Program", "Method"
+            "Schema Type", "Schema Name", "State", "Event", "Event Type", "Sequence", "Trigger", "Program", "Method"
     };
 
     private final Project project;
@@ -56,6 +60,10 @@ public class TriggerQueryDialog extends JFrame {
             new ComboBox<>(TriggerQueryUtil.SchemaType.values());
     private final JBTextField nameField = new JBTextField();
     private final JBTextField stateFilterField = new JBTextField();
+    private final JBCheckBox includeRelatedPoliciesCheckBox =
+            new JBCheckBox(SpinnerBundle.message("checkbox.trigger.include.related.policies"));
+    private final JBCheckBox useCacheCheckBox =
+            new JBCheckBox(SpinnerBundle.message("checkbox.trigger.use.cache"));
     private final JButton queryButton = new JButton(SpinnerBundle.message("button.query"));
     private final DefaultListModel<TriggerQueryUtil.AdminObjectCandidate> suggestionListModel = new DefaultListModel<>();
     private final JBList<TriggerQueryUtil.AdminObjectCandidate> suggestionList = new JBList<>(suggestionListModel);
@@ -76,6 +84,7 @@ public class TriggerQueryDialog extends JFrame {
 
     public TriggerQueryDialog(@NotNull Project project) {
         this.project = project;
+        configureQueryOptions();
         setTitle(SpinnerBundle.message("dialog.trigger.query.title"));
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setResizable(true);
@@ -86,8 +95,45 @@ public class TriggerQueryDialog extends JFrame {
     }
 
     public static void showWindow(@NotNull Project project) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> showWindow(project));
+            return;
+        }
+
+        TriggerQueryDialog existingWindow = WINDOWS.get(project);
+        if (existingWindow != null && existingWindow.isDisplayable()) {
+            existingWindow.bringToFront();
+            return;
+        }
+
         TriggerQueryDialog window = new TriggerQueryDialog(project);
+        WINDOWS.put(project, window);
+        Disposer.register(project, () -> SwingUtilities.invokeLater(() -> {
+            TriggerQueryDialog projectWindow = WINDOWS.remove(project);
+            if (projectWindow != null) {
+                projectWindow.dispose();
+            }
+        }));
+        window.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                if (WINDOWS.get(project) == window) {
+                    WINDOWS.remove(project);
+                }
+            }
+        });
         window.setVisible(true);
+    }
+
+    private void bringToFront() {
+        if ((getExtendedState() & Frame.ICONIFIED) != 0) {
+            setExtendedState(getExtendedState() & ~Frame.ICONIFIED);
+        }
+        if (!isVisible()) {
+            setVisible(true);
+        }
+        toFront();
+        requestFocus();
     }
 
     private @NotNull JComponent createContentPanel() {
@@ -147,6 +193,18 @@ public class TriggerQueryDialog extends JFrame {
         queryButton.addActionListener(e -> queryTriggers());
         panel.add(queryButton, constraints);
 
+        constraints.gridy = 1;
+        constraints.gridx = 0;
+        constraints.gridwidth = 4;
+        constraints.weightx = 0;
+        constraints.fill = GridBagConstraints.NONE;
+        constraints.insets = JBUI.insets(6, 0, 0, 8);
+        panel.add(includeRelatedPoliciesCheckBox, constraints);
+
+        constraints.gridx = 4;
+        constraints.gridwidth = 3;
+        panel.add(useCacheCheckBox, constraints);
+
         setupNameAutoComplete();
         stateFilterField.addActionListener(e -> queryTriggers());
         return panel;
@@ -154,16 +212,9 @@ public class TriggerQueryDialog extends JFrame {
 
     private @NotNull JComponent createTablePanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         table.getEmptyText().setText(SpinnerBundle.message("message.trigger.query.empty"));
-        table.getColumnModel().getColumn(0).setPreferredWidth(110);
-        table.getColumnModel().getColumn(1).setPreferredWidth(180);
-        table.getColumnModel().getColumn(2).setPreferredWidth(120);
-        table.getColumnModel().getColumn(3).setPreferredWidth(150);
-        table.getColumnModel().getColumn(4).setPreferredWidth(80);
-        table.getColumnModel().getColumn(5).setPreferredWidth(220);
-        table.getColumnModel().getColumn(6).setPreferredWidth(220);
-        table.getColumnModel().getColumn(7).setPreferredWidth(180);
+        configureTableColumns();
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent event) {
@@ -177,6 +228,28 @@ public class TriggerQueryDialog extends JFrame {
         return panel;
     }
 
+    private void configureQueryOptions() {
+        SpinnerSettings settings = SpinnerSettings.getInstance(project);
+        includeRelatedPoliciesCheckBox.setSelected(settings.isTriggerQueryIncludeRelatedPolicies());
+        useCacheCheckBox.setSelected(settings.isTriggerQueryUseCache());
+        includeRelatedPoliciesCheckBox.addActionListener(event ->
+                settings.setTriggerQueryIncludeRelatedPolicies(includeRelatedPoliciesCheckBox.isSelected()));
+        useCacheCheckBox.addActionListener(event ->
+                settings.setTriggerQueryUseCache(useCacheCheckBox.isSelected()));
+    }
+
+    private void configureTableColumns() {
+        table.getColumnModel().getColumn(0).setPreferredWidth(110);
+        table.getColumnModel().getColumn(1).setPreferredWidth(180);
+        table.getColumnModel().getColumn(2).setPreferredWidth(120);
+        table.getColumnModel().getColumn(3).setPreferredWidth(150);
+        table.getColumnModel().getColumn(4).setPreferredWidth(100);
+        table.getColumnModel().getColumn(5).setPreferredWidth(80);
+        table.getColumnModel().getColumn(6).setPreferredWidth(220);
+        table.getColumnModel().getColumn(7).setPreferredWidth(220);
+        table.getColumnModel().getColumn(8).setPreferredWidth(180);
+    }
+
     private void queryTriggers() {
         String name = nameField.getText().trim();
         if (CharSequenceUtil.isBlank(name)) {
@@ -187,6 +260,9 @@ public class TriggerQueryDialog extends JFrame {
         }
 
         TriggerQueryUtil.SchemaType schemaType = selectedSchemaType();
+        String stateFilter = stateFilterField.getText().trim();
+        boolean includeRelatedPolicies = includeRelatedPoliciesCheckBox.isSelected();
+        boolean useCache = useCacheCheckBox.isSelected();
         setQuerying(true);
         hideSuggestions();
         tableModel.setRowCount(0);
@@ -200,7 +276,8 @@ public class TriggerQueryDialog extends JFrame {
             protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
                 try {
-                    queryResults = TriggerQueryUtil.query(project, schemaType, name, stateFilterField.getText().trim());
+                    queryResults = TriggerQueryUtil.query(project, schemaType, name, stateFilter,
+                            includeRelatedPolicies, useCache);
                 } catch (Throwable throwable) {
                     error = throwable;
                 }
@@ -217,18 +294,8 @@ public class TriggerQueryDialog extends JFrame {
                     return;
                 }
                 results = new ArrayList<>(queryResults);
-                for (TriggerQueryUtil.TriggerQueryResult result : results) {
-                    tableModel.addRow(new Object[]{
-                            result.schemaType(),
-                            result.schemaName(),
-                            result.state(),
-                            result.eventType(),
-                            result.sequence(),
-                            result.triggerName(),
-                            result.program(),
-                            result.method()
-                    });
-                }
+                tableModel.setDataVector(toTableRows(results), COLUMNS);
+                configureTableColumns();
                 table.getEmptyText().setText(SpinnerBundle.message("message.trigger.query.no.results"));
             }
 
@@ -242,11 +309,32 @@ public class TriggerQueryDialog extends JFrame {
         }.queue();
     }
 
+    private @NotNull Object[][] toTableRows(@NotNull List<TriggerQueryUtil.TriggerQueryResult> results) {
+        Object[][] rows = new Object[results.size()][COLUMNS.length];
+        for (int i = 0; i < results.size(); i++) {
+            TriggerQueryUtil.TriggerQueryResult result = results.get(i);
+            rows[i] = new Object[]{
+                    result.schemaType(),
+                    result.schemaName(),
+                    result.state(),
+                    result.eventName(),
+                    result.eventKind().displayName(),
+                    result.sequence(),
+                    result.triggerName(),
+                    result.program(),
+                    result.method()
+            };
+        }
+        return rows;
+    }
+
     private void setQuerying(boolean querying) {
         queryButton.setEnabled(!querying);
         schemaTypeComboBox.setEnabled(!querying);
         nameField.setEnabled(!querying);
         stateFilterField.setEnabled(!querying);
+        includeRelatedPoliciesCheckBox.setEnabled(!querying);
+        useCacheCheckBox.setEnabled(!querying);
     }
 
     private void setupNameAutoComplete() {
@@ -490,22 +578,14 @@ public class TriggerQueryDialog extends JFrame {
         }
 
         TriggerQueryUtil.TriggerQueryResult result = results.get(modelRow);
-        if (result.sourcePath().isBlank()) {
+        if (!navigateSourcePath(result.sourcePath(), result.sourceLine())) {
             openRemoteProgramSource(result);
-            return;
         }
-
-        VirtualFile virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(Path.of(result.sourcePath()));
-        if (virtualFile == null) {
-            openRemoteProgramSource(result);
-            return;
-        }
-        int line = Math.max(result.sourceLine() - 1, 0);
-        new OpenFileDescriptor(project, virtualFile, line, 0).navigate(true);
     }
 
     private void openRemoteProgramSource(@NotNull TriggerQueryUtil.TriggerQueryResult result) {
         new TrackedBackgroundTask(project, SpinnerBundle.message("progress.load.trigger.source"), true) {
+            private TriggerQueryUtil.SourceLookupResult projectSourceResult;
             private String sourceCode = "";
             private int methodLine = -1;
             private TriggerQueryUtil.ClassLookupResult classLookupResult;
@@ -515,6 +595,10 @@ public class TriggerQueryDialog extends JFrame {
             @Override
             protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
+                projectSourceResult = TriggerQueryUtil.findProjectSourceTarget(project, result.program(), result.method());
+                if (projectSourceResult != null && !projectSourceResult.isEmpty()) {
+                    return;
+                }
                 try {
                     sourceCode = TriggerQueryUtil.queryProgramCode(project, result.program());
                     if (CharSequenceUtil.isNotBlank(sourceCode)) {
@@ -538,6 +622,9 @@ public class TriggerQueryDialog extends JFrame {
 
             @Override
             public void onSuccess() {
+                if (navigateSourceTarget(projectSourceResult)) {
+                    return;
+                }
                 if (remoteSourceLoaded) {
                     LightVirtualFile virtualFile = new LightVirtualFile(result.program() + ".java");
                     virtualFile.setFileType(JavaFileType.INSTANCE);
@@ -565,29 +652,34 @@ public class TriggerQueryDialog extends JFrame {
         }.queue();
     }
 
+    private boolean navigateSourceTarget(@Nullable TriggerQueryUtil.SourceLookupResult sourceLookupResult) {
+        return sourceLookupResult != null &&
+                navigateSourcePath(sourceLookupResult.sourcePath(), sourceLookupResult.sourceLine());
+    }
+
+    private boolean navigateSourcePath(@NotNull String sourcePath, int sourceLine) {
+        if (sourcePath.isBlank()) {
+            return false;
+        }
+        VirtualFile virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(Path.of(sourcePath));
+        if (virtualFile == null) {
+            return false;
+        }
+        int line = Math.max(sourceLine - 1, 0);
+        new OpenFileDescriptor(project, virtualFile, line, 0).navigate(true);
+        return true;
+    }
+
     private boolean navigateClassTarget(@Nullable TriggerQueryUtil.ClassLookupResult classLookupResult) {
         if (classLookupResult == null || classLookupResult.isEmpty()) {
             return false;
         }
 
-        SmartPsiElementPointer<PsiElement> elementPointer = classLookupResult.elementPointer();
-        if (elementPointer != null) {
-            PsiElement element = elementPointer.getElement();
-            if (element instanceof Navigatable navigatable && element.isValid()) {
-                navigatable.navigate(true);
-                return true;
-            }
-        }
-
-        if (classLookupResult.classPath().isBlank()) {
+        VirtualFile virtualFile = classLookupResult.virtualFile();
+        if (virtualFile == null || !virtualFile.isValid()) {
             return false;
         }
-        VirtualFile virtualFile = LocalFileSystem.getInstance()
-                .refreshAndFindFileByNioFile(Path.of(classLookupResult.classPath()));
-        if (virtualFile == null) {
-            return false;
-        }
-        new OpenFileDescriptor(project, virtualFile).navigate(true);
+        new OpenFileDescriptor(project, virtualFile, classLookupResult.offset()).navigate(true);
         return true;
     }
 

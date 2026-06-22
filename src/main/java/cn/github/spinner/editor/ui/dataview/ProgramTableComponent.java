@@ -138,7 +138,8 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
 
 
     private String getProgType(String programName) throws MQLException {
-        String[] typeArray = MQLUtil.execute(project, "list prog {} select ismqlprogram isjavaprogram dump", programName).split(",");
+        String[] typeArray = MQLUtil.execute(project,
+                "list prog {} select ismqlprogram isjavaprogram dump", programName).split(",");
         if (typeArray.length == 2) {
             if (typeArray[0].trim().equalsIgnoreCase("TRUE")) return "MQL";
             if (typeArray[1].trim().equalsIgnoreCase("TRUE")) return "JAVA";

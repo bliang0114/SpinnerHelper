@@ -7,6 +7,7 @@ import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.util.MatrixAdminDefinitionCache;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
@@ -118,33 +119,14 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private void loadType() {
         rowList.clear();
         listModel.clear();
-        MatrixConnection connection = UserInput.getInstance().connection.get(project);
-        if (connection == null) {
+        if (UserInput.getInstance().connection.get(project) == null) {
             uiList.setEmptyText(SpinnerBundle.message("message.connection.closed"));
             return;
         }
         uiList.setEmptyText(SpinnerBundle.message("message.loading.matrix.type"));
-        executor.schedule(() -> {
-            try {
-                MatrixStatement statement = connection.executeStatement("list type");
-                MatrixResultSet resultSet = statement.executeQuery();
-                if (!resultSet.isSuccess()) {
-                    throw new MQLException(resultSet.getMessage());
-                }
-                List<String> allTypes = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                List<String> loadedTypes = allTypes.stream()
-                        .filter(CharSequenceUtil::isNotBlank)
-                        .sorted(String.CASE_INSENSITIVE_ORDER)
-                        .toList();
-                SwingUtilities.invokeLater(() -> {
-                    rowList.addAll(loadedTypes);
-                    listModel.addAll(rowList);
-                    uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
-                });
-            } catch (MQLException e) {
-                SwingUtilities.invokeLater(() -> uiList.setEmptyText(e.getLocalizedMessage()));
-            }
-        }, 100, TimeUnit.MILLISECONDS);
+        rowList.addAll(MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.TYPE));
+        listModel.addAll(rowList);
+        uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
     }
 
     private void filterType() {

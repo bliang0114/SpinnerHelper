@@ -217,7 +217,8 @@ public class FormsAndTablesView extends JBPanel implements Disposable {
                             if (type.equals("Form")) {
                                 content = MQLUtil.execute(myProject, "print {} {}", type, formOrTableName);
                             } else if (type.equals("Table")) {
-                                content = MQLUtil.execute(myProject, "print {} {} system", type, formOrTableName);
+                                content = MQLUtil.execute(myProject,
+                                        "print {} {} system", type, formOrTableName);
                             }
                             if (content.startsWith("\n")) {
                                 content = content.substring(1);

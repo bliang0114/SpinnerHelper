@@ -1,12 +1,14 @@
 package cn.github.spinner.editor.ui;
 
 import cn.github.spinner.editor.MatrixDataViewFileType;
+import cn.github.spinner.editor.ui.dataview.AdminDefinitionListComponent;
 import cn.github.spinner.editor.ui.dataview.ObjectBrowserComponent;
 import cn.github.spinner.editor.ui.dataview.RelationshipDataViewComponent;
 import cn.github.spinner.editor.ui.dataview.TypeDataViewComponent;
 import cn.github.spinner.editor.ui.dataview.ProgramTableComponent;
 import cn.github.spinner.ui.MenuAndCommandView;
 import cn.github.spinner.ui.FormsAndTablesView;
+import cn.github.spinner.util.MatrixAdminDefinitionCache;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorState;
@@ -38,6 +40,15 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
                 break;
             case TYPE:
                 this.editorComponent = new TypeDataViewComponent(project, virtualFile);
+                break;
+            case POLICY:
+                this.editorComponent = new AdminDefinitionListComponent(project, MatrixAdminDefinitionCache.AdminType.POLICY);
+                break;
+            case ATTRIBUTE:
+                this.editorComponent = new AdminDefinitionListComponent(project, MatrixAdminDefinitionCache.AdminType.ATTRIBUTE);
+                break;
+            case INTERFACE:
+                this.editorComponent = new AdminDefinitionListComponent(project, MatrixAdminDefinitionCache.AdminType.INTERFACE);
                 break;
             case PROGRAM:
                 this.editorComponent = new ProgramTableComponent(project, virtualFile);

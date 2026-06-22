@@ -7,6 +7,7 @@ import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.service.DriverKeepAliveService;
+import cn.github.spinner.util.MatrixConnectionUtil;
 import cn.github.spinner.util.MatrixJarLoadManager;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -35,9 +36,20 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
     @Override
     protected void runTracked(@NotNull ProgressIndicator indicator) {
         indicator.setIndeterminate(true);
+        if (environment == null) {
+            return;
+        }
         MatrixConnection connection = UserInput.getInstance().connection.get(myProject);
         if (connection != null) {
             UIUtil.showWarningNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.server.connected"));
+            return;
+        }
+        try {
+            MatrixConnectionUtil.assertServerReachable(environment);
+        } catch (Exception e) {
+            UIUtil.showErrorNotification(myProject,
+                    UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER,
+                    SpinnerBundle.message("message.connect.failed", e.getMessage()));
             return;
         }
         MatrixDriversConfig.DriverInfo driverInfo = MatrixDriversConfig.getInstance().putDriver(environment.getDriver());
@@ -53,7 +65,7 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
             UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.load.driver.class.not.found", environment.getDriver()));
             return;
         }
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = MatrixConnectionUtil.newDaemonSingleThreadExecutor("spinner-matrix-connect");
         Future<MatrixConnection> future = executor.submit(() ->
                 MatrixDriverManager.getConnection(
                         environment.getHostUrl(),

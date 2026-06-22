@@ -63,7 +63,8 @@ public class AttributesTableComponent extends AbstractDataViewTableComponent<Att
         dataList = dataList.stream().distinct().toList();
         for (var row : dataList) {
             var attribute = CharSequenceUtil.isNotBlank(row.getOwner()) ? row.getOwner() + "." + row.getName() : row.getName();
-            var result = MQLUtil.execute(project, "print attribute '" + attribute + "' select name owner type default multiline range dump");
+            var result = MQLUtil.execute(project,
+                    "print attribute '" + attribute + "' select name owner type default multiline range dump");
             var s = result.split(",", 6);
             if (s[2].equals("string") && s[4].equalsIgnoreCase("TRUE")) {
                 s[2] = "string multiline";
@@ -94,7 +95,8 @@ public class AttributesTableComponent extends AbstractDataViewTableComponent<Att
 
     private List<AttributesRow> listInterfaceAttributes(String whereExpression) throws MQLException {
         List<AttributesRow> list = new ArrayList<>();
-        var result = MQLUtil.execute(project, "list interface * where \"" + whereExpression + "\" select attribute.owner attribute dump");
+        var result = MQLUtil.execute(project,
+                "list interface * where \"" + whereExpression + "\" select attribute.owner attribute dump");
         var resultSplit = CharSequenceUtil.split(result, "\n");
         for (var item : resultSplit) {
             var itemSplit = CharSequenceUtil.split(item, ",");

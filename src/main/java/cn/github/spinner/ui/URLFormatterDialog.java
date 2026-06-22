@@ -14,6 +14,8 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,20 +24,62 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class URLFormatterDialog extends JFrame {
+    private static URLFormatterDialog instance;
+
     @Getter
     @Setter
     private JBTextField textField;
     private FilterTable table;
     private DefaultTableModel tableModel;
 
-    public URLFormatterDialog() {
+    private URLFormatterDialog() {
         setTitle(SpinnerBundle.message("dialog.url.parameter.title"));
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setSize(800, 600);
         initComponents();
         setupListener();
 
         setLayout(new BorderLayout());
         add(createCenterPanel(), BorderLayout.CENTER);
+        setLocationRelativeTo(null);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                if (instance == URLFormatterDialog.this) {
+                    instance = null;
+                }
+            }
+        });
+    }
+
+    public static void showWindow() {
+        showWindow(null);
+    }
+
+    public static void showWindow(String initialText) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> showWindow(initialText));
+            return;
+        }
+
+        if (instance == null || !instance.isDisplayable()) {
+            instance = new URLFormatterDialog();
+        }
+        if (initialText != null) {
+            instance.getTextField().setText(initialText);
+        }
+        instance.bringToFront();
+    }
+
+    private void bringToFront() {
+        if ((getExtendedState() & Frame.ICONIFIED) != 0) {
+            setExtendedState(getExtendedState() & ~Frame.ICONIFIED);
+        }
+        if (!isVisible()) {
+            setVisible(true);
+        }
+        toFront();
+        requestFocus();
     }
 
     private void initComponents() {

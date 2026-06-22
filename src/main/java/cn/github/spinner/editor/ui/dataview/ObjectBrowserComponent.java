@@ -7,11 +7,12 @@ import cn.github.driver.connection.MatrixQueryResult;
 import cn.github.spinner.components.ComboBoxWithFilter;
 import cn.github.spinner.components.FilterTable;
 import cn.github.spinner.components.RowNumberTableModel;
-import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.TrackedBackgroundTask;
+import cn.github.spinner.util.MatrixAdminDefinitionCache;
+import cn.github.spinner.util.MatrixConnectionUtil;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.map.MapUtil;
@@ -132,7 +133,8 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
                         String item = policyComboBox.getItem();
                         if (CharSequenceUtil.isNotBlank(item) && !"*".equals(item)) {
                             try {
-                                String result = MQLUtil.execute(project, "print policy '{}' select state dump", item);
+                                String result = MQLUtil.execute(project,
+                                        "print policy '{}' select state dump", item);
                                 if (CharSequenceUtil.isNotBlank(result)) {
                                     SwingUtilities.invokeLater(() -> {
                                         stateComboBox.removeAllItems();
@@ -268,42 +270,38 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     }
 
     private void loadMatrixData() {
+        typeList = new ArrayList<>(MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.TYPE));
+        policyList = new ArrayList<>(MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.POLICY));
+
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection == null) return;
 
         try {
-            var statement = connection.executeStatement("list type");
-            var resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                typeList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-            }
-            statement = connection.executeStatement("list person");
-            resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                ownerList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-            }
-            statement = connection.executeStatement("list policy");
-            resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                policyList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-            }
-            statement = connection.executeStatement("temp query bus PnOProject * * select name dump \001 recordsep \002");
-            resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> recordList = CharSequenceUtil.split(resultSet.getResult(), "\002");
-                List<String> allData = recordList.stream().filter(CharSequenceUtil::isNotBlank).map(str -> str.split("\001")[1]).toList();
-                projectList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-            }
-            statement = connection.executeStatement("temp query bus Company * * select name dump \001 recordsep \002");
-            resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> recordList = CharSequenceUtil.split(resultSet.getResult(), "\002");
-                List<String> allData = recordList.stream().filter(CharSequenceUtil::isNotBlank).map(str -> str.split("\001")[1]).toList();
-                organizationList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-            }
+            String result = MQLUtil.execute(project, "list person");
+            List<String> allData = CharSequenceUtil.split(result, "\n");
+            ownerList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
+
+            result = MQLUtil.execute(project,
+                    "temp query bus PnOProject * * select name dump \001 recordsep \002");
+            List<String> recordList = CharSequenceUtil.split(result, "\002");
+            allData = recordList.stream()
+                    .filter(CharSequenceUtil::isNotBlank)
+                    .map(str -> str.split("\001"))
+                    .filter(split -> split.length > 1)
+                    .map(split -> split[1])
+                    .toList();
+            projectList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
+
+            result = MQLUtil.execute(project,
+                    "temp query bus Company * * select name dump \001 recordsep \002");
+            recordList = CharSequenceUtil.split(result, "\002");
+            allData = recordList.stream()
+                    .filter(CharSequenceUtil::isNotBlank)
+                    .map(str -> str.split("\001"))
+                    .filter(split -> split.length > 1)
+                    .map(split -> split[1])
+                    .toList();
+            organizationList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
         } catch (MQLException ex) {
             log.error(ex.getMessage(), ex);
         }
@@ -376,6 +374,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
                     MatrixConnection connection = UserInput.getInstance().connection.get(project);
                     if (connection == null) throw new MQLException(SpinnerBundle.message("message.connection.closed"));
 
+                    MatrixConnectionUtil.assertCurrentServerReachable(project);
                     MatrixQueryResult queryResult = connection.queryObject(objectQuery, List.of("type", "name", "revision", "id", "paths", "physicalid", "description", "originated", "modified", "lattice", "policy", "owner", "current", "organization", "project"));
                     dataList = new ArrayList<>();
                     if (!queryResult.isEmpty()) {

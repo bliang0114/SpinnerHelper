@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "3.0.3"
+version = "3.0.4"
 
 repositories {
 //    mavenCentral()
@@ -27,6 +27,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("org.slf4j:slf4j-simple:2.0.17")
     implementation("cn.hutool:hutool-json:5.8.40")
+    implementation("org.xerial:sqlite-jdbc:3.45.3.0")
 
     implementation("com.fifesoft:rsyntaxtextarea:3.6.0")
     implementation("net.sourceforge.plantuml:plantuml:1.2023.10")
@@ -46,6 +47,13 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
+            <h2>3.0.4</h2>
+            <ul>
+            <li>新增按环境名称隔离的 SQLite 定义与 Trigger 查询缓存，支持手动更新并优先读取缓存，普通 MQL 执行结果保持实时查询</li>
+            <li>完善 type、relationship、policy、attribute 和 interface 的 MQL 自动补全及定义数据复用</li>
+            <li>优化 Trigger Query 性能、Event/Event Type 展示和源码定位，增加分阶段耗时日志并修复 EDT 源码导航慢操作，Trigger Query、URL Parser 与 Object Browser 重复打开时复用已有窗口</li>
+            <li>增强 Matrix 连接与 MQL 执行的超时、服务可达性检测和后台线程处理，修复 keep-alive 未按设置间隔重连的问题</li>
+            </ul>
             <h2>3.0.3</h2>
             <ul>
             <li>新增 Trigger Query，支持类型过滤、彩色自动完成、type 关联 policy trigger 查询、本地/远程/class 源码定位</li>
@@ -77,7 +85,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.3"
+        version = "3.0.4"
     }
 }
 
@@ -121,6 +129,6 @@ tasks {
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.3"
+        version = "3.0.4"
     }
 }

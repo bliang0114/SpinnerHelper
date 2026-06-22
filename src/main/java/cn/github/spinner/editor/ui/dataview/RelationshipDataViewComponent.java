@@ -6,6 +6,7 @@ import cn.github.spinner.context.UserInput;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.util.MatrixAdminDefinitionCache;
 import cn.github.spinner.util.MQLUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.Disposable;
@@ -116,29 +117,14 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
     private void loadRelationship() {
         rowList.clear();
         listModel.clear();
-        MatrixConnection connection = UserInput.getInstance().connection.get(project);
-        if (connection == null) {
+        if (UserInput.getInstance().connection.get(project) == null) {
             uiList.setEmptyText(SpinnerBundle.message("message.connection.closed"));
             return;
         }
         uiList.setEmptyText(SpinnerBundle.message("message.loading.matrix.relationship"));
-        executor.schedule(() -> {
-            try {
-                var result = MQLUtil.execute(project, "list relationship");
-                List<String> allRelationships = CharSequenceUtil.split(result, "\n");
-                List<String> loadedRelationships = allRelationships.stream()
-                        .filter(CharSequenceUtil::isNotBlank)
-                        .sorted(String.CASE_INSENSITIVE_ORDER)
-                        .toList();
-                SwingUtilities.invokeLater(() -> {
-                    rowList.addAll(loadedRelationships);
-                    listModel.addAll(rowList);
-                    uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
-                });
-            } catch (MQLException e) {
-                SwingUtilities.invokeLater(() -> uiList.setEmptyText(e.getLocalizedMessage()));
-            }
-        }, 100, TimeUnit.MILLISECONDS);
+        rowList.addAll(MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.RELATIONSHIP));
+        listModel.addAll(rowList);
+        uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
     }
 
     private void filterRelationship() {

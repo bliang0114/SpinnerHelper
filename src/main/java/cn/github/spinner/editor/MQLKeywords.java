@@ -3,7 +3,6 @@ package cn.github.spinner.editor;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 public class MQLKeywords {
     public static final Set<String> KEYWORDS = new HashSet<>(Arrays.asList(
@@ -203,7 +202,4 @@ public class MQLKeywords {
             "||"
     ));
 
-    public static final Set<String> TYPE_INSTANCES = new CopyOnWriteArraySet<>();
-
-    public static final Set<String> RELATIONSHIP_INSTANCES = new CopyOnWriteArraySet<>();
 }

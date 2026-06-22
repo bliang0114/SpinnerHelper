@@ -42,12 +42,16 @@ public class MenuCommandNode {
 
     public void setInfo(Project project) {
         try {
-            String[] commandInfoArray = MQLUtil.execute(project, "print {} '{}' select description label  alt setting.name setting.value dump", this.getType().toLowerCase(), this.getName()).split(StrPool.COMMA);
+            String[] commandInfoArray = MQLUtil.execute(project,
+                    "print {} '{}' select description label  alt setting.name setting.value dump",
+                    this.getType().toLowerCase(), this.getName()).split(StrPool.COMMA);
             if (commandInfoArray.length >= 3) {
                 this.setDescription(commandInfoArray[0]);
                 this.setLabel(commandInfoArray[1]);
                 this.setAlt(commandInfoArray[2]);
-                this.setHref(MQLUtil.execute(project, "print {} '{}' select href dump", this.getType().toLowerCase(), this.getName()).replaceAll("&=","\n&="));
+                this.setHref(MQLUtil.execute(project,
+                        "print {} '{}' select href dump", this.getType().toLowerCase(), this.getName())
+                        .replaceAll("&=","\n&="));
                 int settingCount = commandInfoArray.length - 3;
                 if (settingCount % 2 == 0) {
                     int offset = settingCount / 2;
