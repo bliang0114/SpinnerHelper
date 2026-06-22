@@ -28,17 +28,21 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ConsolePrinter {
+    private static final int MAX_RESULT_CHARS = 5 * 1024 * 1024;
+    private static final int MAX_STYLED_RANGES = 20_000;
     private final Project project;
     private final ConsoleView consoleView;
     private final Document resultDocument;
+    private final Runnable overflowHandler;
     private final List<StyledRange> styledRanges = new ArrayList<>();
     private final List<EditorEx> resultEditors = new CopyOnWriteArrayList<>();
     private volatile boolean softWrapsEnabled;
 
-    public ConsolePrinter(Project project, ConsoleView consoleView) {
+    public ConsolePrinter(Project project, ConsoleView consoleView, @NotNull Runnable overflowHandler) {
         this.project = project;
         this.consoleView = consoleView;
         this.resultDocument = EditorFactory.getInstance().createDocument("");
+        this.overflowHandler = overflowHandler;
         this.softWrapsEnabled = false;
     }
 
@@ -153,6 +157,24 @@ public class ConsolePrinter {
         });
     }
 
+    public void dispose() {
+        Runnable task = () -> {
+            List<EditorEx> editors = List.copyOf(resultEditors);
+            resultEditors.clear();
+            for (EditorEx resultEditor : editors) {
+                if (!resultEditor.isDisposed()) {
+                    EditorFactory.getInstance().releaseEditor(resultEditor);
+                }
+            }
+            styledRanges.clear();
+        };
+        if (ApplicationManager.getApplication().isDispatchThread()) {
+            task.run();
+        } else if (!ApplicationManager.getApplication().isDisposed()) {
+            ApplicationManager.getApplication().invokeAndWait(task);
+        }
+    }
+
     public Editor getConsoleEditor() {
         if (consoleView instanceof ConsoleViewImpl consoleViewImpl) {
             return consoleViewImpl.getEditor();
@@ -182,6 +204,13 @@ public class ConsolePrinter {
     }
 
     private void appendToResultEditor(String message, ConsoleViewContentType contentType) {
+        if (resultDocument.getTextLength() + message.length() + 1 > MAX_RESULT_CHARS
+                || styledRanges.size() >= MAX_STYLED_RANGES) {
+            consoleView.clear();
+            resultDocument.setText("");
+            clearResultHighlighters();
+            overflowHandler.run();
+        }
         int startOffset = resultDocument.getTextLength();
         resultDocument.insertString(startOffset, message + "\n");
         int endOffset = resultDocument.getTextLength();

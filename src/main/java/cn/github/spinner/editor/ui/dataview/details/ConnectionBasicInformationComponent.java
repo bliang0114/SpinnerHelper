@@ -1,7 +1,9 @@
 package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MQLUtil;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.JBColor;
 import com.intellij.util.ui.JBUI;
@@ -10,6 +12,9 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
+import org.jetbrains.annotations.NotNull;
 
 public class ConnectionBasicInformationComponent extends AbstractObjectDetailsTableComponent {
 
@@ -77,18 +82,34 @@ public class ConnectionBasicInformationComponent extends AbstractObjectDetailsTa
     @Override
     protected void loadData() {
         tableModel.setRowCount(0);
-        try {
-            String result = MQLUtil.execute(project, "print connection {} select type id physicalid originated modified attribute.value", id);
-            String[] array = result.split("\n");
-            for (int i = 1; i < array.length; i++) {
-                String item = array[i];
-                String[] attribute = item.split(" = ");
-                String attributeName = formatAttributeName(attribute[0]);
-                String attributeValue = attribute.length > 1 ? attribute[1] : "";
-                tableModel.addRow(new String[]{attributeName, attributeValue});
+        new TrackedBackgroundTask(project, SpinnerBundle.message("message.loading.data"), true) {
+            private final List<String[]> rows = new ArrayList<>();
+            private Throwable error;
+
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                try {
+                    String result = MQLUtil.execute(project, "print connection {} select type id physicalid originated modified attribute.value", id);
+                    String[] array = result.split("\n");
+                    for (int i = 1; i < array.length; i++) {
+                        String[] attribute = array[i].split(" = ");
+                        rows.add(new String[]{formatAttributeName(attribute[0]), attribute.length > 1 ? attribute[1] : ""});
+                    }
+                } catch (Exception e) {
+                    error = e;
+                }
             }
-        } catch (Exception e) {
-            table.getEmptyText().setText(SpinnerBundle.message("message.error.print", id, e.getMessage()));
-        }
+
+            @Override
+            public void onSuccess() {
+                tableModel.setRowCount(0);
+                if (error != null) {
+                    table.getEmptyText().setText(SpinnerBundle.message("message.error.print", id, error.getMessage()));
+                    return;
+                }
+                rows.forEach(tableModel::addRow);
+            }
+        }.queue();
     }
 }

@@ -7,13 +7,14 @@ import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.service.MatrixTaskExecutor;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -40,12 +41,16 @@ public class MQLUtil {
         }
 
         int timeoutMinutes = getTimeoutMinutes(project);
-        ExecutorService executor = MatrixConnectionUtil.newDaemonSingleThreadExecutor("spinner-mql-execute");
-        Future<MatrixResultSet> future = executor.submit(() -> {
-            MatrixConnectionUtil.assertCurrentServerReachable(project);
-            MatrixStatement matrixStatement = connection.executeStatement(mql);
-            return matrixStatement.executeQuery();
-        });
+        Future<MatrixResultSet> future;
+        try {
+            future = MatrixTaskExecutor.getInstance().submit(() -> {
+                MatrixConnectionUtil.assertCurrentServerReachable(project);
+                MatrixStatement matrixStatement = connection.executeStatement(mql);
+                return matrixStatement.executeQuery();
+            });
+        } catch (RejectedExecutionException e) {
+            throw new MQLException(SpinnerBundle.message("message.matrix.operation.busy"), e);
+        }
         try {
             return future.get(timeoutMinutes, TimeUnit.MINUTES);
         } catch (TimeoutException e) {
@@ -61,8 +66,6 @@ public class MQLUtil {
                 throw mqlException;
             }
             throw new MQLException(cause);
-        } finally {
-            executor.shutdownNow();
         }
     }
 

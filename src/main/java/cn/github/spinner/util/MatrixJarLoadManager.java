@@ -1,6 +1,8 @@
 package cn.github.spinner.util;
 
 import lombok.extern.slf4j.Slf4j;
+import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,7 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class MatrixJarLoadManager {
-    private static final ConcurrentHashMap<String, MatrixJarClassLoader> environmentClassLoaders = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Project, ConcurrentHashMap<String, MatrixJarClassLoader>> projectClassLoaders =
+            new ConcurrentHashMap<>();
 
     /**
      * 加载驱动包
@@ -20,7 +23,12 @@ public class MatrixJarLoadManager {
      * @return {@link ClassLoader}
      * @author zaydenwang
      */
-    public static ClassLoader loadMatrixJars(String environment, List<File> jarFiles, ClassLoader parent) {
+    public static ClassLoader loadMatrixJars(@NotNull Project project,
+                                             String environment,
+                                             List<File> jarFiles,
+                                             ClassLoader parent) {
+        ConcurrentHashMap<String, MatrixJarClassLoader> environmentClassLoaders =
+                projectClassLoaders.computeIfAbsent(project, ignored -> new ConcurrentHashMap<>());
         MatrixJarClassLoader classLoader = environmentClassLoaders.get(environment);
         // 移除现有的类加载器
         if (classLoader != null) {
@@ -36,14 +44,40 @@ public class MatrixJarLoadManager {
         return classLoader;
     }
 
-    public static void closeAll() {
-        environmentClassLoaders.forEach((environment, classLoader) -> {
-            try {
-                classLoader.close();
-            } catch (IOException e) {
-                log.error("Close matrix jar classloader failed: {}", environment, e);
-            }
-        });
+    public static void closeEnvironment(@NotNull Project project, String environment) {
+        ConcurrentHashMap<String, MatrixJarClassLoader> environmentClassLoaders = projectClassLoaders.get(project);
+        if (environmentClassLoaders == null) {
+            return;
+        }
+        closeClassLoader(environment, environmentClassLoaders.remove(environment));
+        if (environmentClassLoaders.isEmpty()) {
+            projectClassLoaders.remove(project, environmentClassLoaders);
+        }
+    }
+
+    public static void closeProject(@NotNull Project project) {
+        ConcurrentHashMap<String, MatrixJarClassLoader> environmentClassLoaders = projectClassLoaders.remove(project);
+        if (environmentClassLoaders == null) {
+            return;
+        }
+        environmentClassLoaders.forEach(MatrixJarLoadManager::closeClassLoader);
         environmentClassLoaders.clear();
+    }
+
+    public static void closeAll() {
+        projectClassLoaders.forEach((project, environmentClassLoaders) ->
+                environmentClassLoaders.forEach(MatrixJarLoadManager::closeClassLoader));
+        projectClassLoaders.clear();
+    }
+
+    private static void closeClassLoader(String environment, MatrixJarClassLoader classLoader) {
+        if (classLoader == null) {
+            return;
+        }
+        try {
+            classLoader.close();
+        } catch (IOException e) {
+            log.error("Close matrix jar classloader failed: {}", environment, e);
+        }
     }
 }

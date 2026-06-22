@@ -69,10 +69,10 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     public ObjectBrowserComponent(@NotNull Project project, VirtualFile virtualFile) {
         this.project = project;
         this.virtualFile = virtualFile;
-        loadMatrixData();
         initComponents();
         setupListener();
         setupLayout();
+        loadMatrixData();
     }
 
     private void initComponents() {
@@ -270,41 +270,72 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     }
 
     private void loadMatrixData() {
-        typeList = new ArrayList<>(MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.TYPE));
-        policyList = new ArrayList<>(MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.POLICY));
+        new TrackedBackgroundTask(project, SpinnerBundle.message("message.loading.data"), true) {
+            private List<String> loadedTypes = Collections.emptyList();
+            private List<String> loadedPolicies = Collections.emptyList();
+            private List<String> loadedOwners = Collections.emptyList();
+            private List<String> loadedOrganizations = Collections.emptyList();
+            private List<String> loadedProjects = Collections.emptyList();
 
-        MatrixConnection connection = UserInput.getInstance().connection.get(project);
-        if (connection == null) return;
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                loadedTypes = MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.TYPE);
+                loadedPolicies = MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.POLICY);
 
-        try {
-            String result = MQLUtil.execute(project, "list person");
-            List<String> allData = CharSequenceUtil.split(result, "\n");
-            ownerList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
+                MatrixConnection connection = UserInput.getInstance().connection.get(project);
+                if (connection == null || indicator.isCanceled()) {
+                    return;
+                }
+                try {
+                    loadedOwners = parseLineValues(MQLUtil.execute(project, "list person"));
+                    loadedProjects = parseRecordNames(MQLUtil.execute(project,
+                            "temp query bus PnOProject * * select name dump \001 recordsep \002"));
+                    loadedOrganizations = parseRecordNames(MQLUtil.execute(project,
+                            "temp query bus Company * * select name dump \001 recordsep \002"));
+                } catch (MQLException ex) {
+                    log.warn("Load Object Browser lookup data failed.", ex);
+                }
+            }
 
-            result = MQLUtil.execute(project,
-                    "temp query bus PnOProject * * select name dump \001 recordsep \002");
-            List<String> recordList = CharSequenceUtil.split(result, "\002");
-            allData = recordList.stream()
-                    .filter(CharSequenceUtil::isNotBlank)
-                    .map(str -> str.split("\001"))
-                    .filter(split -> split.length > 1)
-                    .map(split -> split[1])
-                    .toList();
-            projectList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
+            @Override
+            public void onSuccess() {
+                typeList = new ArrayList<>(loadedTypes);
+                policyList = new ArrayList<>(loadedPolicies);
+                ownerList = new ArrayList<>(loadedOwners);
+                organizationList = new ArrayList<>(loadedOrganizations);
+                projectList = new ArrayList<>(loadedProjects);
+                replaceComboBoxItems(typeComboBox, typeList);
+                replaceComboBoxItems(policyComboBox, policyList);
+                replaceComboBoxItems(ownerComboBox, ownerList);
+                replaceComboBoxItems(organizationComboBox, organizationList);
+                replaceComboBoxItems(projectComboBox, projectList);
+            }
+        }.queue();
+    }
 
-            result = MQLUtil.execute(project,
-                    "temp query bus Company * * select name dump \001 recordsep \002");
-            recordList = CharSequenceUtil.split(result, "\002");
-            allData = recordList.stream()
-                    .filter(CharSequenceUtil::isNotBlank)
-                    .map(str -> str.split("\001"))
-                    .filter(split -> split.length > 1)
-                    .map(split -> split[1])
-                    .toList();
-            organizationList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-        } catch (MQLException ex) {
-            log.error(ex.getMessage(), ex);
-        }
+    private @NotNull List<String> parseLineValues(String result) {
+        return CharSequenceUtil.split(result, "\n").stream()
+                .filter(CharSequenceUtil::isNotBlank)
+                .toList();
+    }
+
+    private @NotNull List<String> parseRecordNames(String result) {
+        return CharSequenceUtil.split(result, "\002").stream()
+                .filter(CharSequenceUtil::isNotBlank)
+                .map(record -> record.split("\001"))
+                .filter(parts -> parts.length > 1)
+                .map(parts -> parts[1])
+                .filter(CharSequenceUtil::isNotBlank)
+                .toList();
+    }
+
+    private void replaceComboBoxItems(@NotNull ComboBoxWithFilter<String> comboBox,
+                                      @NotNull List<String> values) {
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        values.forEach(model::addElement);
+        comboBox.setModel(model);
+        comboBox.setItem("*");
     }
 
     private String buildWhereExpression() {

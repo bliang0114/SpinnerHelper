@@ -20,6 +20,8 @@ import com.intellij.util.ProcessingContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+
 public class MQLCompletionContributor extends CompletionContributor {
     private enum CompletionContext {
         DEFAULT,
@@ -50,59 +52,61 @@ public class MQLCompletionContributor extends CompletionContributor {
                         Project project = parameters.getOriginalFile().getProject();
                         switch (completionContext) {
                             case TYPE_INSTANCE -> {
-                                addTypeInstances(project, caseInsensitiveResult, true, false);
+                                addTypeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, true, false);
                                 return;
                             }
                             case TYPE_INSTANCE_IN_QUOTES -> {
-                                addTypeInstances(project, caseInsensitiveResult, false, true);
+                                addTypeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, true);
                                 return;
                             }
                             case RELATIONSHIP_INSTANCE -> {
-                                addRelationshipInstances(project, caseInsensitiveResult, true, false);
+                                addRelationshipInstances(cached(project, MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, true, false);
                                 return;
                             }
                             case RELATIONSHIP_INSTANCE_IN_QUOTES -> {
-                                addRelationshipInstances(project, caseInsensitiveResult, false, true);
+                                addRelationshipInstances(cached(project, MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, true);
                                 return;
                             }
                             case POLICY_INSTANCE -> {
-                                addPolicyInstances(project, caseInsensitiveResult, true, false);
+                                addPolicyInstances(cached(project, MatrixAdminDefinitionCache.AdminType.POLICY), caseInsensitiveResult, true, false);
                                 return;
                             }
                             case POLICY_INSTANCE_IN_QUOTES -> {
-                                addPolicyInstances(project, caseInsensitiveResult, false, true);
+                                addPolicyInstances(cached(project, MatrixAdminDefinitionCache.AdminType.POLICY), caseInsensitiveResult, false, true);
                                 return;
                             }
                             case ATTRIBUTE_INSTANCE -> {
-                                addAttributeInstances(project, caseInsensitiveResult, true, false);
+                                addAttributeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.ATTRIBUTE), caseInsensitiveResult, true, false);
                                 return;
                             }
                             case ATTRIBUTE_INSTANCE_IN_QUOTES -> {
-                                addAttributeInstances(project, caseInsensitiveResult, false, true);
+                                addAttributeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.ATTRIBUTE), caseInsensitiveResult, false, true);
                                 return;
                             }
                             case INTERFACE_INSTANCE -> {
-                                addInterfaceInstances(project, caseInsensitiveResult, true, false);
+                                addInterfaceInstances(cached(project, MatrixAdminDefinitionCache.AdminType.INTERFACE), caseInsensitiveResult, true, false);
                                 return;
                             }
                             case INTERFACE_INSTANCE_IN_QUOTES -> {
-                                addInterfaceInstances(project, caseInsensitiveResult, false, true);
+                                addInterfaceInstances(cached(project, MatrixAdminDefinitionCache.AdminType.INTERFACE), caseInsensitiveResult, false, true);
                                 return;
                             }
                             case QUERY_BUS_TYPE -> {
                                 caseInsensitiveResult.addElement(LookupElementBuilder.create("*")
                                         .withTypeText("Wildcard")
                                         .withBoldness(true));
-                                addQueryBusTypeInstances(project, caseInsensitiveResult, false);
+                                addQueryBusTypeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false);
                                 return;
                             }
                             case QUERY_BUS_TYPE_IN_QUOTES -> {
-                                addQueryBusTypeInstances(project, caseInsensitiveResult, true);
+                                addQueryBusTypeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, true);
                                 return;
                             }
                             case QUERY_CONNECTION_REL_TARGET -> {
-                                addTypeInstances(project, caseInsensitiveResult, false, true);
-                                addRelationshipInstances(project, caseInsensitiveResult, false, true);
+                                MatrixAdminDefinitionCache.MatrixAdminDefinitions definitions =
+                                        MatrixAdminDefinitionCache.getCached(project);
+                                addTypeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, true);
+                                addRelationshipInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, true);
                                 return;
                             }
                             case DEFAULT -> {
@@ -119,11 +123,13 @@ public class MQLCompletionContributor extends CompletionContributor {
                                     .withIcon(MQLIcons.TYPE));
                         }
 
-                        addTypeInstances(project, caseInsensitiveResult, false, false);
-                        addRelationshipInstances(project, caseInsensitiveResult, false, false);
-                        addPolicyInstances(project, caseInsensitiveResult, false, false);
-                        addAttributeInstances(project, caseInsensitiveResult, false, false);
-                        addInterfaceInstances(project, caseInsensitiveResult, false, false);
+                        MatrixAdminDefinitionCache.MatrixAdminDefinitions definitions =
+                                MatrixAdminDefinitionCache.getCached(project);
+                        addTypeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, false);
+                        addRelationshipInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, false);
+                        addPolicyInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.POLICY), caseInsensitiveResult, false, false);
+                        addAttributeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.ATTRIBUTE), caseInsensitiveResult, false, false);
+                        addInterfaceInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.INTERFACE), caseInsensitiveResult, false, false);
                     }
                 });
     }
@@ -135,54 +141,59 @@ public class MQLCompletionContributor extends CompletionContributor {
                 .withInsertHandler(new KeywordInsertHandler(keyword));
     }
 
-    private void addTypeInstances(@NotNull Project project,
+    private @NotNull List<String> cached(@NotNull Project project,
+                                         @NotNull MatrixAdminDefinitionCache.AdminType type) {
+        return MatrixAdminDefinitionCache.getCached(project, type);
+    }
+
+    private void addTypeInstances(@NotNull List<String> instances,
                                   @NotNull CompletionResultSet result,
                                   boolean quoteIfNeeded,
                                   boolean insideQuotedList) {
-        for (String instance : MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.TYPE)) {
+        for (String instance : instances) {
             result.addElement(buildTypeInstanceElement(instance, quoteIfNeeded, insideQuotedList));
         }
     }
 
-    private void addRelationshipInstances(@NotNull Project project,
+    private void addRelationshipInstances(@NotNull List<String> instances,
                                           @NotNull CompletionResultSet result,
                                           boolean quoteIfNeeded,
                                           boolean insideQuotedList) {
-        for (String instance : MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.RELATIONSHIP)) {
+        for (String instance : instances) {
             result.addElement(buildRelationshipInstanceElement(instance, quoteIfNeeded, insideQuotedList));
         }
     }
 
-    private void addPolicyInstances(@NotNull Project project,
+    private void addPolicyInstances(@NotNull List<String> instances,
                                     @NotNull CompletionResultSet result,
                                     boolean quoteIfNeeded,
                                     boolean insideQuotedList) {
-        for (String instance : MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.POLICY)) {
+        for (String instance : instances) {
             result.addElement(buildAdminInstanceElement(instance, "Policy Definition", quoteIfNeeded, insideQuotedList, "policy"));
         }
     }
 
-    private void addAttributeInstances(@NotNull Project project,
+    private void addAttributeInstances(@NotNull List<String> instances,
                                        @NotNull CompletionResultSet result,
                                        boolean quoteIfNeeded,
                                        boolean insideQuotedList) {
-        for (String instance : MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.ATTRIBUTE)) {
+        for (String instance : instances) {
             result.addElement(buildAdminInstanceElement(instance, "Attribute Definition",
                     quoteIfNeeded, insideQuotedList, "attribute", "attr"));
         }
     }
 
-    private void addInterfaceInstances(@NotNull Project project,
+    private void addInterfaceInstances(@NotNull List<String> instances,
                                        @NotNull CompletionResultSet result,
                                        boolean quoteIfNeeded,
                                        boolean insideQuotedList) {
-        for (String instance : MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.INTERFACE)) {
+        for (String instance : instances) {
             result.addElement(buildAdminInstanceElement(instance, "Interface Definition", quoteIfNeeded, insideQuotedList, "interface"));
         }
     }
 
-    private void addQueryBusTypeInstances(@NotNull Project project, @NotNull CompletionResultSet result, boolean insideQuotedList) {
-        for (String instance : MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.TYPE)) {
+    private void addQueryBusTypeInstances(@NotNull List<String> instances, @NotNull CompletionResultSet result, boolean insideQuotedList) {
+        for (String instance : instances) {
             result.addElement(buildQueryBusTypeElement(instance, insideQuotedList));
         }
     }

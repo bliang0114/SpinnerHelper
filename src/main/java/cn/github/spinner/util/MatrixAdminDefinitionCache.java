@@ -71,6 +71,15 @@ public final class MatrixAdminDefinitionCache {
         return cachedState.loaded() ? cachedState.definitions() : EMPTY;
     }
 
+    public static @NotNull List<String> getCached(@NotNull Project project, @NotNull AdminType type) {
+        String environmentKey = currentEnvironmentKey(project);
+        if (environmentKey.isBlank()) {
+            return List.of();
+        }
+        CachedState cachedState = readCachedState(project, environmentKey, type);
+        return cachedState.loaded() ? cachedState.definitions().get(type) : List.of();
+    }
+
     public static @NotNull List<String> get(@NotNull Project project, @NotNull AdminType type) {
         String environmentKey = currentEnvironmentKey(project);
         if (environmentKey.isBlank()) {

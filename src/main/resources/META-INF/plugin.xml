@@ -109,8 +109,6 @@
                     icon="AllIcons.RunConfigurations.Remote"/>
         <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
-        <applicationService serviceImplementation="cn.github.spinner.config.SpinnerSettings"/>
-        <applicationService serviceImplementation="cn.github.spinner.config.MatrixDriversConfig"/>
         <!-- MQL语言支持 -->
         <fileType name="MQL File"
                   implementationClass="cn.github.spinner.editor.MQLFileType"

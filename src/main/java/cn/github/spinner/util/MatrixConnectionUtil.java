@@ -15,26 +15,11 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class MatrixConnectionUtil {
     private static final int REACHABILITY_TIMEOUT_MILLIS = 3000;
-    private static final AtomicInteger DAEMON_THREAD_SEQUENCE = new AtomicInteger();
 
     private MatrixConnectionUtil() {
-    }
-
-    public static @NotNull ExecutorService newDaemonSingleThreadExecutor(@NotNull String threadNamePrefix) {
-        ThreadFactory threadFactory = runnable -> {
-            Thread thread = new Thread(runnable,
-                    threadNamePrefix + "-" + DAEMON_THREAD_SEQUENCE.incrementAndGet());
-            thread.setDaemon(true);
-            return thread;
-        };
-        return Executors.newSingleThreadExecutor(threadFactory);
     }
 
     public static void assertCurrentServerReachable(@Nullable Project project) throws MQLException {

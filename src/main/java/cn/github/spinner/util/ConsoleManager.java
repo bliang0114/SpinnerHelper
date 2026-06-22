@@ -19,6 +19,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Data
 public class ConsoleManager implements Disposable {
+    private static final int MAX_EXECUTION_ENTRIES = 5_000;
+    private static final int EXECUTION_ENTRY_TRIM_COUNT = 500;
     private final ConsoleView consoleView;
     private final ConsolePrinter consolePrinter;
     private final List<MQLExecutionEntry> executionEntries = new CopyOnWriteArrayList<>();
@@ -33,7 +35,7 @@ public class ConsoleManager implements Disposable {
                 true,  // viewer mode
                 false   // ← 关键：false = 禁用循环缓冲区
         );
-        this.consolePrinter = new ConsolePrinter(project, consoleView);
+        this.consolePrinter = new ConsolePrinter(project, consoleView, executionEntries::clear);
         this.consoleName = consoleName;
         this.consoleFile = consoleFile;
     }
@@ -63,10 +65,14 @@ public class ConsoleManager implements Disposable {
     }
 
     public void clear() {
+        clearExecutionEntries();
         consolePrinter.clear();
     }
 
-    public void addExecutionEntry(MQLExecutionEntry entry) {
+    public synchronized void addExecutionEntry(MQLExecutionEntry entry) {
+        if (executionEntries.size() >= MAX_EXECUTION_ENTRIES) {
+            executionEntries.subList(0, EXECUTION_ENTRY_TRIM_COUNT).clear();
+        }
         executionEntries.add(entry);
     }
 
@@ -135,6 +141,7 @@ public class ConsoleManager implements Disposable {
         }
         disposed = true;
         clearExecutionEntries();
+        consolePrinter.dispose();
         if (consoleView instanceof Disposable disposable) {
             Disposer.dispose(disposable);
         }

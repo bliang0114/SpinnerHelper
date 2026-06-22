@@ -158,8 +158,5 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
             tempDir.delete();
         }
         tempJavaFiles.clear();
-        if (super.executor != null && !super.executor.isShutdown()) {
-            super.executor.shutdownNow();
-        }
     }
 }

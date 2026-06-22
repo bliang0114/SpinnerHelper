@@ -10,6 +10,8 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.project.ProjectManagerListener;
 
 import java.io.IOException;
 import java.util.Map;
@@ -21,6 +23,13 @@ public final class UserInput implements Disposable {
     private static final Logger LOG = Logger.getInstance(UserInput.class);
 
     public UserInput() {
+        ApplicationManager.getApplication().getMessageBus().connect(this)
+                .subscribe(ProjectManager.TOPIC, new ProjectManagerListener() {
+                    @Override
+                    public void projectClosed(Project project) {
+                        disposeProject(project);
+                    }
+                });
     }
 
     public static UserInput getInstance() {
@@ -49,6 +58,10 @@ public final class UserInput implements Disposable {
     }
 
     public void putConsole(Project project, String consoleName, ConsoleManager consoleManager) {
+        if (project.isDisposed()) {
+            consoleManager.dispose();
+            return;
+        }
         Map<String, ConsoleManager> consoleMap = mqlConsole.computeIfAbsent(project, k -> new ConcurrentHashMap<>());
         consoleMap.put(consoleName, consoleManager);
     }
@@ -73,6 +86,32 @@ public final class UserInput implements Disposable {
     public boolean isBackgroundTaskRunning(Project project) {
         AtomicInteger count = backgroundTaskCount.get(project);
         return count != null && count.get() > 0;
+    }
+
+    public void disposeProject(Project project) {
+        MatrixConnection matrixConnection = connection.remove(project);
+        connectEnvironment.remove(project);
+        connectingEnvironment.remove(project);
+        clickEnvironment.remove(project);
+        backgroundTaskCount.remove(project);
+
+        Map<String, ConsoleManager> consoleMap = mqlConsole.remove(project);
+        if (consoleMap != null) {
+            for (ConsoleManager consoleManager : consoleMap.values()) {
+                consoleManager.dispose();
+            }
+        }
+
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            if (matrixConnection != null) {
+                try {
+                    matrixConnection.close();
+                } catch (IOException e) {
+                    LOG.warn("Failed to close Matrix connection for disposed project.", e);
+                }
+            }
+            MatrixJarLoadManager.closeProject(project);
+        });
     }
 
     @Override

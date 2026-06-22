@@ -6,12 +6,13 @@ import cn.github.spinner.context.UserInput;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MatrixAdminDefinitionCache;
 import cn.github.spinner.util.MQLUtil;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
@@ -31,12 +32,9 @@ import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewComponent> implements Disposable {
+public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewComponent> {
     private final Project project;
     private final VirtualFile virtualFile;
     private SearchTextField searchTextField;
@@ -45,12 +43,11 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
     private DefaultActionGroup uiListToolbarGroup;
     private JBTabbedPane tabbedPane;
     private final List<String> rowList = new ArrayList<>();
-    private final ScheduledExecutorService executor;
+    private boolean loadingDefinitions;
 
     public RelationshipDataViewComponent(@NotNull Project project, VirtualFile virtualFile) {
         this.project = project;
         this.virtualFile = virtualFile;
-        executor = Executors.newSingleThreadScheduledExecutor();
         initComponents();
         setupListener();
         setupLayout();
@@ -115,6 +112,9 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
     }
 
     private void loadRelationship() {
+        if (loadingDefinitions) {
+            return;
+        }
         rowList.clear();
         listModel.clear();
         if (UserInput.getInstance().connection.get(project) == null) {
@@ -122,9 +122,31 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
             return;
         }
         uiList.setEmptyText(SpinnerBundle.message("message.loading.matrix.relationship"));
-        rowList.addAll(MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.RELATIONSHIP));
-        listModel.addAll(rowList);
-        uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
+        loadingDefinitions = true;
+        new TrackedBackgroundTask(project, SpinnerBundle.message("message.loading.matrix.relationship"), true) {
+            private List<String> definitions = List.of();
+
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                definitions = MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.RELATIONSHIP);
+            }
+
+            @Override
+            public void onSuccess() {
+                loadingDefinitions = false;
+                rowList.clear();
+                rowList.addAll(definitions);
+                listModel.clear();
+                listModel.addAll(rowList);
+                uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
+            }
+
+            @Override
+            public void onCancel() {
+                loadingDefinitions = false;
+            }
+        }.queue();
     }
 
     private void filterRelationship() {
@@ -168,11 +190,6 @@ public class RelationshipDataViewComponent extends JBPanel<RelationshipDataViewC
             dataViewTableComponent.setName(relationship);
             dataViewTableComponent.reloadData();
         }
-    }
-
-    @Override
-    public void dispose() {
-        executor.shutdownNow();
     }
 
     public class RefreshAction extends AnAction {

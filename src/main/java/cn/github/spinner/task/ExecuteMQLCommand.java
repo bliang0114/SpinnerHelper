@@ -10,7 +10,6 @@ import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.ConsoleManager;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.MQLExecutionGutterManager;
-import cn.github.spinner.util.MatrixConnectionUtil;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -23,11 +22,6 @@ import javax.swing.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Slf4j
 public class ExecuteMQLCommand extends TrackedBackgroundTask {
@@ -68,23 +62,7 @@ public class ExecuteMQLCommand extends TrackedBackgroundTask {
         }
         MQLExecutionGutterManager.clear(project, consoleManager.getConsoleFile());
 
-        int timeoutMinutes = settings.getTimeoutMinutes();
-        ExecutorService executor = MatrixConnectionUtil.newDaemonSingleThreadExecutor("spinner-mql-command");
-        Future<?> future = executor.submit(() -> executeCommands(indicator, project, connection, consoleManager));
-        try {
-            future.get(timeoutMinutes, TimeUnit.MINUTES);
-        } catch (TimeoutException e) {
-            future.cancel(true);
-            UIUtil.showErrorNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, SpinnerBundle.message("message.execute.timeout", timeoutMinutes));
-        } catch (InterruptedException e) {
-            future.cancel(true);
-            Thread.currentThread().interrupt();
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause() == null ? e : e.getCause();
-            UIUtil.showErrorNotification(project, UserInput.NOTIFICATION_TITLE_MQL_EXECUTE, SpinnerBundle.message("message.execute.failed", cause.getMessage()));
-        } finally {
-            executor.shutdownNow();
-        }
+        executeCommands(indicator, project, connection, consoleManager);
     }
 
     private void executeCommands(@NotNull ProgressIndicator indicator,
