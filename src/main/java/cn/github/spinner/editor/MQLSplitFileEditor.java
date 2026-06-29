@@ -109,15 +109,6 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         title.addMouseListener(dockDragHandler);
         title.addMouseMotionListener(dockDragHandler);
 
-        JCheckBox wrapToggle = new JCheckBox(SpinnerBundle.message("checkbox.wrap"));
-        wrapToggle.setOpaque(false);
-        wrapToggle.setSelected(consoleManager.isSoftWrapsEnabled());
-        wrapToggle.addActionListener(e -> consoleManager.setSoftWrapsEnabled(wrapToggle.isSelected()));
-
-        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actionsPanel.setOpaque(false);
-        actionsPanel.add(wrapToggle);
-        headerPanel.add(actionsPanel, BorderLayout.EAST);
 
         panel.add(headerPanel, BorderLayout.NORTH);
         panel.add(resultContentComponent, BorderLayout.CENTER);

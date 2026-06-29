@@ -26,23 +26,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 
 public class ConsolePrinter {
-    private static final int MAX_RESULT_CHARS = 5 * 1024 * 1024;
+    private static final int DEFAULT_MAX_RESULT_SIZE_MB = 5;
+    private static final int MEGABYTE = 1024 * 1024;
     private static final int MAX_STYLED_RANGES = 20_000;
     private final Project project;
     private final ConsoleView consoleView;
     private final Document resultDocument;
-    private final Runnable overflowHandler;
+    private final IntSupplier maxResultSizeMbSupplier;
+    private final IntConsumer trimHandler;
     private final List<StyledRange> styledRanges = new ArrayList<>();
     private final List<EditorEx> resultEditors = new CopyOnWriteArrayList<>();
     private volatile boolean softWrapsEnabled;
 
-    public ConsolePrinter(Project project, ConsoleView consoleView, @NotNull Runnable overflowHandler) {
+    public ConsolePrinter(Project project, ConsoleView consoleView,
+                          @NotNull IntSupplier maxResultSizeMbSupplier,
+                          @NotNull IntConsumer trimHandler) {
         this.project = project;
         this.consoleView = consoleView;
         this.resultDocument = EditorFactory.getInstance().createDocument("");
-        this.overflowHandler = overflowHandler;
+        this.maxResultSizeMbSupplier = maxResultSizeMbSupplier;
+        this.trimHandler = trimHandler;
         this.softWrapsEnabled = false;
     }
 
@@ -72,9 +79,8 @@ public class ConsolePrinter {
     public int printSync(String message, ConsoleViewContentType contentType) {
         AtomicInteger offset = new AtomicInteger();
         Runnable task = () -> runUndoTransparentWriteAction(() -> {
-            offset.set(resultDocument.getTextLength());
             consoleView.print(message + "\n", contentType);
-            appendToResultEditor(message, contentType);
+            offset.set(appendToResultEditor(message, contentType));
         });
         if (ApplicationManager.getApplication().isDispatchThread()) {
             task.run();
@@ -203,16 +209,15 @@ public class ConsolePrinter {
         return resultEditor;
     }
 
-    private void appendToResultEditor(String message, ConsoleViewContentType contentType) {
-        if (resultDocument.getTextLength() + message.length() + 1 > MAX_RESULT_CHARS
-                || styledRanges.size() >= MAX_STYLED_RANGES) {
-            consoleView.clear();
-            resultDocument.setText("");
-            clearResultHighlighters();
-            overflowHandler.run();
+    private int appendToResultEditor(String message, ConsoleViewContentType contentType) {
+        String output = message + "\n";
+        int maxResultChars = getMaxResultChars();
+        if (output.length() > maxResultChars) {
+            output = output.substring(output.length() - maxResultChars);
         }
+        trimResultDocumentIfNeeded(output.length(), maxResultChars);
         int startOffset = resultDocument.getTextLength();
-        resultDocument.insertString(startOffset, message + "\n");
+        resultDocument.insertString(startOffset, output);
         int endOffset = resultDocument.getTextLength();
         StyledRange styledRange = new StyledRange(startOffset, endOffset, textAttributesFor(contentType));
         styledRanges.add(styledRange);
@@ -221,15 +226,94 @@ public class ConsolePrinter {
             resultEditor.getCaretModel().moveToOffset(endOffset);
             resultEditor.getScrollingModel().scrollToCaret(ScrollType.MAKE_VISIBLE);
         }
+        return startOffset;
+    }
+
+    private int getMaxResultChars() {
+        int maxSizeMb = maxResultSizeMbSupplier.getAsInt();
+        if (maxSizeMb <= 0) {
+            maxSizeMb = DEFAULT_MAX_RESULT_SIZE_MB;
+        }
+        long maxChars = (long) maxSizeMb * MEGABYTE;
+        if (maxChars > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) maxChars;
+    }
+
+    private void trimResultDocumentIfNeeded(int pendingLength, int maxResultChars) {
+        int currentLength = resultDocument.getTextLength();
+        int overflow = currentLength + pendingLength - maxResultChars;
+        boolean tooManyStyledRanges = styledRanges.size() >= MAX_STYLED_RANGES;
+        if (overflow <= 0 && !tooManyStyledRanges) {
+            return;
+        }
+        int targetRemoveLength = Math.max(overflow, Math.max(maxResultChars / 10, pendingLength));
+        if (tooManyStyledRanges && !styledRanges.isEmpty()) {
+            int trimRangeCount = Math.max(1, MAX_STYLED_RANGES / 10);
+            int rangeIndex = Math.min(styledRanges.size() - 1, trimRangeCount - 1);
+            targetRemoveLength = Math.max(targetRemoveLength, styledRanges.get(rangeIndex).endOffset());
+        }
+        int removeEndOffset = findTrimEndOffset(Math.min(targetRemoveLength, currentLength));
+        if (removeEndOffset <= 0) {
+            return;
+        }
+        resultDocument.deleteString(0, removeEndOffset);
+        shiftStyledRanges(removeEndOffset);
+        trimHandler.accept(removeEndOffset);
+    }
+
+    private int findTrimEndOffset(int targetOffset) {
+        int textLength = resultDocument.getTextLength();
+        if (targetOffset >= textLength) {
+            return textLength;
+        }
+        CharSequence chars = resultDocument.getCharsSequence();
+        for (int i = targetOffset; i < textLength; i++) {
+            if (chars.charAt(i) == '\n') {
+                return i + 1;
+            }
+        }
+        return targetOffset;
+    }
+
+    private void shiftStyledRanges(int removedChars) {
+        List<StyledRange> adjustedRanges = new ArrayList<>(styledRanges.size());
+        for (StyledRange styledRange : styledRanges) {
+            if (styledRange.endOffset() <= removedChars) {
+                continue;
+            }
+            int startOffset = Math.max(0, styledRange.startOffset() - removedChars);
+            int endOffset = styledRange.endOffset() - removedChars;
+            if (endOffset > startOffset) {
+                adjustedRanges.add(new StyledRange(startOffset, endOffset, styledRange.attributes()));
+            }
+        }
+        styledRanges.clear();
+        styledRanges.addAll(adjustedRanges);
+        rebuildResultHighlighters();
+    }
+
+    private void rebuildResultHighlighters() {
+        for (EditorEx resultEditor : resultEditors) {
+            removeAllHighlighters(resultEditor);
+            for (StyledRange styledRange : styledRanges) {
+                addHighlighter(resultEditor, styledRange);
+            }
+        }
+    }
+
+    private void removeAllHighlighters(@NotNull EditorEx resultEditor) {
+        RangeHighlighter[] highlighters = resultEditor.getMarkupModel().getAllHighlighters();
+        for (RangeHighlighter highlighter : highlighters) {
+            resultEditor.getMarkupModel().removeHighlighter(highlighter);
+        }
     }
 
     private void clearResultHighlighters() {
         styledRanges.clear();
         for (EditorEx resultEditor : resultEditors) {
-            RangeHighlighter[] highlighters = resultEditor.getMarkupModel().getAllHighlighters();
-            for (RangeHighlighter highlighter : highlighters) {
-                resultEditor.getMarkupModel().removeHighlighter(highlighter);
-            }
+            removeAllHighlighters(resultEditor);
         }
     }
 

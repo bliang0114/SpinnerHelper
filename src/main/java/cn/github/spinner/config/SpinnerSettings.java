@@ -33,10 +33,16 @@ public final class SpinnerSettings implements PersistentStateComponent<SpinnerSe
     public String mqlResultPosition = "RIGHT";
     @Getter
     @Setter
+    public int mqlResultMaxSizeMb = 5;
+    @Getter
+    @Setter
     public boolean triggerQueryIncludeRelatedPolicies = true;
     @Getter
     @Setter
     public boolean triggerQueryUseCache = true;
+    @Getter
+    @Setter
+    public String adminDefinitionsCachePath = "";
 
     public static SpinnerSettings getInstance(Project project){
         return project.getService(SpinnerSettings.class);

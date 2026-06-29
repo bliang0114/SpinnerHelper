@@ -4,6 +4,7 @@ import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.driver.connection.MatrixResultSet;
 import cn.github.spinner.config.EnvironmentConfig;
+import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
@@ -373,6 +374,10 @@ public final class MatrixAdminDefinitionCache {
     }
 
     private static @NotNull Path databaseFile(@NotNull Project project) {
+        String customPath = SpinnerSettings.getInstance(project).getAdminDefinitionsCachePath();
+        if (customPath != null && !customPath.isBlank()) {
+            return Path.of(customPath.trim(), DATABASE_FILE);
+        }
         String basePath = project.getBasePath();
         if (basePath == null || basePath.isBlank()) {
             throw new IllegalStateException("Project base path is unavailable.");

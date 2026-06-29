@@ -8,6 +8,7 @@ import cn.github.spinner.components.ComboBoxWithFilter;
 import cn.github.spinner.components.FilterTable;
 import cn.github.spinner.components.RowNumberTableModel;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.editor.MQLLanguage;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.TrackedBackgroundTask;
@@ -21,17 +22,16 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.LanguageTextField;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
-import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.plaf.basic.BasicComboBoxEditor;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     private ComboBoxWithFilter<String> organizationComboBox;
     private ComboBoxWithFilter<String> policyComboBox;
     private ComboBoxWithFilter<String> stateComboBox;
-    private JBTextArea whereClauseTextArea;
+    private LanguageTextField whereClauseField;
     private JButton queryBtn;
     private JButton resetBtn;
     protected FilterTable table;
@@ -86,7 +86,9 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         revisionTextField = new JBTextField("*");
         idTextField = new JBTextField("");
         physicalIdTextField = new JBTextField("");
-        whereClauseTextArea = new JBTextArea(3, 0);
+        whereClauseField = new LanguageTextField(MQLLanguage.INSTANCE, project, "", false);
+        whereClauseField.setBorder(JBUI.Borders.customLine(JBColor.LIGHT_GRAY));
+        whereClauseField.setPreferredSize(JBUI.size(-1, 80));
         queryBtn = new JButton(SpinnerBundle.message("button.query"));
         resetBtn = new JButton(SpinnerBundle.message("button.reset"));
         tableModel = new RowNumberTableModel(COLUMNS, 0);
@@ -103,9 +105,6 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         stateComboBox.setPreferredSize(JBUI.size(300, 30));
         organizationComboBox.setPreferredSize(JBUI.size(300, 30));
         projectComboBox.setPreferredSize(JBUI.size(300, 30));
-        whereClauseTextArea.setLineWrap(true); // 自动换行
-        whereClauseTextArea.setBorder(JBUI.Borders.customLine(JBColor.LIGHT_GRAY));
-        whereClauseTextArea.setMargin(JBUI.insets(4));
         queryBtn.setPreferredSize(new Dimension(80, 30));
         resetBtn.setPreferredSize(new Dimension(80, 30));
         table.getColumnModel().getColumn(0).setPreferredWidth(60);
@@ -158,7 +157,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         stateComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
         organizationComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
         projectComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
-        whereClauseTextArea.addKeyListener(new EnterPressListener());
+        // WHERE field uses EditorTextField with MQL completion; Enter creates a new line.
         // 查询按钮点击事件
         queryBtn.addActionListener(e -> handleQuery());
         // 重置按钮点击事件
@@ -246,7 +245,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         gbc.gridwidth = 5;
         gbc.weighty = 1.0; // 垂直拉伸
         gbc.fill = GridBagConstraints.BOTH; // 水平+垂直填充
-        var textAreaScroll = ScrollPaneFactory.createScrollPane(whereClauseTextArea);
+        var textAreaScroll = ScrollPaneFactory.createScrollPane(whereClauseField);
         textAreaScroll.setPreferredSize(JBUI.size(-1, 100));
         conditionPanel.add(textAreaScroll, gbc);
         // 第5行：查询/重置按钮
@@ -363,12 +362,13 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
             builder.append(builder.isEmpty() ? "" : " && ");
             builder.append("project == '").append(projectComboBox.getItem()).append("'");
         }
-        if (CharSequenceUtil.isNotBlank(whereClauseTextArea.getText())) {
+        String whereText = whereClauseField.getDocument().getText();
+        if (CharSequenceUtil.isNotBlank(whereText)) {
             if (!builder.isEmpty()) {
                 builder.insert(0, "(").append(")");
             }
             builder.append(builder.isEmpty() ? "" : " && ");
-            builder.append("(").append(whereClauseTextArea.getText()).append(")");
+            builder.append("(").append(whereText).append(")");
         }
         if (!builder.isEmpty()) {
             builder.insert(0, "(").append(")");
@@ -466,9 +466,14 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         revisionTextField.setText("*");
         idTextField.setText("");
         physicalIdTextField.setText("");
+        whereClauseField.setText("");
     }
 
     private boolean emptyExpression() {
+        // If WHERE clause is filled, allow query with only WHERE conditions.
+        if (CharSequenceUtil.isNotBlank(whereClauseField.getDocument().getText())) {
+            return false;
+        }
         return (CharSequenceUtil.isBlank(typeComboBox.getItem()) || "*".equals(typeComboBox.getItem()))
                 && (CharSequenceUtil.isBlank(policyComboBox.getItem()) || "*".equals(policyComboBox.getItem()))
                 && (CharSequenceUtil.isBlank(stateComboBox.getItem()) || "*".equals(stateComboBox.getItem()))

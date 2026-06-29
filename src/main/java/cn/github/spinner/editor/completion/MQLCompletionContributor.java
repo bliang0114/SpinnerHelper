@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 
 public class MQLCompletionContributor extends CompletionContributor {
     private enum CompletionContext {
@@ -37,7 +38,9 @@ public class MQLCompletionContributor extends CompletionContributor {
         INTERFACE_INSTANCE_IN_QUOTES,
         QUERY_BUS_TYPE,
         QUERY_BUS_TYPE_IN_QUOTES,
-        QUERY_CONNECTION_REL_TARGET
+        QUERY_CONNECTION_REL_TARGET,
+        WHERE_EXPRESSION,
+        WHERE_ATTRIBUTE_SELECTOR
     }
 
     public MQLCompletionContributor() {
@@ -107,6 +110,31 @@ public class MQLCompletionContributor extends CompletionContributor {
                                         MatrixAdminDefinitionCache.getCached(project);
                                 addTypeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, true);
                                 addRelationshipInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, true);
+                                return;
+                            }
+                            case WHERE_EXPRESSION -> {
+                                MatrixAdminDefinitionCache.MatrixAdminDefinitions definitions =
+                                        MatrixAdminDefinitionCache.getCached(project);
+                                addTypeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, true);
+                                addRelationshipInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, true);
+                                addPolicyInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.POLICY), caseInsensitiveResult, false, true);
+                                addAttributeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.ATTRIBUTE), caseInsensitiveResult, false, true);
+                                addInterfaceInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.INTERFACE), caseInsensitiveResult, false, true);
+                                return;
+                            }
+                            case WHERE_ATTRIBUTE_SELECTOR -> {
+                                // The PSI prefix inside a quoted string includes everything
+                                // from the opening quote (e.g. "attribute[Partial).  Use only
+                                // the bracket content as the prefix so items actually match.
+                                Document completionDocument = parameters.getEditor().getDocument();
+                                String beforeCaretForPrefix = completionDocument.getText(new TextRange(0, parameters.getOffset()));
+                                String stmtPrefixForBracket = getCurrentStatementPrefix(beforeCaretForPrefix);
+                                int bracketIdx = stmtPrefixForBracket.lastIndexOf('[');
+                                String insideBracket = bracketIdx >= 0 ? stmtPrefixForBracket.substring(bracketIdx + 1) : "";
+                                CompletionResultSet unfiltered = caseInsensitiveResult.withPrefixMatcher(insideBracket);
+                                for (String instance : cached(project, MatrixAdminDefinitionCache.AdminType.ATTRIBUTE)) {
+                                    unfiltered.addElement(buildAttributeSelectorElement(instance));
+                                }
                                 return;
                             }
                             case DEFAULT -> {
@@ -197,7 +225,6 @@ public class MQLCompletionContributor extends CompletionContributor {
             result.addElement(buildQueryBusTypeElement(instance, insideQuotedList));
         }
     }
-
     private @NotNull LookupElementBuilder buildNamedInstanceElement(@NotNull String instance,
                                                                     @NotNull String typeText,
                                                                     boolean quoteIfNeeded) {
@@ -259,6 +286,15 @@ public class MQLCompletionContributor extends CompletionContributor {
         return builder;
     }
 
+    private @NotNull LookupElementBuilder buildAttributeSelectorElement(@NotNull String instance) {
+        return LookupElementBuilder.create(instance)
+                .withPresentableText(instance)
+                .withLookupString(instance)
+                .withTypeText("Attribute Definition")
+                .withIcon(MQLIcons.TYPE)
+                .withInsertHandler(new AttributeSelectorInsertHandler(instance));
+    }
+
     private @NotNull LookupElementBuilder buildAdminInstanceElement(@NotNull String instance,
                                                                     @NotNull String typeText,
                                                                     boolean quoteIfNeeded,
@@ -282,6 +318,17 @@ public class MQLCompletionContributor extends CompletionContributor {
         int offset = parameters.getOffset();
         String beforeCaret = document.getText(new TextRange(0, offset));
         String statementPrefix = getCurrentStatementPrefix(beforeCaret);
+
+        // Check for attribute[...] / attr[...] before WHERE, so both
+        // "where "attribute[" and "select attribute[" share the same path.
+        if (isOpenAttributeSelector(statementPrefix)) {
+            return CompletionContext.WHERE_ATTRIBUTE_SELECTOR;
+        }
+
+        CompletionContext whereExpressionContext = resolveWhereExpressionContext(statementPrefix);
+        if (whereExpressionContext != CompletionContext.DEFAULT) {
+            return whereExpressionContext;
+        }
         if (isTempQueryBusTypeInQuotesContext(statementPrefix)) {
             return CompletionContext.QUERY_BUS_TYPE_IN_QUOTES;
         }
@@ -340,6 +387,96 @@ public class MQLCompletionContributor extends CompletionContributor {
         return CompletionContext.DEFAULT;
     }
 
+    /**
+     * Detects {@code attribute[} or {@code attr[} with no closing {@code ]}
+     * anywhere in the statement prefix, including inside a WHERE quoted value.
+     */
+    private boolean isOpenAttributeSelector(@NotNull String statementPrefix) {
+        int bracketIndex = statementPrefix.lastIndexOf('[');
+        if (bracketIndex < 0 || statementPrefix.indexOf(']', bracketIndex) >= 0) {
+            return false;
+        }
+        String beforeBracket = statementPrefix.substring(0, bracketIndex).stripTrailing();
+        // Walk backwards past quoted content if present (e.g. where "attribute[)
+        int end = beforeBracket.length();
+        if (end > 0 && (beforeBracket.charAt(end - 1) == '"' || beforeBracket.charAt(end - 1) == '\'')) {
+            end--;
+        }
+        // Find the last keyword-like word before the bracket
+        int wordStart = end;
+        while (wordStart > 0 && isIdentifierPart(beforeBracket.charAt(wordStart - 1))) {
+            wordStart--;
+        }
+        String word = beforeBracket.substring(wordStart, end);
+        return "attribute".equalsIgnoreCase(word) || "attr".equalsIgnoreCase(word);
+    }
+
+    private @NotNull CompletionContext resolveWhereExpressionContext(@NotNull String statementPrefix) {
+        String whereExpressionText = getOpenWhereExpressionTail(statementPrefix);
+        if (whereExpressionText == null) {
+            return CompletionContext.DEFAULT;
+        }
+        return CompletionContext.WHERE_EXPRESSION;
+    }
+
+    /**
+     * Returns the content inside unclosed quotes after {@code where},
+     * or {@code null} if the cursor is not inside a WHERE quoted value.
+     */
+    private @Nullable String getOpenWhereExpressionTail(@NotNull String statementPrefix) {
+        String lower = statementPrefix.toLowerCase(Locale.ROOT);
+        int whereIndex = lastIndexOfKeyword(lower, "where");
+        if (whereIndex < 0) {
+            return null;
+        }
+
+        String afterWhere = statementPrefix.substring(whereIndex + "where".length()).stripLeading();
+        if (afterWhere.isEmpty()) {
+            return null;
+        }
+
+        char firstChar = afterWhere.charAt(0);
+        if (firstChar != '"' && firstChar != '\'') {
+            return null;
+        }
+
+        boolean escaped = false;
+        for (int i = 1; i < afterWhere.length(); i++) {
+            char ch = afterWhere.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (ch == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (ch == firstChar) {
+                return null; // Quote is closed
+            }
+        }
+        return afterWhere.substring(1); // Unclosed quote — inside a WHERE value
+    }
+
+    private int lastIndexOfKeyword(@NotNull String lowerText, @NotNull String keyword) {
+        int fromIndex = lowerText.length();
+        while (fromIndex > 0) {
+            int keywordIndex = lowerText.lastIndexOf(keyword, fromIndex - 1);
+            if (keywordIndex < 0) {
+                return -1;
+            }
+            int beforeIndex = keywordIndex - 1;
+            int afterIndex = keywordIndex + keyword.length();
+            boolean beforeBoundary = beforeIndex < 0 || !isIdentifierPart(lowerText.charAt(beforeIndex));
+            boolean afterBoundary = afterIndex >= lowerText.length() || !isIdentifierPart(lowerText.charAt(afterIndex));
+            if (beforeBoundary && afterBoundary) {
+                return keywordIndex;
+            }
+            fromIndex = keywordIndex;
+        }
+        return -1;
+    }
+
     private @NotNull String getCurrentStatementPrefix(@NotNull String beforeCaret) {
         int lineBreakIndex = Math.max(beforeCaret.lastIndexOf('\n'), beforeCaret.lastIndexOf('\r'));
         int statementIndex = beforeCaret.lastIndexOf(';');
@@ -350,10 +487,17 @@ public class MQLCompletionContributor extends CompletionContributor {
     private @NotNull String getPreviousWord(@NotNull String beforeCaret) {
         int index = beforeCaret.length() - 1;
 
+        // Skip identifier-part chars under the cursor
         while (index >= 0 && isIdentifierPart(beforeCaret.charAt(index))) {
             index--;
         }
+        // Skip whitespace
         while (index >= 0 && Character.isWhitespace(beforeCaret.charAt(index))) {
+            index--;
+        }
+        // Skip non-identifier, non-whitespace chars such as [ ] " '
+        while (index >= 0 && !isIdentifierPart(beforeCaret.charAt(index))
+                && !Character.isWhitespace(beforeCaret.charAt(index))) {
             index--;
         }
         if (index < 0) {
@@ -543,7 +687,6 @@ public class MQLCompletionContributor extends CompletionContributor {
         }
         return "\"" + instance.replace("\"", "\\\"") + "\"";
     }
-
     private boolean isQueryBusTypeChar(char ch) {
         return Character.isLetterOrDigit(ch) || ch == '_' || ch == '-' || ch == '.' || ch == '*';
     }
@@ -609,6 +752,39 @@ public class MQLCompletionContributor extends CompletionContributor {
 
     private @NotNull String escapeForQuotedList(@NotNull String instance, char quoteChar) {
         return instance.replace(String.valueOf(quoteChar), "\\" + quoteChar);
+    }
+    private @Nullable Character findWhereOpenQuote(@NotNull Document document, int beforeOffset) {
+        String beforeCaret = document.getText(new TextRange(0, beforeOffset));
+        String statementPrefix = getCurrentStatementPrefix(beforeCaret);
+        String lower = statementPrefix.toLowerCase(Locale.ROOT);
+        int whereIndex = lastIndexOfKeyword(lower, "where");
+        if (whereIndex < 0) {
+            return null;
+        }
+        String afterWhere = statementPrefix.substring(whereIndex + "where".length()).stripLeading();
+        if (afterWhere.isEmpty()) {
+            return null;
+        }
+        if (afterWhere.charAt(0) == '"' || afterWhere.charAt(0) == '\'') {
+            char quoteChar = afterWhere.charAt(0);
+            boolean escaped = false;
+            for (int i = 1; i < afterWhere.length(); i++) {
+                char ch = afterWhere.charAt(i);
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                if (ch == '\\') {
+                    escaped = true;
+                    continue;
+                }
+                if (ch == quoteChar) {
+                    return null;
+                }
+            }
+            return quoteChar;
+        }
+        return null;
     }
 
     private static final class KeywordInsertHandler implements InsertHandler<com.intellij.codeInsight.lookup.LookupElement> {
@@ -915,6 +1091,36 @@ public class MQLCompletionContributor extends CompletionContributor {
                 newTailOffset++;
             }
 
+            context.setTailOffset(newTailOffset);
+            context.getEditor().getCaretModel().moveToOffset(newTailOffset);
+        }
+    }
+
+    private final class AttributeSelectorInsertHandler implements InsertHandler<com.intellij.codeInsight.lookup.LookupElement> {
+        private final String instance;
+
+        private AttributeSelectorInsertHandler(@NotNull String instance) {
+            this.instance = instance;
+        }
+
+        @Override
+        public void handleInsert(@NotNull InsertionContext context,
+                                 @NotNull com.intellij.codeInsight.lookup.LookupElement item) {
+            Document document = context.getDocument();
+            int startOffset = context.getStartOffset();
+            int tailOffset = context.getTailOffset();
+            Character quoteChar = findWhereOpenQuote(document, startOffset);
+            String insertText = quoteChar != null ? escapeForQuotedList(instance, quoteChar) : instance;
+            document.replaceString(startOffset, tailOffset, insertText);
+            int newTailOffset = startOffset + insertText.length();
+            if (!hasCharAt(document, newTailOffset, ']')) {
+                document.insertString(newTailOffset, "]");
+                newTailOffset++;
+            }
+            if (quoteChar != null && !hasCharAt(document, newTailOffset, quoteChar)) {
+                document.insertString(newTailOffset, String.valueOf(quoteChar));
+                newTailOffset++;
+            }
             context.setTailOffset(newTailOffset);
             context.getEditor().getCaretModel().moveToOffset(newTailOffset);
         }

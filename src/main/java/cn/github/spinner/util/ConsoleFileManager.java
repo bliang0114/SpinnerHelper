@@ -90,6 +90,39 @@ public final class ConsoleFileManager {
         FileEditorManager.getInstance(project).openFile(consoleManager.getConsoleFile(), true);
     }
 
+    public static void deleteConsole(@NotNull Project project, @NotNull ConsoleManager consoleManager) {
+        VirtualFile consoleFile = consoleManager.getConsoleFile();
+        if (consoleFile != null && consoleFile.isValid()) {
+            // Save any unsaved changes before closing
+            var document = FileDocumentManager.getInstance().getDocument(consoleFile);
+            if (document != null) {
+                FileDocumentManager.getInstance().saveDocument(document);
+            }
+            // Close all editors showing this file
+            FileEditorManager.getInstance(project).closeFile(consoleFile);
+            // Delete the file from disk
+            try {
+                ApplicationManager.getApplication().runWriteAction(() -> {
+                    try {
+                        consoleFile.delete(ConsoleFileManager.class);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
+            } catch (UncheckedIOException e) {
+                throw new IllegalStateException("Delete console file failed: " + e.getCause().getMessage(), e.getCause());
+            }
+        }
+
+        // Remove from registry and dispose
+        String consoleName = consoleManager.getConsoleName();
+        Map<String, ConsoleManager> consoleMap = UserInput.getInstance().mqlConsole.get(project);
+        if (consoleMap != null) {
+            consoleMap.remove(consoleName);
+        }
+        consoleManager.dispose();
+    }
+
     public static @NotNull String renameConsole(@NotNull Project project,
                                                 @NotNull ConsoleManager consoleManager,
                                                 @NotNull String newConsoleName) {

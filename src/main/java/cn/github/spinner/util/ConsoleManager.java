@@ -1,5 +1,6 @@
 package cn.github.spinner.util;
 
+import cn.github.spinner.config.SpinnerSettings;
 import com.intellij.execution.impl.ConsoleViewImpl;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
@@ -14,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -35,7 +37,9 @@ public class ConsoleManager implements Disposable {
                 true,  // viewer mode
                 false   // ← 关键：false = 禁用循环缓冲区
         );
-        this.consolePrinter = new ConsolePrinter(project, consoleView, executionEntries::clear);
+        this.consolePrinter = new ConsolePrinter(project, consoleView,
+                () -> SpinnerSettings.getInstance(project).getMqlResultMaxSizeMb(),
+                this::trimExecutionEntries);
         this.consoleName = consoleName;
         this.consoleFile = consoleFile;
     }
@@ -79,6 +83,30 @@ public class ConsoleManager implements Disposable {
     public void clearExecutionEntries() {
         executionEntries.clear();
     }
+    private synchronized void trimExecutionEntries(int removedChars) {
+        if (removedChars <= 0 || executionEntries.isEmpty()) {
+            return;
+        }
+        List<MQLExecutionEntry> adjustedEntries = new ArrayList<>(executionEntries.size());
+        for (MQLExecutionEntry entry : executionEntries) {
+            int adjustedOffset = entry.consoleStartOffset() - removedChars;
+            if (adjustedOffset < 0) {
+                continue;
+            }
+            adjustedEntries.add(new MQLExecutionEntry(
+                    entry.lineNumber(),
+                    entry.sourceStartOffset(),
+                    entry.sourceEndOffset(),
+                    adjustedOffset,
+                    entry.command(),
+                    entry.success(),
+                    entry.message()
+            ));
+        }
+        executionEntries.clear();
+        executionEntries.addAll(adjustedEntries);
+    }
+
 
     public int getCurrentOutputOffset() {
         return consolePrinter.getCurrentOffset();
