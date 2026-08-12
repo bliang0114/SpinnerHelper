@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "3.0.5"
+version = "3.0.6"
 
 repositories {
 //    mavenCentral()
@@ -47,6 +47,11 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
+            <h2>3.0.6</h2>
+            <ul>
+            <li>修复 Program 视图无法打开对应源文件的问题：双击 JPO 行时优先从服务端拉取源码，找不到再回退到工程内索引的 class / 编译产物导航，不再写入临时文件</li>
+            <li>修复 MQL 语法中 <code>* [ ] - ; . ,</code> 等符号显示错误红线的问题：词法器显式登记多字符与单字符运算符，统一为 OPERATOR 高亮</li>
+            </ul>
             <h2>3.0.5</h2>
             <ul>
             <li>MQL 编辑器中 <code>where</code> 关键字后的双引号内自动补全所有 Type/Relationship/Policy/Attribute/Interface 定义，<code>attribute[</code> 方括号内仅提示 Attribute 定义并自动补闭括号和引号</li>
@@ -94,7 +99,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.5"
+        version = "3.0.6"
     }
 }
 
@@ -138,6 +143,6 @@ tasks {
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.5"
+        version = "3.0.6"
     }
 }
