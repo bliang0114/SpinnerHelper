@@ -5,33 +5,36 @@ import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.editor.MQLLanguage;
 import cn.github.spinner.editor.ui.dataview.bean.ProgramsRow;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MQLUtil;
+import cn.github.spinner.util.TriggerQueryUtil;
+import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
+import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.Disposable;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.TextEditor;
+import com.intellij.openapi.fileEditor.OpenFileDescriptor;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.pom.Navigatable;
+import com.intellij.psi.PsiElement;
+import com.intellij.psi.SmartPsiElementPointer;
 import com.intellij.testFramework.LightVirtualFile;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 
 public class ProgramTableComponent extends AbstractDataViewTableComponent<ProgramsRow> implements Disposable {
-    private final List<File> tempJavaFiles = new ArrayList<>();
     private static final String TOOLBAR_ID = "ProgramView Table";
 
     public ProgramTableComponent(@NotNull Project project, VirtualFile file) {
@@ -42,14 +45,25 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
     }
 
     private void setupBusinessListener() {
-        super.table.getSelectionModel().addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
-            int selectedRow = ProgramTableComponent.super.table.getSelectedRow();
-            if (selectedRow == -1) return;
-            String programName = ProgramTableComponent.super.tableModel.getValueAt(selectedRow, 0).toString();
-            if (programName.startsWith("Failed") || programName.startsWith("No ")) return;
-            if (programName.equals(SpinnerBundle.message("message.no.programs.found"))) return;
-            openProgramInNativeEditor(programName);
+        // 双击行预览 JPO/MQL 代码（与项目内其它表格一致的交互约定）
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getButton() != MouseEvent.BUTTON1 || e.getClickCount() < 2) return;
+                int viewRow = table.rowAtPoint(e.getPoint());
+                if (viewRow < 0) return;
+                // 过滤/排序后 view 行需先转回 model 行
+                int modelRow = table.convertRowIndexToModel(viewRow);
+                if (modelRow < 0) return;
+                // 第 0 列为 PaginatedTableModel 插入的行号列，程序名在模型第 1 列
+                Object value = tableModel.getValueAt(modelRow, 1);
+                if (value == null) return;
+                String programName = value.toString();
+                if (CharSequenceUtil.isBlank(programName)) return;
+                if (programName.startsWith("Failed") || programName.startsWith("No ")) return;
+                if (programName.equals(SpinnerBundle.message("message.no.programs.found"))) return;
+                openProgramInNativeEditor(programName);
+            }
         });
     }
 
@@ -84,56 +98,139 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
     }
 
     private void openProgramInNativeEditor(String programName) {
+        String programType;
         try {
-            String programCode = generateJavaCode(programName);
-            String programType = getProgType(programName);
-            if (programCode.contains("the program is empty")) {
-                Messages.showInfoMessage(project, SpinnerBundle.message("message.program.empty.content"), SpinnerBundle.message("message.empty.program"));
-                return;
-            }
-            FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-            if ("MQL".equals(programType)) {
-                LightVirtualFile mqlVirtualFile = new LightVirtualFile(programName);
-                mqlVirtualFile.setLanguage(MQLLanguage.INSTANCE); // 语言关联（业务配置，非UI）
-                mqlVirtualFile.setContent(programCode, programCode, true);
-                mqlVirtualFile.setWritable(true);
+            programType = getProgType(programName);
+        } catch (MQLException e) {
+            Messages.showErrorDialog(project,
+                    SpinnerBundle.message("message.open.failed", e.getMessage()),
+                    SpinnerBundle.message("notification.title.error"));
+            return;
+        }
 
-                FileEditorManager.getInstance(project);
-                fileEditorManager.openFile(mqlVirtualFile, true);
-            } else {
-                String fileExt = "JAVA".equals(programType) ? ".java" : ".txt";
-                String safeFileName = programName.replaceAll("[^a-zA-Z0-9_.-]", "_") + fileExt;
-                File tempDir = new File(System.getProperty("java.io.tmpdir"), "SpinnerPrograms");
-                if (!tempDir.exists()) tempDir.mkdirs();
+        if ("MQL".equals(programType)) {
+            openRemoteProgramCode(programName, programName, true);
+            return;
+        }
+        if (!"JAVA".equals(programType)) {
+            // 非 MQL、非 JPO 的程序：直接展示服务端拉取的源码（纯文本）
+            openRemoteProgramCode(programName, programName + ".txt", false);
+            return;
+        }
 
-                File tempFile = new File(tempDir, safeFileName);
-                tempJavaFiles.add(tempFile);
+        // JPO（Java 程序）：参照 TriggerQueryDialog 的导航逻辑
+        // 优先从服务端拉取源码，找不到再回退到工程内索引的 class / 编译产物
+        String className = programName + "_mxJPO";
+        new TrackedBackgroundTask(project, SpinnerBundle.message("progress.load.trigger.source"), true) {
+            private TriggerQueryUtil.ClassLookupResult classLookupResult;
+            private String sourceCode = "";
+            private boolean remoteSourceLoaded;
+            private Throwable error;
 
-                try (FileWriter writer = new FileWriter(tempFile, StandardCharsets.UTF_8)) {
-                    writer.write(programCode);
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                try {
+                    sourceCode = TriggerQueryUtil.queryProgramCode(project, className);
+                    if (CharSequenceUtil.isNotBlank(sourceCode)) {
+                        remoteSourceLoaded = true;
+                        return;
+                    }
+                } catch (Throwable throwable) {
+                    error = throwable;
                 }
-
-                VirtualFile virtualFile = LocalFileSystem.getInstance().findFileByIoFile(tempFile);
-                if (virtualFile == null) throw new IOException(SpinnerBundle.message("message.temporary.file.not.found"));
-
-                fileEditorManager.openFile(virtualFile, true);
-                for (FileEditor editor : fileEditorManager.getAllEditors(virtualFile)) {
-                    if (editor instanceof TextEditor) {
-                        Editor textEditor = ((TextEditor) editor).getEditor();
-                        textEditor.getDocument().setReadOnly(true); // 业务规则：只读
-                        break;
+                try {
+                    classLookupResult = TriggerQueryUtil.findClassTarget(project, className, "");
+                } catch (Throwable throwable) {
+                    if (error == null) {
+                        error = throwable;
                     }
                 }
             }
-        } catch (IOException | MQLException e) {
-            Messages.showErrorDialog(project, SpinnerBundle.message("message.open.failed", e.getMessage()), SpinnerBundle.message("notification.title.error"));
+
+            @Override
+            public void onSuccess() {
+                if (remoteSourceLoaded) {
+                    if (sourceCode.contains("the program is empty")) {
+                        Messages.showInfoMessage(project,
+                                SpinnerBundle.message("message.program.empty.content"),
+                                SpinnerBundle.message("message.empty.program"));
+                        return;
+                    }
+                    LightVirtualFile virtualFile = new LightVirtualFile(programName + ".java");
+                    virtualFile.setFileType(JavaFileType.INSTANCE);
+                    virtualFile.setContent(this, sourceCode, false);
+                    virtualFile.setWritable(false);
+                    new OpenFileDescriptor(project, virtualFile, 0, 0).navigate(true);
+                    return;
+                }
+                if (navigateClassTarget(classLookupResult)) {
+                    return;
+                }
+                if (error != null) {
+                    UIUtil.showWarningNotification(project,
+                            SpinnerBundle.message("notification.title.trigger.query"),
+                            SpinnerBundle.message("message.trigger.source.load.failed", programName, error.getMessage()));
+                }
+            }
+
+            @Override
+            public void onThrowable(@NotNull Throwable t) {
+                UIUtil.showWarningNotification(project,
+                        SpinnerBundle.message("notification.title.trigger.query"),
+                        SpinnerBundle.message("message.trigger.source.load.failed", programName, t.getMessage()));
+            }
+        }.queue();
+    }
+
+    private void openRemoteProgramCode(@NotNull String programName, @NotNull String fileName, boolean mql) {
+        try {
+            String programCode = MQLUtil.execute(project, "list prog {} select code dump", programName);
+            if (programCode.contains("the program is empty")) {
+                Messages.showInfoMessage(project,
+                        SpinnerBundle.message("message.program.empty.content"),
+                        SpinnerBundle.message("message.empty.program"));
+                return;
+            }
+            LightVirtualFile virtualFile = new LightVirtualFile(fileName);
+            if (mql) {
+                virtualFile.setLanguage(MQLLanguage.INSTANCE);
+                virtualFile.setContent(programCode, programCode, true);
+                virtualFile.setWritable(true);
+            } else {
+                virtualFile.setContent(programCode, programCode, false);
+                virtualFile.setWritable(false);
+            }
+            FileEditorManager.getInstance(project).openFile(virtualFile, true);
+        } catch (MQLException e) {
+            Messages.showErrorDialog(project,
+                    SpinnerBundle.message("message.open.failed", e.getMessage()),
+                    SpinnerBundle.message("notification.title.error"));
         }
     }
 
-
-    private String generateJavaCode(String programName) throws MQLException {
-        String content = MQLUtil.execute(project, "list prog {} select code dump", programName);
-        return StringUtils.isEmpty(content.trim()) ? "the program is empty!" : content.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+    private boolean navigateClassTarget(@Nullable TriggerQueryUtil.ClassLookupResult classLookupResult) {
+        if (classLookupResult == null || classLookupResult.isEmpty()) {
+            return false;
+        }
+        SmartPsiElementPointer<PsiElement> elementPointer = classLookupResult.elementPointer();
+        if (elementPointer != null) {
+            PsiElement element = elementPointer.getElement();
+            if (element instanceof Navigatable navigatable && element.isValid()) {
+                navigatable.navigate(true);
+                return true;
+            }
+        }
+        if (classLookupResult.classPath().isBlank()) {
+            return false;
+        }
+        VirtualFile virtualFile = LocalFileSystem.getInstance()
+                .refreshAndFindFileByNioFile(Path.of(classLookupResult.classPath()));
+        if (virtualFile == null) {
+            return false;
+        }
+        new OpenFileDescriptor(project, virtualFile).navigate(true);
+        return true;
     }
 
 
@@ -149,14 +246,7 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
 
     @Override
     public void dispose() {
-        tempJavaFiles.forEach(file -> {
-            if (file.exists()) file.delete();
-        });
-        File tempDir = new File(System.getProperty("java.io.tmpdir"), "SpinnerPrograms");
-        if (tempDir.exists() && Objects.requireNonNull(tempDir.listFiles()).length == 0) {
-            tempDir.delete();
-        }
-        tempJavaFiles.clear();
+        // 已改为直接导航到工程源码 / 编译 class，不再写临时文件，无需清理
         if (super.executor != null && !super.executor.isShutdown()) {
             super.executor.shutdownNow();
         }
