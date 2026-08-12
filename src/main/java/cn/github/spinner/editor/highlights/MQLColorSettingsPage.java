@@ -21,6 +21,7 @@ public class MQLColorSettingsPage implements ColorSettingsPage {
             new AttributesDescriptor("Comment", MQLSyntaxHighlighter.COMMENT),
             new AttributesDescriptor("Preprocessor", MQLSyntaxHighlighter.PREPROCESSOR),
             new AttributesDescriptor("Type", MQLSyntaxHighlighter.TYPE),
+            new AttributesDescriptor("Operator", MQLSyntaxHighlighter.OPERATOR),
     };
 
     @Nullable
