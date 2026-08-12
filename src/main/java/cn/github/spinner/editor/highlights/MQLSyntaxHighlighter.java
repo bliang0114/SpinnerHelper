@@ -21,6 +21,7 @@ public class MQLSyntaxHighlighter extends SyntaxHighlighterBase {
     public static final TextAttributesKey PREPROCESSOR = createTextAttributesKey("MQL_PREPROCESSOR", DefaultLanguageHighlighterColors.METADATA);
     public static final TextAttributesKey TYPE = createTextAttributesKey("MQL_TYPE", DefaultLanguageHighlighterColors.CLASS_NAME);
     public static final TextAttributesKey CONSTANT = createTextAttributesKey("MQL_CONSTANT", DefaultLanguageHighlighterColors.CONSTANT);
+    public static final TextAttributesKey OPERATOR = createTextAttributesKey("MQL_OPERATOR", DefaultLanguageHighlighterColors.OPERATION_SIGN);
     public static final TextAttributesKey BAD_CHARACTER = createTextAttributesKey("MQL_BAD_CHARACTER", HighlighterColors.BAD_CHARACTER);
 
     private static final TextAttributesKey[] KEYWORD_KEYS = new TextAttributesKey[]{KEYWORD};
@@ -31,6 +32,7 @@ public class MQLSyntaxHighlighter extends SyntaxHighlighterBase {
     private static final TextAttributesKey[] PREPROCESSOR_KEYS = new TextAttributesKey[]{PREPROCESSOR};
     private static final TextAttributesKey[] TYPE_KEYS = new TextAttributesKey[]{TYPE};
     private static final TextAttributesKey[] CONSTANT_KEYS = new TextAttributesKey[]{CONSTANT};
+    private static final TextAttributesKey[] OPERATOR_KEYS = new TextAttributesKey[]{OPERATOR};
     private static final TextAttributesKey[] BAD_CHAR_KEYS = new TextAttributesKey[]{BAD_CHARACTER};
     private static final TextAttributesKey[] EMPTY_KEYS = new TextAttributesKey[0];
 
@@ -59,6 +61,8 @@ public class MQLSyntaxHighlighter extends SyntaxHighlighterBase {
             return TYPE_KEYS;
         } else if (tokenType.equals(MQLTokenTypes.CONSTANT)) {
             return CONSTANT_KEYS;
+        } else if (tokenType.equals(MQLTokenTypes.OPERATOR)) {
+            return OPERATOR_KEYS;
         } else if (tokenType.equals(TokenType.BAD_CHARACTER)) {
             return BAD_CHAR_KEYS;
         } else {
