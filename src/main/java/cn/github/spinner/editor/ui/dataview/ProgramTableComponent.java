@@ -17,18 +17,13 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.pom.Navigatable;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.SmartPsiElementPointer;
 import com.intellij.testFramework.LightVirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -213,23 +208,11 @@ public class ProgramTableComponent extends AbstractDataViewTableComponent<Progra
         if (classLookupResult == null || classLookupResult.isEmpty()) {
             return false;
         }
-        SmartPsiElementPointer<PsiElement> elementPointer = classLookupResult.elementPointer();
-        if (elementPointer != null) {
-            PsiElement element = elementPointer.getElement();
-            if (element instanceof Navigatable navigatable && element.isValid()) {
-                navigatable.navigate(true);
-                return true;
-            }
-        }
-        if (classLookupResult.classPath().isBlank()) {
+        VirtualFile virtualFile = classLookupResult.virtualFile();
+        if (virtualFile == null || !virtualFile.isValid()) {
             return false;
         }
-        VirtualFile virtualFile = LocalFileSystem.getInstance()
-                .refreshAndFindFileByNioFile(Path.of(classLookupResult.classPath()));
-        if (virtualFile == null) {
-            return false;
-        }
-        new OpenFileDescriptor(project, virtualFile).navigate(true);
+        new OpenFileDescriptor(project, virtualFile, classLookupResult.offset()).navigate(true);
         return true;
     }
 
