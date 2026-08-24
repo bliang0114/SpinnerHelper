@@ -6,6 +6,7 @@ import cn.github.spinner.execution.MQLExecutionEntry;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.ConsoleFileManager;
 import cn.github.spinner.util.ConsoleManager;
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -113,17 +114,23 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         title.addMouseListener(dockDragHandler);
         title.addMouseMotionListener(dockDragHandler);
 
-        JCheckBox wrapToggle = new JCheckBox(SpinnerBundle.message("checkbox.wrap"));
-        wrapToggle.setOpaque(false);
-        wrapToggle.setSelected(consoleManager.isSoftWrapsEnabled());
-        wrapToggle.addActionListener(e -> consoleManager.setSoftWrapsEnabled(wrapToggle.isSelected()));
-
         JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actionsPanel.setOpaque(false);
-        actionsPanel.add(wrapToggle);
-        actionsPanel.add(createResultAreaButton("button.result.minimize", this::minimizeResultArea));
-        actionsPanel.add(createResultAreaButton("button.result.maximize", this::maximizeResultArea));
-        actionsPanel.add(createResultAreaButton("button.result.reset", this::resetResultArea));
+        actionsPanel.add(createResultAreaButton(
+                "button.result.minimize",
+                AllIcons.Windows.Minimize,
+                this::minimizeResultArea
+        ));
+        actionsPanel.add(createResultAreaButton(
+                "button.result.maximize",
+                AllIcons.Windows.Maximize,
+                this::maximizeResultArea
+        ));
+        actionsPanel.add(createResultAreaButton(
+                "button.result.reset",
+                AllIcons.Windows.Restore,
+                this::resetResultArea
+        ));
         headerPanel.add(actionsPanel, BorderLayout.EAST);
 
         panel.add(headerPanel, BorderLayout.NORTH);
@@ -131,10 +138,17 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         return panel;
     }
 
-    private @NotNull JButton createResultAreaButton(@NotNull String messageKey, @NotNull Runnable action) {
-        JButton button = new JButton(SpinnerBundle.message(messageKey));
+    private @NotNull JButton createResultAreaButton(@NotNull String messageKey,
+                                                    @NotNull Icon icon,
+                                                    @NotNull Runnable action) {
+        String label = SpinnerBundle.message(messageKey);
+        JButton button = new JButton(icon);
+        button.setToolTipText(label);
+        button.getAccessibleContext().setAccessibleName(label);
         button.setFocusable(false);
-        button.setMargin(JBUI.insets(2, 8));
+        button.setBorder(JBUI.Borders.empty(3));
+        button.setContentAreaFilled(false);
+        button.setOpaque(false);
         button.addActionListener(event -> action.run());
         return button;
     }

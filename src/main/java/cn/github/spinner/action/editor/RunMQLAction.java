@@ -7,6 +7,7 @@ import cn.github.spinner.editor.MQLFileType;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.ExecuteMQLCommand;
 import cn.github.spinner.task.MQLCommandEntry;
+import cn.github.spinner.task.MQLCommandParser;
 import cn.github.spinner.ui.EnvironmentToolWindow;
 import cn.github.spinner.ui.MQLPlaceholderInputDialog;
 import cn.github.spinner.util.ConsoleFileManager;
@@ -24,7 +25,6 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
@@ -115,14 +115,15 @@ public class RunMQLAction extends AnAction {
     }
 
     private List<MQLCommandEntry> getSelectedCommandEntries(@NotNull Editor editor, @NotNull String lineDelimiter) {
-        List<MQLCommandEntry> entries = new ArrayList<>();
-        int startLine = editor.getDocument().getLineNumber(editor.getSelectionModel().getSelectionStart());
-        int endLine = editor.getDocument().getLineNumber(editor.getSelectionModel().getSelectionEnd());
-        for (int line = startLine; line <= endLine; line++) {
-            int lineStartOffset = editor.getDocument().getLineStartOffset(line);
-            addCommandEntries(entries, line, lineStartOffset, EditorUtil.getLineContent(editor, line), lineDelimiter);
-        }
-        return entries;
+        Document document = editor.getDocument();
+        int startLine = document.getLineNumber(editor.getSelectionModel().getSelectionStart());
+        int endLine = document.getLineNumber(editor.getSelectionModel().getSelectionEnd());
+        return MQLCommandParser.parse(
+                document.getCharsSequence(),
+                document.getLineStartOffset(startLine),
+                document.getLineEndOffset(endLine),
+                lineDelimiter
+        );
     }
 
     private List<MQLCommandEntry> getSelectedTextCommandEntries(@NotNull Editor editor, @NotNull String lineDelimiter) {
@@ -131,110 +132,23 @@ public class RunMQLAction extends AnAction {
         if (selectionEnd <= selectionStart) {
             return List.of();
         }
-        String selectedText = editor.getDocument().getText(new TextRange(selectionStart, selectionEnd));
-        return getCommandEntriesFromText(editor, selectionStart, selectedText, lineDelimiter);
+        return MQLCommandParser.parse(
+                editor.getDocument().getCharsSequence(),
+                selectionStart,
+                selectionEnd,
+                lineDelimiter
+        );
     }
 
     private List<MQLCommandEntry> getCurrentLineCommandEntries(@NotNull Editor editor, @NotNull String lineDelimiter) {
-        List<MQLCommandEntry> entries = new ArrayList<>();
+        Document document = editor.getDocument();
         int line = editor.getCaretModel().getCurrentCaret().getLogicalPosition().line;
-        int lineStartOffset = editor.getDocument().getLineStartOffset(line);
-        addCommandEntries(entries, line, lineStartOffset, EditorUtil.getLineContent(editor), lineDelimiter);
-        return entries;
-    }
-
-    private List<MQLCommandEntry> getCommandEntriesFromText(@NotNull Editor editor,
-                                                            int baseOffset,
-                                                            @NotNull String rawText,
-                                                            @NotNull String lineDelimiter) {
-        List<MQLCommandEntry> entries = new ArrayList<>();
-        Pattern pattern = Pattern.compile(lineDelimiter);
-        Matcher matcher = pattern.matcher(rawText);
-        int segmentStart = 0;
-        while (matcher.find()) {
-            addCommandEntry(entries, editor, baseOffset, rawText, segmentStart, matcher.start());
-            segmentStart = matcher.end();
-        }
-        addCommandEntry(entries, editor, baseOffset, rawText, segmentStart, rawText.length());
-        return entries;
-    }
-
-    private void addCommandEntries(@NotNull List<MQLCommandEntry> entries,
-                                   int lineNumber,
-                                   int baseOffset,
-                                   @NotNull String rawText,
-                                   @NotNull String lineDelimiter) {
-        Pattern pattern = Pattern.compile(lineDelimiter);
-        Matcher matcher = pattern.matcher(rawText);
-        int segmentStart = 0;
-        while (matcher.find()) {
-            addCommandEntry(entries, lineNumber, baseOffset, rawText, segmentStart, matcher.start());
-            segmentStart = matcher.end();
-        }
-        addCommandEntry(entries, lineNumber, baseOffset, rawText, segmentStart, rawText.length());
-    }
-
-    private void addCommandEntry(@NotNull List<MQLCommandEntry> entries,
-                                 @NotNull Editor editor,
-                                 int baseOffset,
-                                 @NotNull String rawText,
-                                 int segmentStart,
-                                 int segmentEnd) {
-        if (segmentStart > segmentEnd) {
-            return;
-        }
-        String command = rawText.substring(segmentStart, segmentEnd);
-        String normalized = command.replace('\n', ' ').trim();
-        if (normalized.isEmpty() || normalized.startsWith("#")) {
-            return;
-        }
-
-        int leadingWhitespace = 0;
-        while (leadingWhitespace < command.length() && Character.isWhitespace(command.charAt(leadingWhitespace))) {
-            leadingWhitespace++;
-        }
-
-        int trailingWhitespace = 0;
-        while (trailingWhitespace < command.length()
-                && Character.isWhitespace(command.charAt(command.length() - 1 - trailingWhitespace))) {
-            trailingWhitespace++;
-        }
-
-        int sourceStartOffset = baseOffset + segmentStart + leadingWhitespace;
-        int sourceEndOffset = baseOffset + segmentEnd - trailingWhitespace;
-        int lineNumber = editor.getDocument().getLineNumber(sourceStartOffset);
-        entries.add(new MQLCommandEntry(lineNumber, sourceStartOffset, sourceEndOffset, normalized));
-    }
-
-    private void addCommandEntry(@NotNull List<MQLCommandEntry> entries,
-                                 int lineNumber,
-                                 int baseOffset,
-                                 @NotNull String rawText,
-                                 int segmentStart,
-                                 int segmentEnd) {
-        if (segmentStart > segmentEnd) {
-            return;
-        }
-        String command = rawText.substring(segmentStart, segmentEnd);
-        String normalized = command.replace('\n', ' ').trim();
-        if (normalized.isEmpty() || normalized.startsWith("#")) {
-            return;
-        }
-
-        int leadingWhitespace = 0;
-        while (leadingWhitespace < command.length() && Character.isWhitespace(command.charAt(leadingWhitespace))) {
-            leadingWhitespace++;
-        }
-
-        int trailingWhitespace = 0;
-        while (trailingWhitespace < command.length()
-                && Character.isWhitespace(command.charAt(command.length() - 1 - trailingWhitespace))) {
-            trailingWhitespace++;
-        }
-
-        int sourceStartOffset = baseOffset + segmentStart + leadingWhitespace;
-        int sourceEndOffset = baseOffset + segmentEnd - trailingWhitespace;
-        entries.add(new MQLCommandEntry(lineNumber, sourceStartOffset, sourceEndOffset, normalized));
+        return MQLCommandParser.parse(
+                document.getCharsSequence(),
+                document.getLineStartOffset(line),
+                document.getLineEndOffset(line),
+                lineDelimiter
+        );
     }
 
     private void executeCommands(@NotNull Project project,
