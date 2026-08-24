@@ -48,13 +48,15 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
     private final ConsoleManager consoleManager;
     private final SpinnerSettings spinnerSettings;
     private final JPanel rootPanel;
+    private final JPanel workspacePanel;
     private final JPanel editorContainer;
     private final JPanel resultContainer;
     private final JComponent resultPanel;
     private final JComponent resultContentComponent;
     private final CaretListener caretListener;
-    private JBSplitter splitter;
     private ResultPosition dragPreviewPosition;
+    private ResultPosition resultPosition;
+    private ResultAreaState resultAreaState = ResultAreaState.NORMAL;
 
     public MQLSplitFileEditor(@NotNull Project project, @NotNull VirtualFile file) {
         this.file = file;
@@ -65,12 +67,14 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
                 ? UserInput.getInstance().getConsole(project, consoleName)
                 : createConsoleManager(project, consoleName, file);
         this.rootPanel = new JPanel(new BorderLayout());
+        this.workspacePanel = new JPanel(new BorderLayout());
         this.editorContainer = wrapComponent(textEditor.getComponent());
         this.resultContentComponent = consoleManager.createResultComponent();
         this.resultPanel = createResultPanel();
         this.resultContainer = wrapComponent(resultPanel);
         this.rootPanel.setBorder(BorderFactory.createEmptyBorder());
         this.rootPanel.add(createEditorToolbar(), BorderLayout.NORTH);
+        this.rootPanel.add(workspacePanel, BorderLayout.CENTER);
         applyResultPosition(ResultPosition.from(spinnerSettings.getMqlResultPosition()));
         this.caretListener = new CaretListener() {
             @Override
@@ -117,11 +121,22 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actionsPanel.setOpaque(false);
         actionsPanel.add(wrapToggle);
+        actionsPanel.add(createResultAreaButton("button.result.minimize", this::minimizeResultArea));
+        actionsPanel.add(createResultAreaButton("button.result.maximize", this::maximizeResultArea));
+        actionsPanel.add(createResultAreaButton("button.result.reset", this::resetResultArea));
         headerPanel.add(actionsPanel, BorderLayout.EAST);
 
         panel.add(headerPanel, BorderLayout.NORTH);
         panel.add(resultContentComponent, BorderLayout.CENTER);
         return panel;
+    }
+
+    private @NotNull JButton createResultAreaButton(@NotNull String messageKey, @NotNull Runnable action) {
+        JButton button = new JButton(SpinnerBundle.message(messageKey));
+        button.setFocusable(false);
+        button.setMargin(JBUI.insets(2, 8));
+        button.addActionListener(event -> action.run());
+        return button;
     }
 
     private @NotNull JComponent createEditorToolbar() {
@@ -158,6 +173,49 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
     }
 
     private void applyResultPosition(@NotNull ResultPosition position) {
+        resultPosition = position;
+        resultAreaState = ResultAreaState.NORMAL;
+        layoutResultArea();
+    }
+
+    private void minimizeResultArea() {
+        resultAreaState = ResultAreaState.MINIMIZED;
+        layoutResultArea();
+    }
+
+    private void maximizeResultArea() {
+        resultAreaState = ResultAreaState.MAXIMIZED;
+        layoutResultArea();
+    }
+
+    private void resetResultArea() {
+        resultAreaState = ResultAreaState.NORMAL;
+        layoutResultArea();
+    }
+
+    private void layoutResultArea() {
+        detachFromParent(editorContainer);
+        detachFromParent(resultContainer);
+        workspacePanel.removeAll();
+
+        resultContentComponent.setVisible(resultAreaState != ResultAreaState.MINIMIZED);
+        if (resultAreaState == ResultAreaState.MINIMIZED) {
+            resultContainer.setMinimumSize(JBUI.emptySize());
+            workspacePanel.add(editorContainer, BorderLayout.CENTER);
+            workspacePanel.add(resultContainer, BorderLayout.SOUTH);
+        } else if (resultAreaState == ResultAreaState.MAXIMIZED) {
+            resultContainer.setMinimumSize(JBUI.size(PANEL_MINIMUM_WIDTH, PANEL_MINIMUM_HEIGHT));
+            workspacePanel.add(resultContainer, BorderLayout.CENTER);
+        } else {
+            resultContainer.setMinimumSize(JBUI.size(PANEL_MINIMUM_WIDTH, PANEL_MINIMUM_HEIGHT));
+            workspacePanel.add(createSplitter(resultPosition), BorderLayout.CENTER);
+        }
+
+        workspacePanel.revalidate();
+        workspacePanel.repaint();
+    }
+
+    private @NotNull JBSplitter createSplitter(@NotNull ResultPosition position) {
         JBSplitter newSplitter = new JBSplitter(position.verticalSplit, position.proportion);
         newSplitter.setDividerWidth(JBUI.scale(SPLITTER_DIVIDER_WIDTH));
         if (position.resultFirst) {
@@ -167,14 +225,14 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
             newSplitter.setFirstComponent(editorContainer);
             newSplitter.setSecondComponent(resultContainer);
         }
+        return newSplitter;
+    }
 
-        if (splitter != null) {
-            rootPanel.remove(splitter);
+    private void detachFromParent(@NotNull Component component) {
+        Container parent = component.getParent();
+        if (parent != null) {
+            parent.remove(component);
         }
-        splitter = newSplitter;
-        rootPanel.add(splitter, BorderLayout.CENTER);
-        rootPanel.revalidate();
-        rootPanel.repaint();
     }
 
     private void applyDockPreview(@Nullable ResultPosition position) {
@@ -344,6 +402,12 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         public String toString() {
             return SpinnerBundle.message(displayName);
         }
+    }
+
+    private enum ResultAreaState {
+        NORMAL,
+        MINIMIZED,
+        MAXIMIZED
     }
 
     private final class DockDragHandler extends MouseAdapter {
