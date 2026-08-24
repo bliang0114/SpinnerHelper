@@ -35,6 +35,8 @@ import java.util.Vector;
 
 @Slf4j
 public class SpinnerDataRecordBuilder {
+    private static final long SLOW_BUILD_MS = 100L;
+    private static final long SLOW_APPLY_MS = 50L;
     private Project project;
     private VirtualFile virtualFile;
     private int modelRowIndex;
@@ -60,6 +62,7 @@ public class SpinnerDataRecordBuilder {
     }
 
     public JComponent build(String[] headers, Vector<String> values) {
+        long startedNanos = System.nanoTime();
         this.components = new JComponent[headers.length];
         SpinnerType spinnerType = SpinnerType.fromFile(this.virtualFile);
         FormBuilder formBuilder = FormBuilder.createFormBuilder();
@@ -133,6 +136,8 @@ public class SpinnerDataRecordBuilder {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         panel.add(scrollPane, BorderLayout.CENTER);
+        logPerformance("record form build", startedNanos, SLOW_BUILD_MS,
+                "row=" + modelRowIndex + ", columns=" + headers.length + ", spinnerType=" + spinnerType);
         return panel;
     }
 
@@ -200,11 +205,19 @@ public class SpinnerDataRecordBuilder {
     }
 
     public String apply(){
+        long totalStartedNanos = System.nanoTime();
         String value = getValue();
-        log.info("Value: {}", value);
         int lineNumber = modelRowIndex + 1;
+        long documentLookupStartedNanos = System.nanoTime();
         Document document = ReadAction.compute(() -> FileDocumentManager.getInstance().getDocument(virtualFile));
-        if (document == null) return null;
+        long documentLookupMs = elapsedMillis(documentLookupStartedNanos);
+        if (document == null) {
+            log.warn("[SpinnerEditorPerf] apply skipped: file={}, row={}, reason=document-not-found, elapsedMs={}, thread={}, edt={}",
+                    virtualFile.getPath(), modelRowIndex, elapsedMillis(totalStartedNanos),
+                    Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
+            return null;
+        }
+        long snapshotStartedNanos = System.nanoTime();
         LineSnapshot snapshot = ReadAction.compute(() -> {
             if (lineNumber >= document.getLineCount()) {
                 return null;
@@ -214,7 +227,13 @@ public class SpinnerDataRecordBuilder {
             String lineValue = document.getText(new TextRange(startOffset, endOffset));
             return new LineSnapshot(startOffset, endOffset, lineValue);
         });
-        if (snapshot == null) return null;
+        long snapshotMs = elapsedMillis(snapshotStartedNanos);
+        if (snapshot == null) {
+            log.warn("[SpinnerEditorPerf] apply skipped: file={}, row={}, reason=line-not-found, lineCount={}, elapsedMs={}, thread={}, edt={}",
+                    virtualFile.getPath(), modelRowIndex, document.getLineCount(), elapsedMillis(totalStartedNanos),
+                    Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
+            return null;
+        }
         String[] valueArr = value.split("\t", -1);
         String[] lineValueArr = snapshot.lineValue.split("\t", -1);
         boolean notNeedRefactor = valueArr.length <= lineValueArr.length || Arrays.stream(valueArr, lineValueArr.length, valueArr.length).anyMatch(StrUtil::isNotEmpty);
@@ -226,12 +245,37 @@ public class SpinnerDataRecordBuilder {
         if (finalValue.equals(snapshot.lineValue)) {
             return finalValue;
         }
-        WriteCommandAction.runWriteCommandAction(project, () -> {
-            document.replaceString(snapshot.startOffset, snapshot.endOffset, finalValue);
-            PsiDocumentManager.getInstance(project).commitDocument(document);
-        });
+        long writeStartedNanos = System.nanoTime();
+        spinnerViewComponent.runInternalDocumentUpdate(() ->
+                WriteCommandAction.runWriteCommandAction(project, () -> {
+                    document.replaceString(snapshot.startOffset, snapshot.endOffset, finalValue);
+                    PsiDocumentManager.getInstance(project).commitDocument(document);
+                })
+        );
+        long writeAndCommitMs = elapsedMillis(writeStartedNanos);
+        long reloadStartedNanos = System.nanoTime();
         spinnerViewComponent.reloadValue(modelRowIndex, finalValue);
+        long reloadMs = elapsedMillis(reloadStartedNanos);
+        long totalMs = elapsedMillis(totalStartedNanos);
+        String details = "row=" + modelRowIndex + ", valueChars=" + finalValue.length() +
+                ", documentLookupMs=" + documentLookupMs + ", snapshotMs=" + snapshotMs +
+                ", writeAndCommitMs=" + writeAndCommitMs + ", reloadMs=" + reloadMs;
+        logPerformance("apply row edit", totalStartedNanos, SLOW_APPLY_MS, details);
         return finalValue;
+    }
+
+    private void logPerformance(@NotNull String operation, long startedNanos, long slowThresholdMs, @NotNull String details) {
+        long elapsedMs = elapsedMillis(startedNanos);
+        String message = "[SpinnerEditorPerf] " + operation + ": file=" + virtualFile.getPath() +
+                ", elapsedMs=" + elapsedMs + ", " + details + ", thread=" + Thread.currentThread().getName() +
+                ", edt=" + SwingUtilities.isEventDispatchThread();
+        if (elapsedMs >= slowThresholdMs) {
+            log.warn(message);
+        }
+    }
+
+    private static long elapsedMillis(long startedNanos) {
+        return (System.nanoTime() - startedNanos) / 1_000_000L;
     }
 
     private record LineSnapshot(int startOffset, int endOffset, String lineValue) {

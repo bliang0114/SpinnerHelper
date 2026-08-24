@@ -6,6 +6,8 @@ build/
 !**/src/test/**/build/
 gen/
 .gradle-user-home
+/.workbuddy/
+src/test/
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

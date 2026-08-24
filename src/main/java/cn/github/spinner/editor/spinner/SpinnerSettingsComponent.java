@@ -2,11 +2,13 @@ package cn.github.spinner.editor.spinner;
 
 import cn.github.spinner.components.ComboBoxWithFilter;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.ui.components.fields.ExpandableTextField;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import java.awt.*;
@@ -24,14 +26,14 @@ public class SpinnerSettingsComponent extends JPanel {
     private List<ComboBoxWithFilter<String>> settingNameComponents;
     private List<ExpandableTextField> settingValueComponents;
 
-    public SpinnerSettingsComponent(SpinnerType spinnerType, String settingName, String settingValue) {
+    public SpinnerSettingsComponent(SpinnerType spinnerType, @Nullable String settingName, @Nullable String settingValue) {
         this(spinnerType, settingName, settingValue, null);
     }
 
-    public SpinnerSettingsComponent(SpinnerType spinnerType, String settingName, String settingValue, Runnable onValueChanged) {
+    public SpinnerSettingsComponent(SpinnerType spinnerType, @Nullable String settingName, @Nullable String settingValue, Runnable onValueChanged) {
         this.spinnerType = spinnerType;
-        this.settingName = settingName;
-        this.settingValue = settingValue;
+        this.settingName = CharSequenceUtil.nullToEmpty(settingName);
+        this.settingValue = CharSequenceUtil.nullToEmpty(settingValue);
         this.onValueChanged = onValueChanged;
         initComponents();
         setupLayout();
@@ -95,6 +97,7 @@ public class SpinnerSettingsComponent extends JPanel {
     }
 
     private void getComponentValue(StringBuilder value, List<?> settingComponents) {
+        int startLength = value.length();
         for (Object component : settingComponents) {
             String text = "";
             if (component instanceof ExpandableTextField textField) {
@@ -106,7 +109,7 @@ public class SpinnerSettingsComponent extends JPanel {
                 value.append(text).append("|");
             }
         }
-        if (!value.isEmpty()) {
+        if (value.length() > startLength) {
             value.deleteCharAt(value.length() - 1);
         }
     }

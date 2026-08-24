@@ -35,6 +35,8 @@ import java.util.Vector;
 
 @Slf4j
 public abstract class AbstractSpinnerViewComponent extends JPanel implements Disposable {
+    private static final long SLOW_PHASE_MS = 100L;
+    private static final long SLOW_REFRESH_MS = 200L;
     protected final Project project;
     protected final VirtualFile virtualFile;
     protected FilterTable table;
@@ -48,18 +50,37 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
     private boolean pendingRefresh;
     private boolean refreshScheduled;
     private boolean updatingTable;
+    private boolean internalDocumentUpdate;
+    private boolean recordComponentLoaded;
+    private int displayedRecordModelRow = -1;
     private String pendingDocumentText;
 
     public AbstractSpinnerViewComponent(@NotNull Project project, @NotNull VirtualFile virtualFile) {
         this.project = project;
         this.virtualFile = virtualFile;
+        long totalStartedNanos = System.nanoTime();
         try {
+            long phaseStartedNanos = System.nanoTime();
             readFile();
+            logPhase("readFile", phaseStartedNanos, "rows=" + dataList.size() + ", columns=" + headers.length);
+            phaseStartedNanos = System.nanoTime();
             initComponents();
+            logPhase("initComponents", phaseStartedNanos, "columns=" + tableModel.getColumnCount());
+            phaseStartedNanos = System.nanoTime();
             setupListener();
+            logPhase("setupListener", phaseStartedNanos, "documentListener=" + (documentListener != null));
+            phaseStartedNanos = System.nanoTime();
             setupLayout();
+            logPhase("setupLayout", phaseStartedNanos, "columns=" + tableModel.getColumnCount());
+            phaseStartedNanos = System.nanoTime();
             setValue();
+            logPhase("populateTable", phaseStartedNanos, "rows=" + tableModel.getRowCount());
+            log.info("[SpinnerEditorPerf] component initialization completed: file={}, elapsedMs={}, rows={}, columns={}, thread={}, edt={}",
+                    virtualFile.getPath(), elapsedMillis(totalStartedNanos), tableModel.getRowCount(), tableModel.getColumnCount(),
+                    Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
         } catch (Exception e) {
+            log.warn("[SpinnerEditorPerf] component initialization failed: file=" + virtualFile.getPath() +
+                    ", elapsedMs=" + elapsedMillis(totalStartedNanos) + ", thread=" + Thread.currentThread().getName(), e);
             table = new FilterTable();
             table.getEmptyText().setText(e.getMessage());
             add(table);
@@ -89,21 +110,23 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
                     if (rowIndex >= 0) {
                         table.setRowSelectionInterval(rowIndex, rowIndex);
                         recordPane.setVisible(true);
+                        showRecordForRow(table.convertRowIndexToModel(rowIndex), false);
                     }
                 }
             }
         });
         table.getSelectionModel().addListSelectionListener(e -> {
             if (e.getValueIsAdjusting() || updatingTable) return;
+            if (!recordPane.isVisible()) return;
 
             int selectedRow = table.getSelectedRow();
             if (selectedRow < 0) {
-                recordPane.setComponentAt(0, new JPanel());
+                clearRecordPane();
                 return;
             }
 
             int modelRowIndex = table.convertRowIndexToModel(selectedRow);
-            showRecordForRow(modelRowIndex);
+            showRecordForRow(modelRowIndex, false);
         });
         Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
         if (document == null) {
@@ -113,8 +136,20 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         documentListener = new DocumentListener() {
             @Override
             public void documentChanged(@NotNull DocumentEvent event) {
+                if (internalDocumentUpdate) {
+                    return;
+                }
+                long eventStartedNanos = System.nanoTime();
                 SwingUtilities.invokeLater(() -> {
+                    long queueDelayMs = elapsedMillis(eventStartedNanos);
+                    long captureStartedNanos = System.nanoTime();
                     pendingDocumentText = event.getDocument().getText();
+                    long captureMs = elapsedMillis(captureStartedNanos);
+                    if (queueDelayMs >= SLOW_PHASE_MS || captureMs >= SLOW_PHASE_MS) {
+                        log.warn("[SpinnerEditorPerf] documentChanged handoff slow: file={}, queueDelayMs={}, captureTextMs={}, documentChars={}, showing={}, thread={}, edt={}",
+                                virtualFile.getPath(), queueDelayMs, captureMs, event.getDocument().getTextLength(), isShowing(),
+                                Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
+                    }
                     if (!isShowing()) {
                         pendingRefresh = true;
                         return;
@@ -183,8 +218,19 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         }
     }
 
+    void runInternalDocumentUpdate(@NotNull Runnable update) {
+        internalDocumentUpdate = true;
+        try {
+            update.run();
+        } finally {
+            internalDocumentUpdate = false;
+        }
+    }
+
     public void refreshFromDocument() {
+        long startedNanos = System.nanoTime();
         String text = pendingDocumentText;
+        boolean usedPendingText = text != null;
         if (text == null) {
             text = ReadAction.compute(() -> {
                 Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
@@ -193,6 +239,12 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         }
         if (text != null) {
             refreshFromText(text);
+        }
+        long elapsedMs = elapsedMillis(startedNanos);
+        if (elapsedMs >= SLOW_REFRESH_MS) {
+            log.warn("[SpinnerEditorPerf] refreshFromDocument slow: file={}, elapsedMs={}, source={}, textChars={}, rows={}, thread={}, edt={}",
+                    virtualFile.getPath(), elapsedMs, usedPendingText ? "pending-event" : "document", text == null ? 0 : text.length(),
+                    tableModel.getRowCount(), Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
         }
     }
 
@@ -213,21 +265,40 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
     }
 
     private void refreshFromText(@NotNull String text) {
+        long totalStartedNanos = System.nanoTime();
         int selectedModelRow = getSelectedModelRow();
         boolean recordVisible = recordPane.isVisible();
+        long parseMs;
+        long populateMs;
+        long restoreMs;
         updatingTable = true;
-        tableModel.setRowCount(0);
-        dataList.clear();
-        List<String> lines = parseLines(text);
-        if (!lines.isEmpty()) {
-            lines.remove(0);
-            dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
+        try {
+            tableModel.setRowCount(0);
+            dataList.clear();
+            long parseStartedNanos = System.nanoTime();
+            List<String> lines = parseLines(text);
+            if (!lines.isEmpty()) {
+                lines.remove(0);
+                dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
+            }
+            parseMs = elapsedMillis(parseStartedNanos);
+            long populateStartedNanos = System.nanoTime();
+            setValue();
+            populateMs = elapsedMillis(populateStartedNanos);
+            long restoreStartedNanos = System.nanoTime();
+            restoreSelection(selectedModelRow);
+            refreshRecordPane(selectedModelRow, recordVisible);
+            restoreMs = elapsedMillis(restoreStartedNanos);
+        } finally {
+            updatingTable = false;
         }
-        setValue();
-        updatingTable = false;
-        restoreSelection(selectedModelRow);
-        refreshRecordPane(selectedModelRow, recordVisible);
         pendingRefresh = false;
+        long totalMs = elapsedMillis(totalStartedNanos);
+        if (totalMs >= SLOW_REFRESH_MS) {
+            log.warn("[SpinnerEditorPerf] table refresh slow: file={}, elapsedMs={}, parseMs={}, populateMs={}, restoreAndRecordMs={}, textChars={}, rows={}, columns={}, recordVisible={}, thread={}, edt={}",
+                    virtualFile.getPath(), totalMs, parseMs, populateMs, restoreMs, text.length(), tableModel.getRowCount(),
+                    tableModel.getColumnCount(), recordVisible, Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
+        }
     }
 
     public boolean hasPendingRefresh() {
@@ -247,6 +318,9 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         documentListener = null;
         pendingRefresh = false;
         refreshScheduled = false;
+        internalDocumentUpdate = false;
+        recordComponentLoaded = false;
+        displayedRecordModelRow = -1;
         pendingDocumentText = null;
         if (recordPane != null) {
             recordPane.removeAll();
@@ -307,27 +381,72 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
             return;
         }
         if (selectedModelRow < 0 || selectedModelRow >= tableModel.getRowCount()) {
-            recordPane.setComponentAt(0, new JPanel());
+            clearRecordPane();
             return;
         }
         int viewRow = table.convertRowIndexToView(selectedModelRow);
         if (viewRow < 0) {
-            recordPane.setComponentAt(0, new JPanel());
+            clearRecordPane();
             return;
         }
-        showRecordForRow(selectedModelRow);
+        showRecordForRow(selectedModelRow, true);
     }
 
-    private void showRecordForRow(int modelRowIndex) {
+    private void showRecordForRow(int modelRowIndex, boolean force) {
+        if (!recordPane.isVisible()) {
+            return;
+        }
         if (modelRowIndex < 0 || modelRowIndex >= tableModel.getRowCount()) {
-            recordPane.setComponentAt(0, new JPanel());
+            clearRecordPane();
+            return;
+        }
+        if (!force && recordComponentLoaded && displayedRecordModelRow == modelRowIndex) {
             return;
         }
         @SuppressWarnings("unchecked")
         Vector<String> vector = tableModel.getDataVector().get(modelRowIndex);
+        long startedNanos = System.nanoTime();
         JComponent component = SpinnerDataRecordBuilder.createBuilder(this.virtualFile, modelRowIndex, AbstractSpinnerViewComponent.this)
                 .setProject(project).build(headers, vector);
         recordPane.setComponentAt(0, component);
+        displayedRecordModelRow = modelRowIndex;
+        recordComponentLoaded = true;
+        long elapsedMs = elapsedMillis(startedNanos);
+        if (elapsedMs >= SLOW_PHASE_MS) {
+            log.warn("[SpinnerEditorPerf] record pane build slow: file={}, row={}, elapsedMs={}, columns={}, thread={}, edt={}",
+                    virtualFile.getPath(), modelRowIndex, elapsedMs, headers.length,
+                    Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
+        }
+    }
+
+    private void clearRecordPane() {
+        recordPane.setComponentAt(0, new JPanel());
+        displayedRecordModelRow = -1;
+        recordComponentLoaded = false;
+    }
+
+    private void setRecordPaneVisible(boolean visible) {
+        recordPane.setVisible(visible);
+        if (!visible) {
+            return;
+        }
+        int selectedModelRow = getSelectedModelRow();
+        if (selectedModelRow >= 0) {
+            showRecordForRow(selectedModelRow, false);
+        }
+    }
+
+    private void logPhase(@NotNull String phase, long startedNanos, @NotNull String details) {
+        long elapsedMs = elapsedMillis(startedNanos);
+        if (elapsedMs >= SLOW_PHASE_MS) {
+            log.warn("[SpinnerEditorPerf] initialization phase slow: file={}, phase={}, elapsedMs={}, {}, thread={}, edt={}",
+                    virtualFile.getPath(), phase, elapsedMs, details,
+                    Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
+        }
+    }
+
+    private static long elapsedMillis(long startedNanos) {
+        return (System.nanoTime() - startedNanos) / 1_000_000L;
     }
 
     public class RecordPaneVisibleAction extends ToggleAction {
@@ -337,7 +456,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
-            recordPane.setVisible(!recordPane.isVisible());
+            setRecordPaneVisible(!recordPane.isVisible());
         }
 
         @Override
@@ -347,7 +466,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
 
         @Override
         public void setSelected(@NotNull AnActionEvent e, boolean b) {
-            recordPane.setVisible(b);
+            setRecordPaneVisible(b);
         }
 
         @Override
