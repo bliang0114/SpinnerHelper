@@ -7,10 +7,23 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * 将编辑器中的 MQL 源码解析成真正需要发送给 Matrix 服务端的命令。
+ * 注释会在分隔命令之前被遮罩，因此注释内容及其中的分隔符都不会参与执行。
+ */
 public final class MQLCommandParser {
     private MQLCommandParser() {
     }
 
+    /**
+     * 解析指定源码范围，同时使用完整源码判断范围开始位置是否位于块注释中。
+     *
+     * @param source        完整编辑器源码
+     * @param rangeStart    执行范围起始偏移（包含）
+     * @param rangeEnd      执行范围结束偏移（不包含）
+     * @param lineDelimiter MQL 命令分隔符正则表达式
+     * @return 保留原始行号和源码偏移的可执行命令
+     */
     public static @NotNull List<MQLCommandEntry> parse(@NotNull CharSequence source,
                                                        int rangeStart,
                                                        int rangeEnd,
@@ -19,6 +32,7 @@ public final class MQLCommandParser {
             throw new IllegalArgumentException("Invalid MQL source range");
         }
 
+        // 必须先遮罩完整源码再截取范围，否则选择可能从多行块注释的中间开始。
         String executableText = maskComments(source).substring(rangeStart, rangeEnd);
         List<MQLCommandEntry> entries = new ArrayList<>();
         Matcher matcher = Pattern.compile(lineDelimiter).matcher(executableText);
@@ -83,6 +97,10 @@ public final class MQLCommandParser {
         return lineNumber;
     }
 
+    /**
+     * 使用空格替换 #、// 和块注释字符，同时保留换行及字符串中的注释符号。
+     * 返回文本与原文严格等长，确保执行结果仍能映射到正确的源码位置。
+     */
     private static @NotNull String maskComments(@NotNull CharSequence source) {
         char[] masked = source.toString().toCharArray();
         ScanState state = ScanState.CODE;

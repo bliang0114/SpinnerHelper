@@ -114,6 +114,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         title.addMouseListener(dockDragHandler);
         title.addMouseMotionListener(dockDragHandler);
 
+        // 使用系统窗口标题栏语义图标，让结果区的最小化、最大化和还原行为一目了然。
         JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actionsPanel.setOpaque(false);
         actionsPanel.add(createResultAreaButton(
@@ -207,6 +208,9 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         layoutResultArea();
     }
 
+    /**
+     * 根据结果区状态重新组装组件：最小化保留标题栏，最大化隐藏源码区，还原回到分栏布局。
+     */
     private void layoutResultArea() {
         detachFromParent(editorContainer);
         detachFromParent(resultContainer);
@@ -418,6 +422,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         }
     }
 
+    /** 结果区域相对于 MQL 源码编辑器的显示状态。 */
     private enum ResultAreaState {
         NORMAL,
         MINIMIZED,
