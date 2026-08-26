@@ -182,18 +182,18 @@ public class WorkspaceUtil {
     }
 
     public static void reloadPageCache(MatrixConnection connection) throws Exception {
-        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadPageCache", new String[]{}, String.class);
+        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadPageCache", new String[]{});
     }
 
     public static void reloadSpinnerCache(MatrixConnection connection) throws Exception {
-        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadSpinnerCache", new String[]{}, String.class);
+        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadSpinnerCache", new String[]{});
     }
 
     public static void reloadCache(MatrixConnection connection) throws Exception {
-        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadCache", new String[]{}, String.class);
+        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadCache", new String[]{});
     }
 
-    public static String reloadProperties(MatrixConnection connection) throws Exception {
-        return connection.invokeJPOMethod("SpinnerDeployJPO", "reloadProperties", new String[]{}, String.class);
+    public static void reloadProperties(MatrixConnection connection) throws Exception {
+        connection.invokeJPOMethod("SpinnerDeployJPO", "reloadProperties", new String[]{});
     }
 }

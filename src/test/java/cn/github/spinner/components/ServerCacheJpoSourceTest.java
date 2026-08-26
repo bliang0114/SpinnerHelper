@@ -20,7 +20,8 @@ public class ServerCacheJpoSourceTest {
             assertTrue(source.contains("UICache.clearTenantCache(ctx)"));
             assertTrue(source.contains("CacheManager.resetAPPServerCache(ctx)"));
             assertTrue(source.contains("CacheManager.resetRMIServerCache(ctx)"));
-            assertTrue(source.contains("public String reloadProperties(Context ctx, String[] args)"));
+            assertTrue(source.contains("public void reloadCache(Context ctx, String[] args)"));
+            assertTrue(source.contains("public void reloadProperties(Context ctx, String[] args)"));
             assertTrue(source.contains("ResourceBundle.class.getDeclaredField(\"cacheList\")"));
             assertTrue(source.contains("ResourceBundle.clearCache(contextClassLoader)"));
             assertTrue(source.contains("ContextUtil.commitTransaction(ctx)"));

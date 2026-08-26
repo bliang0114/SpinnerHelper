@@ -120,7 +120,7 @@ public class SpinnerDeployJPO {
             throw new MatrixException("Context user \'" + user + "\' is not authorized for system administration");
     }
 
-    public String reloadPageCache(Context ctx, String[] args)  {
+    public void reloadPageCache(Context ctx, String[] args)  {
         try {
             ContextUtil.startTransaction(ctx, false);
             if (adminOnly)
@@ -128,14 +128,13 @@ public class SpinnerDeployJPO {
             PropertyUtil.clearAdminPropertyCache();
             UICache.clearTenantCache(ctx);
             ContextUtil.commitTransaction(ctx);
-            return "Page and tenant caches reloaded.";
         } catch (Exception e) {
             ContextUtil.abortTransaction(ctx);
             throw new RuntimeException(e);
         }
     }
 
-    public String reloadSpinnerCache(Context ctx, String[] args)  {
+    public void reloadSpinnerCache(Context ctx, String[] args)  {
         try {
             ContextUtil.startTransaction(ctx, false);
             if (adminOnly)
@@ -143,47 +142,41 @@ public class SpinnerDeployJPO {
             CacheManager.resetAPPServerCache(ctx);
             CacheManager.resetRMIServerCache(ctx);
             ContextUtil.commitTransaction(ctx);
-            return "Application and RMI server caches reloaded.";
         } catch (Exception e) {
             ContextUtil.abortTransaction(ctx);
             throw new RuntimeException(e);
         }
     }
 
-    public String reloadCache(Context ctx, String[] args)  {
+    public void reloadCache(Context ctx, String[] args)  {
         reloadPageCache(ctx, args);
         reloadSpinnerCache(ctx, args);
-        return "Administrative, tenant, application, and RMI server caches reloaded.";
     }
 
-    public String reloadProperties(Context ctx, String[] args) {
+    public void reloadProperties(Context ctx, String[] args) {
         try {
             ContextUtil.startTransaction(ctx, false);
             if (adminOnly)
                 checkAdmin(ctx);
             PropertyUtil.clearAdminPropertyCache();
             UICache.clearTenantCache(ctx);
-            int clearedEntries = clearResourceBundleCache();
+            clearResourceBundleCache();
             ContextUtil.commitTransaction(ctx);
-            return clearedEntries >= 0
-                    ? "Properties reloaded; cleared " + clearedEntries + " ResourceBundle cache entries."
-                    : "Properties reloaded; ResourceBundle caches cleared for the active class loaders.";
         } catch (Exception e) {
             ContextUtil.abortTransaction(ctx);
             throw new RuntimeException(e);
         }
     }
 
-    private int clearResourceBundleCache() {
+    private void clearResourceBundleCache() {
         try {
             Field cacheListField = ResourceBundle.class.getDeclaredField("cacheList");
             cacheListField.setAccessible(true);
             Object cache = cacheListField.get(null);
             if (cache instanceof Map) {
                 Map cacheMap = (Map) cache;
-                int entryCount = cacheMap.size();
                 cacheMap.clear();
-                return entryCount;
+                return;
             }
         } catch (Exception ignored) {
             // Newer JVMs can deny reflective access. Use the supported class-loader-specific API below.
@@ -198,7 +191,6 @@ public class SpinnerDeployJPO {
         if (jpoClassLoader != null && jpoClassLoader != contextClassLoader) {
             ResourceBundle.clearCache(jpoClassLoader);
         }
-        return -1;
     }
 
     class StreamWriter extends Thread {
