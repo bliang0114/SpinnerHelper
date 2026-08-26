@@ -274,13 +274,15 @@ public class MenuAndCommandView extends BorderLayoutPanel {
         List<MenuCommandNode> rootChildren = new ArrayList<>();
         if (StrUtil.isNotEmpty(menuCommandNode.getName())) {
             try {
-                String[] menuArray = MQLUtil.execute(project, "print menu '{}' select menu dump", menuCommandNode.getName()).split(StrPool.COMMA);
+                String[] menuArray = MQLUtil.execute(project,
+                        "print menu '{}' select menu dump", menuCommandNode.getName()).split(StrPool.COMMA);
                 for (String menuName : menuArray) {
                     if (StrUtil.isNotEmpty(menuName)) {
                         rootChildren.add(new MenuCommandNode(menuName.trim(), "Menu"));
                     }
                 }
-                String[] commandArray = MQLUtil.execute(project, "print menu '{}' select command dump", menuCommandNode.getName()).split(StrPool.COMMA);
+                String[] commandArray = MQLUtil.execute(project,
+                        "print menu '{}' select command dump", menuCommandNode.getName()).split(StrPool.COMMA);
                 for (String commandName : commandArray) {
                     if (StrUtil.isNotEmpty(commandName)) {
                         rootChildren.add(new MenuCommandNode(commandName.trim(), "Command"));

@@ -474,6 +474,12 @@ public class MatrixDriversDialog extends DialogWrapper {
         String driverClass = driverClassComboBox.getItem().trim();
         driverClass = SpinnerBundle.message("message.driver.not.specified").equals(driverClass) ? "" : driverClass;
         driverInfo.setDriverClass(driverClass);
+        try {
+            keepAliveSpinner.commitEdit();
+        } catch (java.text.ParseException e) {
+            setErrorText(SpinnerBundle.message("message.keep.alive.invalid"), keepAliveSpinner);
+            return;
+        }
         Object keepAliveValue = keepAliveSpinner.getValue();
         driverInfo.setKeepAliveMinutes(keepAliveValue instanceof Number number
                 ? number.intValue()

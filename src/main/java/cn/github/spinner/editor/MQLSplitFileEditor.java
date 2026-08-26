@@ -162,7 +162,6 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
 
         DefaultActionGroup leftActionGroup = new DefaultActionGroup();
         addActionIfPresent(leftActionGroup, actionManager.getAction("MQL Editor.Run"));
-        addActionIfPresent(leftActionGroup, actionManager.getAction("MQL Editor.LoadDefinition"));
         addActionIfPresent(leftActionGroup, actionManager.getAction("MQL Editor.SaveAs"));
 
         ActionToolbar leftToolbar = actionManager.createActionToolbar("MQLEditorToolbar", leftActionGroup, true);

@@ -7,6 +7,8 @@ import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.service.DriverKeepAliveService;
+import cn.github.spinner.service.MatrixTaskExecutor;
+import cn.github.spinner.util.MatrixConnectionUtil;
 import cn.github.spinner.util.MatrixJarLoadManager;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -17,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -35,9 +38,20 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
     @Override
     protected void runTracked(@NotNull ProgressIndicator indicator) {
         indicator.setIndeterminate(true);
+        if (environment == null || myProject == null || myProject.isDisposed()) {
+            return;
+        }
         MatrixConnection connection = UserInput.getInstance().connection.get(myProject);
         if (connection != null) {
             UIUtil.showWarningNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.server.connected"));
+            return;
+        }
+        try {
+            MatrixConnectionUtil.assertServerReachable(environment);
+        } catch (Exception e) {
+            UIUtil.showErrorNotification(myProject,
+                    UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER,
+                    SpinnerBundle.message("message.connect.failed", e.getMessage()));
             return;
         }
         MatrixDriversConfig.DriverInfo driverInfo = MatrixDriversConfig.getInstance().putDriver(environment.getDriver());
@@ -46,28 +60,44 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
             return;
         }
         List<File> driverFiles = MatrixDriversConfig.getInstance().getDriverFiles(environment.getDriver());
-        ClassLoader classLoader = MatrixJarLoadManager.loadMatrixJars(environment.getName(), driverFiles, getClass().getClassLoader());
+        ClassLoader classLoader = MatrixJarLoadManager.loadMatrixJars(myProject, environment.getName(),
+                driverFiles, getClass().getClassLoader());
         try {
             Class.forName(driverInfo.getDriverClass(), true, classLoader);
         } catch (ClassNotFoundException e) {
             UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.load.driver.class.not.found", environment.getDriver()));
             return;
         }
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<MatrixConnection> future = executor.submit(() ->
-                MatrixDriverManager.getConnection(
-                        environment.getHostUrl(),
-                        environment.getUser(),
-                        environment.getPassword(),
-                        environment.getVault(),
-                        environment.getRole(),
-                        environment.isCas(),
-                        classLoader
-                )
-        );
+        Future<MatrixConnection> future;
+        try {
+            future = MatrixTaskExecutor.getInstance().submit(() ->
+                    MatrixDriverManager.getConnection(
+                            environment.getHostUrl(),
+                            environment.getUser(),
+                            environment.getPassword(),
+                            environment.getVault(),
+                            environment.getRole(),
+                            environment.isCas(),
+                            classLoader
+                    )
+            );
+        } catch (RejectedExecutionException e) {
+            UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER,
+                    SpinnerBundle.message("message.matrix.operation.busy"));
+            return;
+        }
         try {
             // 用 IDEA 提供的工具方法等待，不阻塞进度条
             MatrixConnection newConnection = future.get(20, TimeUnit.SECONDS);
+            if (myProject.isDisposed()) {
+                try {
+                    newConnection.close();
+                } catch (IOException e) {
+                    log.warn("Close Matrix connection after project disposal failed.", e);
+                }
+                MatrixJarLoadManager.closeProject(myProject);
+                return;
+            }
             UserInput.getInstance().connection.put(myProject, newConnection);
             UserInput.getInstance().connectEnvironment.put(myProject, environment);
             DriverKeepAliveService.getInstance(myProject).schedule(environment);
@@ -84,8 +114,6 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
             UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.connect.failed", e.getCause().getMessage()));
-        } finally {
-            executor.shutdownNow();
         }
     }
 

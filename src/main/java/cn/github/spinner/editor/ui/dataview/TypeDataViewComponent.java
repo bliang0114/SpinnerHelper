@@ -7,12 +7,14 @@ import cn.github.driver.connection.MatrixStatement;
 import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
+import cn.github.spinner.util.MatrixAdminDefinitionCache;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
@@ -32,12 +34,9 @@ import javax.swing.event.ListSelectionEvent;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implements Disposable {
+public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> {
     private final Project project;
     private final VirtualFile virtualFile;
     private SearchTextField searchTextField;
@@ -46,12 +45,11 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     private DefaultActionGroup uiListToolbarGroup;
     private JBTabbedPane tabbedPane;
     private final List<String> rowList = new ArrayList<>();
-    private final ScheduledExecutorService executor;
+    private boolean loadingDefinitions;
 
     public TypeDataViewComponent(@NotNull Project project, VirtualFile virtualFile) {
         this.project = project;
         this.virtualFile = virtualFile;
-        executor = Executors.newSingleThreadScheduledExecutor();
         initComponents();
         setupListener();
         setupLayout();
@@ -116,35 +114,41 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
     }
 
     private void loadType() {
+        if (loadingDefinitions) {
+            return;
+        }
         rowList.clear();
         listModel.clear();
-        MatrixConnection connection = UserInput.getInstance().connection.get(project);
-        if (connection == null) {
+        if (UserInput.getInstance().connection.get(project) == null) {
             uiList.setEmptyText(SpinnerBundle.message("message.connection.closed"));
             return;
         }
         uiList.setEmptyText(SpinnerBundle.message("message.loading.matrix.type"));
-        executor.schedule(() -> {
-            try {
-                MatrixStatement statement = connection.executeStatement("list type");
-                MatrixResultSet resultSet = statement.executeQuery();
-                if (!resultSet.isSuccess()) {
-                    throw new MQLException(resultSet.getMessage());
-                }
-                List<String> allTypes = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                List<String> loadedTypes = allTypes.stream()
-                        .filter(CharSequenceUtil::isNotBlank)
-                        .sorted(String.CASE_INSENSITIVE_ORDER)
-                        .toList();
-                SwingUtilities.invokeLater(() -> {
-                    rowList.addAll(loadedTypes);
-                    listModel.addAll(rowList);
-                    uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
-                });
-            } catch (MQLException e) {
-                SwingUtilities.invokeLater(() -> uiList.setEmptyText(e.getLocalizedMessage()));
+        loadingDefinitions = true;
+        new TrackedBackgroundTask(project, SpinnerBundle.message("message.loading.matrix.type"), true) {
+            private List<String> definitions = List.of();
+
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                definitions = MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.TYPE);
             }
-        }, 100, TimeUnit.MILLISECONDS);
+
+            @Override
+            public void onSuccess() {
+                loadingDefinitions = false;
+                rowList.clear();
+                rowList.addAll(definitions);
+                listModel.clear();
+                listModel.addAll(rowList);
+                uiList.setEmptyText(SpinnerBundle.message("message.nothing.to.show"));
+            }
+
+            @Override
+            public void onCancel() {
+                loadingDefinitions = false;
+            }
+        }.queue();
     }
 
     private void filterType() {
@@ -190,11 +194,6 @@ public class TypeDataViewComponent extends JBPanel<TypeDataViewComponent> implem
             tableComponent.setName(type);
             tableComponent.reloadData();
         }
-    }
-
-    @Override
-    public void dispose() {
-        executor.shutdownNow();
     }
 
     public class RefreshAction extends AnAction {

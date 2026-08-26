@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "3.0.3"
+version = "3.0.6"
 
 repositories {
 //    mavenCentral()
@@ -27,6 +27,7 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("org.slf4j:slf4j-simple:2.0.17")
     implementation("cn.hutool:hutool-json:5.8.40")
+    implementation("org.xerial:sqlite-jdbc:3.45.3.0")
 
     implementation("com.fifesoft:rsyntaxtextarea:3.6.0")
     implementation("net.sourceforge.plantuml:plantuml:1.2023.10")
@@ -46,6 +47,27 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
+            <h2>3.0.6</h2>
+            <ul>
+            <li>修复 Program 视图无法打开对应源文件的问题：双击 JPO 行时优先从服务端拉取源码，找不到再回退到工程内索引的 class / 编译产物导航，不再写入临时文件</li>
+            <li>修复 MQL 语法中 <code>* [ ] - ; . ,</code> 等符号显示错误红线的问题：词法器显式登记多字符与单字符运算符，统一为 OPERATOR 高亮</li>
+            </ul>
+            <h2>3.0.5</h2>
+            <ul>
+            <li>MQL 编辑器中 <code>where</code> 关键字后的双引号内自动补全所有 Type/Relationship/Policy/Attribute/Interface 定义，<code>attribute[</code> 方括号内仅提示 Attribute 定义并自动补闭括号和引号</li>
+            <li>Matrix Object Browser 的 Where 表达式输入框升级为 MQL 语法编辑器，支持完整的语法高亮与自动补全，并允许仅填写 Where 条件直接查询</li>
+            <li>SpinnerConfig 视图下的 Console 子节点支持右键删除，删除前弹出确认对话框，自动关闭编辑器并清理磁盘文件</li>
+            <li>MQL 编辑器设置中新增 SQLite 缓存目录配置，允许用户自定义 <code>admin-definitions.sqlite</code> 的存储位置，通过目录选择器浏览</li>
+            <li>Console 结果输出支持可配置的最大大小（MB），超出时自动裁剪历史行并保持高亮样式与执行条目偏移同步</li>
+            <li>修复 ConsolePrinter 编译错误、ActionBundles 中文乱码等回归问题</li>
+            </ul>
+            <h2>3.0.4</h2>
+            <ul>
+            <li>新增按环境名称隔离的 SQLite 定义与 Trigger 查询缓存，支持手动更新并优先读取缓存，普通 MQL 执行结果保持实时查询</li>
+            <li>完善 type、relationship、policy、attribute 和 interface 的 MQL 自动补全及定义数据复用</li>
+            <li>优化 Trigger Query 性能、Event/Event Type 展示和源码定位，增加分阶段耗时日志并修复 EDT 源码导航慢操作，Trigger Query、URL Parser 与 Object Browser 重复打开时复用已有窗口</li>
+            <li>增强 Matrix 连接与 MQL 执行的超时、服务可达性检测和后台线程处理，修复 keep-alive 未按设置间隔重连的问题</li>
+            </ul>
             <h2>3.0.3</h2>
             <ul>
             <li>新增 Trigger Query，支持类型过滤、彩色自动完成、type 关联 policy trigger 查询、本地/远程/class 源码定位</li>
@@ -77,7 +99,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.3"
+        version = "3.0.6"
     }
 }
 
@@ -121,6 +143,6 @@ tasks {
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.3"
+        version = "3.0.6"
     }
 }

@@ -3,6 +3,7 @@ package cn.github.spinner.editor.ui.dataview.details;
 import cn.github.driver.MQLException;
 import cn.github.spinner.customize.CellCopyTransferHandler;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.text.CharSequenceUtil;
@@ -12,6 +13,7 @@ import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.FilterComponent;
 import com.intellij.ui.JBColor;
@@ -29,6 +31,8 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ObjectPathsComponent extends JPanel {
     private static final String[] BUS_HEADERS = {"Direction", "Path Type", "Path ID", "Type", "Name", "Revision", "Object ID", "Object PhysicalID", "Description", "Originated", "Modified", "Owner", "Policy", "State", "Vault"};
@@ -47,6 +51,7 @@ public class ObjectPathsComponent extends JPanel {
     private FilterComponent filterComponent;
     @Setter
     private boolean loaded = false;
+    private boolean loading;
 
     public ObjectPathsComponent(Project project, String id) {
         this.project = project;
@@ -194,48 +199,84 @@ public class ObjectPathsComponent extends JPanel {
     }
 
     public void reload() {
-        if (loaded) return;
+        if (loaded || loading) return;
 
+        loading = true;
         loadData();
-        loaded = true;
     }
 
     private void loadData() {
         busTableModel.setRowCount(0);
         connectionTableModel.setRowCount(0);
+        new TrackedBackgroundTask(project, SpinnerBundle.message("message.loading.data"), true) {
+            private final List<String[]> busRows = new ArrayList<>();
+            private final List<String[]> connectionRows = new ArrayList<>();
+            private MQLException error;
 
-        try {
-            var result = MQLUtil.execute(project, "print bus {} select paths[].path.type paths[].path.id dump |", id);
-            if (CharSequenceUtil.isNotBlank(result)) {
-                var array = result.split("\\|");
-                var groupCount = array.length / 2;
-                for (var i = 0; i < groupCount; i++) {
-                    result = MQLUtil.execute(project, "print path {} select element[] dump |", array[i + groupCount]);
-                    var arrayElement = result.split("\\|");
-                    for (var element : arrayElement) {
-                        var elements = element.split(",");
-                        if ("connection".equals(elements[0])) {
-                            result = MQLUtil.execute(project, "print connection {} select type id physicalid originated modified dump \001", elements[2]);
-                            if (result.isEmpty()) continue;
-
-                            var connectionInfos = result.split("\001");
-                            String[] data = {"To", array[i], array[i + groupCount], connectionInfos[0], connectionInfos[1], connectionInfos[2], connectionInfos[3], connectionInfos[4]};
-                            connectionTableModel.addRow(data);
-                        } else {
-                            result = MQLUtil.execute(project, "print bus {} select type name revision id physicalid description originated modified owner policy current lattice dump \001", elements[2]);
-                            if (result.isEmpty()) continue;
-
-                            var busInfos = result.split("\001");
-                            String[] data = {"To", array[i], array[i + groupCount], busInfos[0], busInfos[1], busInfos[2], busInfos[3], busInfos[4], busInfos[5], busInfos[6], busInfos[7], busInfos[8], busInfos[9], busInfos[10], busInfos[11]};
-                            busTableModel.addRow(data);
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                try {
+                    var result = MQLUtil.execute(project, "print bus {} select paths[].path.type paths[].path.id dump |", id);
+                    if (CharSequenceUtil.isBlank(result)) {
+                        return;
+                    }
+                    var array = result.split("\\|");
+                    var groupCount = array.length / 2;
+                    for (var i = 0; i < groupCount && !indicator.isCanceled(); i++) {
+                        result = MQLUtil.execute(project, "print path {} select element[] dump |", array[i + groupCount]);
+                        for (var element : result.split("\\|")) {
+                            var elements = element.split(",");
+                            if (elements.length < 3) {
+                                continue;
+                            }
+                            if ("connection".equals(elements[0])) {
+                                result = MQLUtil.execute(project, "print connection {} select type id physicalid originated modified dump \001", elements[2]);
+                                if (result.isEmpty()) continue;
+                                var connectionInfos = result.split("\001");
+                                if (connectionInfos.length >= 5) {
+                                    connectionRows.add(new String[]{"To", array[i], array[i + groupCount],
+                                            connectionInfos[0], connectionInfos[1], connectionInfos[2],
+                                            connectionInfos[3], connectionInfos[4]});
+                                }
+                            } else {
+                                result = MQLUtil.execute(project, "print bus {} select type name revision id physicalid description originated modified owner policy current lattice dump \001", elements[2]);
+                                if (result.isEmpty()) continue;
+                                var busInfos = result.split("\001");
+                                if (busInfos.length >= 12) {
+                                    busRows.add(new String[]{"To", array[i], array[i + groupCount], busInfos[0],
+                                            busInfos[1], busInfos[2], busInfos[3], busInfos[4], busInfos[5],
+                                            busInfos[6], busInfos[7], busInfos[8], busInfos[9], busInfos[10], busInfos[11]});
+                                }
+                            }
                         }
                     }
+                } catch (MQLException e) {
+                    error = e;
                 }
             }
-        } catch (MQLException e) {
-            busTable.getEmptyText().setText(SpinnerBundle.message("message.error.print", id, e.getMessage()));
-            connectionTable.getEmptyText().setText(SpinnerBundle.message("message.error.print", id, e.getMessage()));
-        }
+
+            @Override
+            public void onSuccess() {
+                loading = false;
+                loaded = error == null;
+                busTableModel.setRowCount(0);
+                connectionTableModel.setRowCount(0);
+                if (error != null) {
+                    String message = SpinnerBundle.message("message.error.print", id, error.getMessage());
+                    busTable.getEmptyText().setText(message);
+                    connectionTable.getEmptyText().setText(message);
+                    return;
+                }
+                busRows.forEach(busTableModel::addRow);
+                connectionRows.forEach(connectionTableModel::addRow);
+            }
+
+            @Override
+            public void onCancel() {
+                loading = false;
+            }
+        }.queue();
     }
 
     public class RefreshAction extends AnAction {

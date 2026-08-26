@@ -122,9 +122,7 @@ public class SpinnerTextFieldComponent extends JPanel {
             String text = textField.getText().trim();
             if (text.isEmpty()) return;
 
-            URLFormatterDialog urlFormatterDialog = new URLFormatterDialog();
-            urlFormatterDialog.getTextField().setText(text);
-            urlFormatterDialog.show();
+            URLFormatterDialog.showWindow(text);
         }
 
         @Override

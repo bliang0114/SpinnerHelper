@@ -25,8 +25,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 @Slf4j
 public abstract class AbstractDataViewTableComponent<T extends TableRowBean> extends PaginatedFilterTableComponent<T> {
@@ -37,13 +35,11 @@ public abstract class AbstractDataViewTableComponent<T extends TableRowBean> ext
     protected String name;
     @Setter
     protected boolean loaded = false;
-    protected final ScheduledExecutorService executor;
 
     public AbstractDataViewTableComponent(@NotNull Project project, @NotNull VirtualFile virtualFile, @NotNull T entity, String componentId) {
         super(entity, componentId);
         this.project = project;
         this.virtualFile = virtualFile;
-        this.executor = Executors.newScheduledThreadPool(1);
     }
 
     @Override

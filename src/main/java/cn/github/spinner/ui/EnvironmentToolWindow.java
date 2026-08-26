@@ -172,6 +172,9 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel {
         JMenuItem renameItem = new JMenuItem(SpinnerBundle.message("action.rename.console.text"));
         renameItem.addActionListener(event -> startConsoleRename(path));
         popupMenu.add(renameItem);
+        JMenuItem deleteItem = new JMenuItem(SpinnerBundle.message("action.delete.console.text"));
+        deleteItem.addActionListener(event -> deleteConsoleNode(path));
+        popupMenu.add(deleteItem);
         popupMenu.show(environmentTree, e.getX(), e.getY());
     }
 
@@ -203,6 +206,32 @@ public class EnvironmentToolWindow extends SimpleToolWindowPanel {
                     SpinnerBundle.message("notification.title.mql.console"),
                     SpinnerBundle.message("message.console.rename.failed", e.getMessage()));
         }
+    }
+
+    private void deleteConsoleNode(TreePath path) {
+        if (!isConsolePath(path)) {
+            return;
+        }
+        ConsoleTreeNode consoleNode = (ConsoleTreeNode) path.getLastPathComponent();
+        String consoleName = consoleNode.getConsoleManager().getConsoleName();
+        int result = javax.swing.JOptionPane.showConfirmDialog(
+                this,
+                SpinnerBundle.message("message.console.delete.confirm", consoleName),
+                SpinnerBundle.message("notification.title.mql.console"),
+                javax.swing.JOptionPane.YES_NO_OPTION,
+                javax.swing.JOptionPane.WARNING_MESSAGE);
+        if (result != javax.swing.JOptionPane.YES_OPTION) {
+            return;
+        }
+        try {
+            ConsoleFileManager.deleteConsole(project, consoleNode.getConsoleManager());
+        } catch (Exception e) {
+            UIUtil.showErrorNotification(project,
+                    SpinnerBundle.message("notification.title.mql.console"),
+                    SpinnerBundle.message("message.console.delete.failed", e.getMessage()));
+            return;
+        }
+        refreshTree();
     }
 
     public void refreshTree() {

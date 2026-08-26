@@ -32,7 +32,8 @@ public class PolicyTriggersTableComponent extends AbstractDataViewTableComponent
 
             var states = CharSequenceUtil.split(stateResult, ",");
             for (var state : states) {
-                var result = MQLUtil.execute(project, "print policy '{}' select state[{}].trigger dump", policy, state);
+                var result = MQLUtil.execute(project,
+                        "print policy '{}' select state[{}].trigger dump", policy, state);
                 if (CharSequenceUtil.isNotBlank(result)) {
                     var triggers = CharSequenceUtil.split(result, ",");
                     triggers = triggers.stream().sorted(String.CASE_INSENSITIVE_ORDER).toList();

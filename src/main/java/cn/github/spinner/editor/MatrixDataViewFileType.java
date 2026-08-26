@@ -13,6 +13,9 @@ import javax.swing.*;
 public class MatrixDataViewFileType implements FileType {
     public static final MatrixDataViewFileType TYPE = new MatrixDataViewFileType(ViewType.TYPE);
     public static final MatrixDataViewFileType RELATIONSHIP = new MatrixDataViewFileType(ViewType.RELATIONSHIP);
+    public static final MatrixDataViewFileType POLICY = new MatrixDataViewFileType(ViewType.POLICY);
+    public static final MatrixDataViewFileType ATTRIBUTE = new MatrixDataViewFileType(ViewType.ATTRIBUTE);
+    public static final MatrixDataViewFileType INTERFACE = new MatrixDataViewFileType(ViewType.INTERFACE);
     public static final MatrixDataViewFileType PROGRAM = new MatrixDataViewFileType(ViewType.PROGRAM);
     public static final MatrixDataViewFileType FORM_TABLE = new MatrixDataViewFileType(ViewType.FORM_TABLE);
     public static final MatrixDataViewFileType MENU_COMMAND = new MatrixDataViewFileType(ViewType.MENU_COMMAND);
@@ -51,6 +54,6 @@ public class MatrixDataViewFileType implements FileType {
     }
 
     public enum ViewType {
-        TYPE, RELATIONSHIP, PROGRAM,FORM_TABLE,MENU_COMMAND, OBJECT_BROWSER
+        TYPE, RELATIONSHIP, POLICY, ATTRIBUTE, INTERFACE, PROGRAM, FORM_TABLE, MENU_COMMAND, OBJECT_BROWSER
     }
 }

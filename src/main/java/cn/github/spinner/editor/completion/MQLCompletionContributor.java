@@ -3,6 +3,7 @@ package cn.github.spinner.editor.completion;
 import cn.github.spinner.editor.MQLKeywords;
 import cn.github.spinner.editor.MQLLanguage;
 import cn.github.spinner.editor.icons.MQLIcons;
+import cn.github.spinner.util.MatrixAdminDefinitionCache;
 import com.intellij.codeInsight.completion.CompletionContributor;
 import com.intellij.codeInsight.completion.CompletionParameters;
 import com.intellij.codeInsight.completion.CompletionProvider;
@@ -12,11 +13,15 @@ import com.intellij.codeInsight.completion.InsertHandler;
 import com.intellij.codeInsight.completion.InsertionContext;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.util.ProcessingContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
+import java.util.Locale;
 
 public class MQLCompletionContributor extends CompletionContributor {
     private enum CompletionContext {
@@ -25,9 +30,17 @@ public class MQLCompletionContributor extends CompletionContributor {
         TYPE_INSTANCE_IN_QUOTES,
         RELATIONSHIP_INSTANCE,
         RELATIONSHIP_INSTANCE_IN_QUOTES,
+        POLICY_INSTANCE,
+        POLICY_INSTANCE_IN_QUOTES,
+        ATTRIBUTE_INSTANCE,
+        ATTRIBUTE_INSTANCE_IN_QUOTES,
+        INTERFACE_INSTANCE,
+        INTERFACE_INSTANCE_IN_QUOTES,
         QUERY_BUS_TYPE,
         QUERY_BUS_TYPE_IN_QUOTES,
-        QUERY_CONNECTION_REL_TARGET
+        QUERY_CONNECTION_REL_TARGET,
+        WHERE_EXPRESSION,
+        WHERE_ATTRIBUTE_SELECTOR
     }
 
     public MQLCompletionContributor() {
@@ -39,37 +52,89 @@ public class MQLCompletionContributor extends CompletionContributor {
                                                   @NotNull CompletionResultSet result) {
                         CompletionResultSet caseInsensitiveResult = result.caseInsensitive();
                         CompletionContext completionContext = resolveCompletionContext(parameters);
+                        Project project = parameters.getOriginalFile().getProject();
                         switch (completionContext) {
                             case TYPE_INSTANCE -> {
-                                addTypeInstances(caseInsensitiveResult, true, false);
+                                addTypeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, true, false);
                                 return;
                             }
                             case TYPE_INSTANCE_IN_QUOTES -> {
-                                addTypeInstances(caseInsensitiveResult, false, true);
+                                addTypeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, true);
                                 return;
                             }
                             case RELATIONSHIP_INSTANCE -> {
-                                addRelationshipInstances(caseInsensitiveResult, true, false);
+                                addRelationshipInstances(cached(project, MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, true, false);
                                 return;
                             }
                             case RELATIONSHIP_INSTANCE_IN_QUOTES -> {
-                                addRelationshipInstances(caseInsensitiveResult, false, true);
+                                addRelationshipInstances(cached(project, MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, true);
+                                return;
+                            }
+                            case POLICY_INSTANCE -> {
+                                addPolicyInstances(cached(project, MatrixAdminDefinitionCache.AdminType.POLICY), caseInsensitiveResult, true, false);
+                                return;
+                            }
+                            case POLICY_INSTANCE_IN_QUOTES -> {
+                                addPolicyInstances(cached(project, MatrixAdminDefinitionCache.AdminType.POLICY), caseInsensitiveResult, false, true);
+                                return;
+                            }
+                            case ATTRIBUTE_INSTANCE -> {
+                                addAttributeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.ATTRIBUTE), caseInsensitiveResult, true, false);
+                                return;
+                            }
+                            case ATTRIBUTE_INSTANCE_IN_QUOTES -> {
+                                addAttributeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.ATTRIBUTE), caseInsensitiveResult, false, true);
+                                return;
+                            }
+                            case INTERFACE_INSTANCE -> {
+                                addInterfaceInstances(cached(project, MatrixAdminDefinitionCache.AdminType.INTERFACE), caseInsensitiveResult, true, false);
+                                return;
+                            }
+                            case INTERFACE_INSTANCE_IN_QUOTES -> {
+                                addInterfaceInstances(cached(project, MatrixAdminDefinitionCache.AdminType.INTERFACE), caseInsensitiveResult, false, true);
                                 return;
                             }
                             case QUERY_BUS_TYPE -> {
                                 caseInsensitiveResult.addElement(LookupElementBuilder.create("*")
                                         .withTypeText("Wildcard")
                                         .withBoldness(true));
-                                addQueryBusTypeInstances(caseInsensitiveResult, false);
+                                addQueryBusTypeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false);
                                 return;
                             }
                             case QUERY_BUS_TYPE_IN_QUOTES -> {
-                                addQueryBusTypeInstances(caseInsensitiveResult, true);
+                                addQueryBusTypeInstances(cached(project, MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, true);
                                 return;
                             }
                             case QUERY_CONNECTION_REL_TARGET -> {
-                                addTypeInstances(caseInsensitiveResult, false, true);
-                                addRelationshipInstances(caseInsensitiveResult, false, true);
+                                MatrixAdminDefinitionCache.MatrixAdminDefinitions definitions =
+                                        MatrixAdminDefinitionCache.getCached(project);
+                                addTypeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, true);
+                                addRelationshipInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, true);
+                                return;
+                            }
+                            case WHERE_EXPRESSION -> {
+                                MatrixAdminDefinitionCache.MatrixAdminDefinitions definitions =
+                                        MatrixAdminDefinitionCache.getCached(project);
+                                addTypeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, true);
+                                addRelationshipInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, true);
+                                addPolicyInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.POLICY), caseInsensitiveResult, false, true);
+                                addAttributeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.ATTRIBUTE), caseInsensitiveResult, false, true);
+                                addInterfaceInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.INTERFACE), caseInsensitiveResult, false, true);
+                                return;
+                            }
+                            case WHERE_ATTRIBUTE_SELECTOR -> {
+                                // The PSI prefix inside a quoted string includes everything
+                                // from the opening quote (e.g. "attribute[Partial).  Use only
+                                // the bracket content as the prefix so items actually match.
+                                Document completionDocument = parameters.getEditor().getDocument();
+                                String beforeCaretForPrefix = completionDocument.getText(new TextRange(0, parameters.getOffset()));
+                                String stmtPrefixForBracket = getCurrentStatementPrefix(beforeCaretForPrefix);
+                                int bracketIdx = stmtPrefixForBracket.lastIndexOf('[');
+                                String insideBracket = bracketIdx >= 0 ? stmtPrefixForBracket.substring(bracketIdx + 1) : "";
+                                CompletionResultSet unfiltered = caseInsensitiveResult.withPrefixMatcher(insideBracket);
+                                for (String instance : cached(project, MatrixAdminDefinitionCache.AdminType.ATTRIBUTE)) {
+                                    unfiltered.addElement(buildAttributeSelectorElement(instance));
+                                }
                                 return;
                             }
                             case DEFAULT -> {
@@ -86,8 +151,13 @@ public class MQLCompletionContributor extends CompletionContributor {
                                     .withIcon(MQLIcons.TYPE));
                         }
 
-                        addTypeInstances(caseInsensitiveResult, false, false);
-                        addRelationshipInstances(caseInsensitiveResult, false, false);
+                        MatrixAdminDefinitionCache.MatrixAdminDefinitions definitions =
+                                MatrixAdminDefinitionCache.getCached(project);
+                        addTypeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.TYPE), caseInsensitiveResult, false, false);
+                        addRelationshipInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.RELATIONSHIP), caseInsensitiveResult, false, false);
+                        addPolicyInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.POLICY), caseInsensitiveResult, false, false);
+                        addAttributeInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.ATTRIBUTE), caseInsensitiveResult, false, false);
+                        addInterfaceInstances(definitions.get(MatrixAdminDefinitionCache.AdminType.INTERFACE), caseInsensitiveResult, false, false);
                     }
                 });
     }
@@ -99,28 +169,62 @@ public class MQLCompletionContributor extends CompletionContributor {
                 .withInsertHandler(new KeywordInsertHandler(keyword));
     }
 
-    private void addTypeInstances(@NotNull CompletionResultSet result,
+    private @NotNull List<String> cached(@NotNull Project project,
+                                         @NotNull MatrixAdminDefinitionCache.AdminType type) {
+        return MatrixAdminDefinitionCache.getCached(project, type);
+    }
+
+    private void addTypeInstances(@NotNull List<String> instances,
+                                  @NotNull CompletionResultSet result,
                                   boolean quoteIfNeeded,
                                   boolean insideQuotedList) {
-        for (String instance : MQLKeywords.TYPE_INSTANCES) {
+        for (String instance : instances) {
             result.addElement(buildTypeInstanceElement(instance, quoteIfNeeded, insideQuotedList));
         }
     }
 
-    private void addRelationshipInstances(@NotNull CompletionResultSet result,
+    private void addRelationshipInstances(@NotNull List<String> instances,
+                                          @NotNull CompletionResultSet result,
                                           boolean quoteIfNeeded,
                                           boolean insideQuotedList) {
-        for (String instance : MQLKeywords.RELATIONSHIP_INSTANCES) {
+        for (String instance : instances) {
             result.addElement(buildRelationshipInstanceElement(instance, quoteIfNeeded, insideQuotedList));
         }
     }
 
-    private void addQueryBusTypeInstances(@NotNull CompletionResultSet result, boolean insideQuotedList) {
-        for (String instance : MQLKeywords.TYPE_INSTANCES) {
-            result.addElement(buildQueryBusTypeElement(instance, insideQuotedList));
+    private void addPolicyInstances(@NotNull List<String> instances,
+                                    @NotNull CompletionResultSet result,
+                                    boolean quoteIfNeeded,
+                                    boolean insideQuotedList) {
+        for (String instance : instances) {
+            result.addElement(buildAdminInstanceElement(instance, "Policy Definition", quoteIfNeeded, insideQuotedList, "policy"));
         }
     }
 
+    private void addAttributeInstances(@NotNull List<String> instances,
+                                       @NotNull CompletionResultSet result,
+                                       boolean quoteIfNeeded,
+                                       boolean insideQuotedList) {
+        for (String instance : instances) {
+            result.addElement(buildAdminInstanceElement(instance, "Attribute Definition",
+                    quoteIfNeeded, insideQuotedList, "attribute", "attr"));
+        }
+    }
+
+    private void addInterfaceInstances(@NotNull List<String> instances,
+                                       @NotNull CompletionResultSet result,
+                                       boolean quoteIfNeeded,
+                                       boolean insideQuotedList) {
+        for (String instance : instances) {
+            result.addElement(buildAdminInstanceElement(instance, "Interface Definition", quoteIfNeeded, insideQuotedList, "interface"));
+        }
+    }
+
+    private void addQueryBusTypeInstances(@NotNull List<String> instances, @NotNull CompletionResultSet result, boolean insideQuotedList) {
+        for (String instance : instances) {
+            result.addElement(buildQueryBusTypeElement(instance, insideQuotedList));
+        }
+    }
     private @NotNull LookupElementBuilder buildNamedInstanceElement(@NotNull String instance,
                                                                     @NotNull String typeText,
                                                                     boolean quoteIfNeeded) {
@@ -182,11 +286,49 @@ public class MQLCompletionContributor extends CompletionContributor {
         return builder;
     }
 
+    private @NotNull LookupElementBuilder buildAttributeSelectorElement(@NotNull String instance) {
+        return LookupElementBuilder.create(instance)
+                .withPresentableText(instance)
+                .withLookupString(instance)
+                .withTypeText("Attribute Definition")
+                .withIcon(MQLIcons.TYPE)
+                .withInsertHandler(new AttributeSelectorInsertHandler(instance));
+    }
+
+    private @NotNull LookupElementBuilder buildAdminInstanceElement(@NotNull String instance,
+                                                                    @NotNull String typeText,
+                                                                    boolean quoteIfNeeded,
+                                                                    boolean insideQuotedList,
+                                                                    @NotNull String... keywords) {
+        String quotedValue = quoteIfNeeded(instance, quoteIfNeeded);
+        LookupElementBuilder builder = LookupElementBuilder.create(instance)
+                .withPresentableText(instance)
+                .withLookupString(instance)
+                .withTypeText(typeText)
+                .withIcon(MQLIcons.TYPE)
+                .withInsertHandler(new AdminInsertHandler(instance, quoteIfNeeded, insideQuotedList, keywords));
+        if (!quotedValue.equals(instance)) {
+            builder = builder.withLookupString(quotedValue);
+        }
+        return builder;
+    }
+
     private @NotNull CompletionContext resolveCompletionContext(@NotNull CompletionParameters parameters) {
         Document document = parameters.getEditor().getDocument();
         int offset = parameters.getOffset();
         String beforeCaret = document.getText(new TextRange(0, offset));
         String statementPrefix = getCurrentStatementPrefix(beforeCaret);
+
+        // Check for attribute[...] / attr[...] before WHERE, so both
+        // "where "attribute[" and "select attribute[" share the same path.
+        if (isOpenAttributeSelector(statementPrefix)) {
+            return CompletionContext.WHERE_ATTRIBUTE_SELECTOR;
+        }
+
+        CompletionContext whereExpressionContext = resolveWhereExpressionContext(statementPrefix);
+        if (whereExpressionContext != CompletionContext.DEFAULT) {
+            return whereExpressionContext;
+        }
         if (isTempQueryBusTypeInQuotesContext(statementPrefix)) {
             return CompletionContext.QUERY_BUS_TYPE_IN_QUOTES;
         }
@@ -208,6 +350,24 @@ public class MQLCompletionContributor extends CompletionContributor {
         if (isQuotedKeywordListContinuationContext(statementPrefix, "rel", "relationship")) {
             return CompletionContext.RELATIONSHIP_INSTANCE;
         }
+        if (isQuotedKeywordValueContext(statementPrefix, "policy")) {
+            return CompletionContext.POLICY_INSTANCE_IN_QUOTES;
+        }
+        if (isQuotedKeywordListContinuationContext(statementPrefix, "policy")) {
+            return CompletionContext.POLICY_INSTANCE;
+        }
+        if (isQuotedKeywordValueContext(statementPrefix, "attribute", "attr")) {
+            return CompletionContext.ATTRIBUTE_INSTANCE_IN_QUOTES;
+        }
+        if (isQuotedKeywordListContinuationContext(statementPrefix, "attribute", "attr")) {
+            return CompletionContext.ATTRIBUTE_INSTANCE;
+        }
+        if (isQuotedKeywordValueContext(statementPrefix, "interface")) {
+            return CompletionContext.INTERFACE_INSTANCE_IN_QUOTES;
+        }
+        if (isQuotedKeywordListContinuationContext(statementPrefix, "interface")) {
+            return CompletionContext.INTERFACE_INSTANCE;
+        }
         String previousWord = getPreviousWord(statementPrefix);
         if ("type".equalsIgnoreCase(previousWord)) {
             return CompletionContext.TYPE_INSTANCE;
@@ -215,7 +375,106 @@ public class MQLCompletionContributor extends CompletionContributor {
         if ("rel".equalsIgnoreCase(previousWord) || "relationship".equalsIgnoreCase(previousWord)) {
             return CompletionContext.RELATIONSHIP_INSTANCE;
         }
+        if ("policy".equalsIgnoreCase(previousWord)) {
+            return CompletionContext.POLICY_INSTANCE;
+        }
+        if ("attribute".equalsIgnoreCase(previousWord) || "attr".equalsIgnoreCase(previousWord)) {
+            return CompletionContext.ATTRIBUTE_INSTANCE;
+        }
+        if ("interface".equalsIgnoreCase(previousWord)) {
+            return CompletionContext.INTERFACE_INSTANCE;
+        }
         return CompletionContext.DEFAULT;
+    }
+
+    /**
+     * Detects {@code attribute[} or {@code attr[} with no closing {@code ]}
+     * anywhere in the statement prefix, including inside a WHERE quoted value.
+     */
+    private boolean isOpenAttributeSelector(@NotNull String statementPrefix) {
+        int bracketIndex = statementPrefix.lastIndexOf('[');
+        if (bracketIndex < 0 || statementPrefix.indexOf(']', bracketIndex) >= 0) {
+            return false;
+        }
+        String beforeBracket = statementPrefix.substring(0, bracketIndex).stripTrailing();
+        // Walk backwards past quoted content if present (e.g. where "attribute[)
+        int end = beforeBracket.length();
+        if (end > 0 && (beforeBracket.charAt(end - 1) == '"' || beforeBracket.charAt(end - 1) == '\'')) {
+            end--;
+        }
+        // Find the last keyword-like word before the bracket
+        int wordStart = end;
+        while (wordStart > 0 && isIdentifierPart(beforeBracket.charAt(wordStart - 1))) {
+            wordStart--;
+        }
+        String word = beforeBracket.substring(wordStart, end);
+        return "attribute".equalsIgnoreCase(word) || "attr".equalsIgnoreCase(word);
+    }
+
+    private @NotNull CompletionContext resolveWhereExpressionContext(@NotNull String statementPrefix) {
+        String whereExpressionText = getOpenWhereExpressionTail(statementPrefix);
+        if (whereExpressionText == null) {
+            return CompletionContext.DEFAULT;
+        }
+        return CompletionContext.WHERE_EXPRESSION;
+    }
+
+    /**
+     * Returns the content inside unclosed quotes after {@code where},
+     * or {@code null} if the cursor is not inside a WHERE quoted value.
+     */
+    private @Nullable String getOpenWhereExpressionTail(@NotNull String statementPrefix) {
+        String lower = statementPrefix.toLowerCase(Locale.ROOT);
+        int whereIndex = lastIndexOfKeyword(lower, "where");
+        if (whereIndex < 0) {
+            return null;
+        }
+
+        String afterWhere = statementPrefix.substring(whereIndex + "where".length()).stripLeading();
+        if (afterWhere.isEmpty()) {
+            return null;
+        }
+
+        char firstChar = afterWhere.charAt(0);
+        if (firstChar != '"' && firstChar != '\'') {
+            return null;
+        }
+
+        boolean escaped = false;
+        for (int i = 1; i < afterWhere.length(); i++) {
+            char ch = afterWhere.charAt(i);
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (ch == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (ch == firstChar) {
+                return null; // Quote is closed
+            }
+        }
+        return afterWhere.substring(1); // Unclosed quote — inside a WHERE value
+    }
+
+    private int lastIndexOfKeyword(@NotNull String lowerText, @NotNull String keyword) {
+        int fromIndex = lowerText.length();
+        while (fromIndex > 0) {
+            int keywordIndex = lowerText.lastIndexOf(keyword, fromIndex - 1);
+            if (keywordIndex < 0) {
+                return -1;
+            }
+            int beforeIndex = keywordIndex - 1;
+            int afterIndex = keywordIndex + keyword.length();
+            boolean beforeBoundary = beforeIndex < 0 || !isIdentifierPart(lowerText.charAt(beforeIndex));
+            boolean afterBoundary = afterIndex >= lowerText.length() || !isIdentifierPart(lowerText.charAt(afterIndex));
+            if (beforeBoundary && afterBoundary) {
+                return keywordIndex;
+            }
+            fromIndex = keywordIndex;
+        }
+        return -1;
     }
 
     private @NotNull String getCurrentStatementPrefix(@NotNull String beforeCaret) {
@@ -228,10 +487,17 @@ public class MQLCompletionContributor extends CompletionContributor {
     private @NotNull String getPreviousWord(@NotNull String beforeCaret) {
         int index = beforeCaret.length() - 1;
 
+        // Skip identifier-part chars under the cursor
         while (index >= 0 && isIdentifierPart(beforeCaret.charAt(index))) {
             index--;
         }
+        // Skip whitespace
         while (index >= 0 && Character.isWhitespace(beforeCaret.charAt(index))) {
+            index--;
+        }
+        // Skip non-identifier, non-whitespace chars such as [ ] " '
+        while (index >= 0 && !isIdentifierPart(beforeCaret.charAt(index))
+                && !Character.isWhitespace(beforeCaret.charAt(index))) {
             index--;
         }
         if (index < 0) {
@@ -421,7 +687,6 @@ public class MQLCompletionContributor extends CompletionContributor {
         }
         return "\"" + instance.replace("\"", "\\\"") + "\"";
     }
-
     private boolean isQueryBusTypeChar(char ch) {
         return Character.isLetterOrDigit(ch) || ch == '_' || ch == '-' || ch == '.' || ch == '*';
     }
@@ -487,6 +752,39 @@ public class MQLCompletionContributor extends CompletionContributor {
 
     private @NotNull String escapeForQuotedList(@NotNull String instance, char quoteChar) {
         return instance.replace(String.valueOf(quoteChar), "\\" + quoteChar);
+    }
+    private @Nullable Character findWhereOpenQuote(@NotNull Document document, int beforeOffset) {
+        String beforeCaret = document.getText(new TextRange(0, beforeOffset));
+        String statementPrefix = getCurrentStatementPrefix(beforeCaret);
+        String lower = statementPrefix.toLowerCase(Locale.ROOT);
+        int whereIndex = lastIndexOfKeyword(lower, "where");
+        if (whereIndex < 0) {
+            return null;
+        }
+        String afterWhere = statementPrefix.substring(whereIndex + "where".length()).stripLeading();
+        if (afterWhere.isEmpty()) {
+            return null;
+        }
+        if (afterWhere.charAt(0) == '"' || afterWhere.charAt(0) == '\'') {
+            char quoteChar = afterWhere.charAt(0);
+            boolean escaped = false;
+            for (int i = 1; i < afterWhere.length(); i++) {
+                char ch = afterWhere.charAt(i);
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+                if (ch == '\\') {
+                    escaped = true;
+                    continue;
+                }
+                if (ch == quoteChar) {
+                    return null;
+                }
+            }
+            return quoteChar;
+        }
+        return null;
     }
 
     private static final class KeywordInsertHandler implements InsertHandler<com.intellij.codeInsight.lookup.LookupElement> {
@@ -701,6 +999,57 @@ public class MQLCompletionContributor extends CompletionContributor {
         }
     }
 
+    private final class AdminInsertHandler implements InsertHandler<com.intellij.codeInsight.lookup.LookupElement> {
+        private final String instance;
+        private final boolean quoteIfNeeded;
+        private final boolean insideQuotedList;
+        private final String[] keywords;
+
+        private AdminInsertHandler(@NotNull String instance,
+                                   boolean quoteIfNeeded,
+                                   boolean insideQuotedList,
+                                   @NotNull String... keywords) {
+            this.instance = instance;
+            this.quoteIfNeeded = quoteIfNeeded;
+            this.insideQuotedList = insideQuotedList;
+            this.keywords = keywords;
+        }
+
+        @Override
+        public void handleInsert(@NotNull InsertionContext context,
+                                 @NotNull com.intellij.codeInsight.lookup.LookupElement item) {
+            Document document = context.getDocument();
+            int startOffset = context.getStartOffset();
+            int tailOffset = context.getTailOffset();
+            QuotedQueryBusContinuation continuation = insideQuotedList
+                    ? null
+                    : findQuotedKeywordContinuation(document, startOffset, keywords);
+
+            String insertText;
+            if (continuation != null) {
+                document.deleteString(continuation.closingQuoteOffset(), continuation.closingQuoteOffset() + 1);
+                startOffset--;
+                tailOffset--;
+                insertText = escapeForQuotedList(instance, continuation.quoteChar());
+            } else if (insideQuotedList) {
+                insertText = escapeForQuotedList(instance, '"');
+            } else {
+                insertText = quoteIfNeeded(instance, quoteIfNeeded);
+            }
+
+            document.replaceString(startOffset, tailOffset, insertText);
+            int newTailOffset = startOffset + insertText.length();
+
+            if (continuation != null && !hasCharAt(document, newTailOffset, continuation.quoteChar())) {
+                document.insertString(newTailOffset, String.valueOf(continuation.quoteChar()));
+                newTailOffset++;
+            }
+
+            context.setTailOffset(newTailOffset);
+            context.getEditor().getCaretModel().moveToOffset(newTailOffset);
+        }
+    }
+
     private final class TypeInsertHandler implements InsertHandler<com.intellij.codeInsight.lookup.LookupElement> {
         private final String instance;
         private final boolean quoteIfNeeded;
@@ -742,6 +1091,36 @@ public class MQLCompletionContributor extends CompletionContributor {
                 newTailOffset++;
             }
 
+            context.setTailOffset(newTailOffset);
+            context.getEditor().getCaretModel().moveToOffset(newTailOffset);
+        }
+    }
+
+    private final class AttributeSelectorInsertHandler implements InsertHandler<com.intellij.codeInsight.lookup.LookupElement> {
+        private final String instance;
+
+        private AttributeSelectorInsertHandler(@NotNull String instance) {
+            this.instance = instance;
+        }
+
+        @Override
+        public void handleInsert(@NotNull InsertionContext context,
+                                 @NotNull com.intellij.codeInsight.lookup.LookupElement item) {
+            Document document = context.getDocument();
+            int startOffset = context.getStartOffset();
+            int tailOffset = context.getTailOffset();
+            Character quoteChar = findWhereOpenQuote(document, startOffset);
+            String insertText = quoteChar != null ? escapeForQuotedList(instance, quoteChar) : instance;
+            document.replaceString(startOffset, tailOffset, insertText);
+            int newTailOffset = startOffset + insertText.length();
+            if (!hasCharAt(document, newTailOffset, ']')) {
+                document.insertString(newTailOffset, "]");
+                newTailOffset++;
+            }
+            if (quoteChar != null && !hasCharAt(document, newTailOffset, quoteChar)) {
+                document.insertString(newTailOffset, String.valueOf(quoteChar));
+                newTailOffset++;
+            }
             context.setTailOffset(newTailOffset);
             context.getEditor().getCaretModel().moveToOffset(newTailOffset);
         }

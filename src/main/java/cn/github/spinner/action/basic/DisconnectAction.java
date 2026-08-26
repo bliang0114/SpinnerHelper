@@ -1,10 +1,12 @@
 package cn.github.spinner.action.basic;
 
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.service.DriverKeepAliveService;
 import cn.github.spinner.util.MatrixConnectionUtil;
+import cn.github.spinner.util.MatrixJarLoadManager;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -20,11 +22,19 @@ public class DisconnectAction extends AnAction {
 
         MatrixConnection connection = UserInput.getInstance().connection.get(project);
         if (connection != null) {
+            EnvironmentConfig environment = UserInput.getInstance().connectEnvironment.get(project);
+            String environmentName = environment == null ? null : environment.getName();
             DriverKeepAliveService.getInstance(project).cancel();
             UserInput.getInstance().connection.remove(project);
             UserInput.getInstance().connectEnvironment.remove(project);
             UIUtil.refreshEnvironmentToolWindow(project);
-            MatrixConnectionUtil.closeAsync(project, connection, SpinnerBundle.message("action.Spinner Config.Disconnect.text"), null);
+            MatrixConnectionUtil.closeAsync(project, connection,
+                    SpinnerBundle.message("action.Spinner Config.Disconnect.text"),
+                    () -> {
+                        if (environmentName != null) {
+                            MatrixJarLoadManager.closeEnvironment(project, environmentName);
+                        }
+                    });
         }
     }
 

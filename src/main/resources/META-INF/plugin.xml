@@ -62,6 +62,22 @@
     </description>
 
     <change-notes><![CDATA[
+        <h2>3.0.5</h2>
+        <ul>
+        <li>MQL 编辑器中 <code>where</code> 关键字后的双引号内自动补全所有 Type/Relationship/Policy/Attribute/Interface 定义，<code>attribute[</code> 方括号内仅提示 Attribute 定义并自动补闭括号和引号</li>
+        <li>Matrix Object Browser 的 Where 表达式输入框升级为 MQL 语法编辑器，支持完整的语法高亮与自动补全，并允许仅填写 Where 条件直接查询</li>
+        <li>SpinnerConfig 视图下的 Console 子节点支持右键删除，删除前弹出确认对话框，自动关闭编辑器并清理磁盘文件</li>
+        <li>MQL 编辑器设置中新增 SQLite 缓存目录配置，允许用户自定义 <code>admin-definitions.sqlite</code> 的存储位置，通过目录选择器浏览</li>
+        <li>Console 结果输出支持可配置的最大大小（MB），超出时自动裁剪历史行并保持高亮样式与执行条目偏移同步</li>
+        <li>修复 ConsolePrinter 编译错误、ActionBundles 中文乱码等回归问题</li>
+        </ul>
+        <h2>3.0.4</h2>
+        <ul>
+        <li>新增按环境名称隔离的 SQLite 定义与 Trigger 查询缓存，支持手动更新并优先读取缓存，普通 MQL 执行结果保持实时查询</li>
+        <li>完善 type、relationship、policy、attribute 和 interface 的 MQL 自动补全及定义数据复用</li>
+        <li>优化 Trigger Query 性能、Event/Event Type 展示和源码定位，增加分阶段耗时日志并修复 EDT 源码导航慢操作，Trigger Query、URL Parser 与 Object Browser 重复打开时复用已有窗口</li>
+        <li>增强 Matrix 连接与 MQL 执行的超时、服务可达性检测和后台线程处理，修复 keep-alive 未按设置间隔重连的问题</li>
+        </ul>
         <h2>3.0.3</h2>
         <ul>
         <li>新增 Trigger Query，支持类型过滤、彩色自动完成、type 关联 policy trigger 查询、本地/远程/class 源码定位</li>
@@ -102,8 +118,6 @@
                     icon="AllIcons.RunConfigurations.Remote"/>
         <notificationGroup displayType="BALLOON" id="spinnerNotifier" isLogByDefault="true"
                            bundle="messages.ActionBundles" key="notification.group.spinnernotifier"/>
-        <applicationService serviceImplementation="cn.github.spinner.config.SpinnerSettings"/>
-        <applicationService serviceImplementation="cn.github.spinner.config.MatrixDriversConfig"/>
         <!-- MQL语言支持 -->
         <fileType name="MQL File"
                   implementationClass="cn.github.spinner.editor.MQLFileType"
@@ -180,6 +194,9 @@
                     icon="AllIcons.Actions.Search"/>
         </group>
         <group id="Spinner Config.RightToolbar">
+            <action id="Spinner Config.LoadDefinitions"
+                    class="cn.github.spinner.action.editor.LoadDefinitionForMQLAction"
+                    icon="AllIcons.Actions.Refresh"/>
             <action id="Spinner Config.Dependencies"
                     class="cn.github.spinner.action.basic.MatrixDriverSettingsAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>
@@ -211,7 +228,7 @@
                     icon="AllIcons.General.ShowInfos"/>
             <action id="Spinner Config.TriggerQuery"
                     class="cn.github.spinner.action.editor.TriggerQueryAction"
-                    icon="AllIcons.Actions.Search"/>
+                    icon="AllIcons.Nodes.Method"/>
 
             <action id="Spinner Config.MenuAndCommandAction"
                     class="cn.github.spinner.action.editor.MenuAndCommandAction"
@@ -222,9 +239,6 @@
                 icon="AllIcons.Actions.Execute">
             <keyboard-shortcut first-keystroke="alt e" keymap="$default"/>
         </action>
-        <action id="MQL Editor.LoadDefinition"
-                class="cn.github.spinner.action.editor.LoadDefinitionForMQLAction"
-                icon="AllIcons.Debugger.Db_db_object"/>
         <action id="MQL Editor.SaveAs"
                 class="cn.github.spinner.action.editor.SaveAsForMQLAction"
                 icon="AllIcons.Actions.MenuSaveall"/>

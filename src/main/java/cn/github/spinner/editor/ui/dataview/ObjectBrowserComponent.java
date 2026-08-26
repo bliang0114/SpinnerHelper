@@ -7,11 +7,13 @@ import cn.github.driver.connection.MatrixQueryResult;
 import cn.github.spinner.components.ComboBoxWithFilter;
 import cn.github.spinner.components.FilterTable;
 import cn.github.spinner.components.RowNumberTableModel;
-import cn.github.spinner.config.SpinnerToken;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.editor.MQLLanguage;
 import cn.github.spinner.editor.ui.dataview.details.ObjectDetailsWindow;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.TrackedBackgroundTask;
+import cn.github.spinner.util.MatrixAdminDefinitionCache;
+import cn.github.spinner.util.MatrixConnectionUtil;
 import cn.github.spinner.util.MQLUtil;
 import cn.github.spinner.util.UIUtil;
 import cn.hutool.core.map.MapUtil;
@@ -20,17 +22,16 @@ import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
+import com.intellij.ui.LanguageTextField;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
-import com.intellij.ui.components.JBTextArea;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.util.ui.JBUI;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
-import javax.swing.plaf.basic.BasicComboBoxEditor;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
@@ -59,7 +60,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     private ComboBoxWithFilter<String> organizationComboBox;
     private ComboBoxWithFilter<String> policyComboBox;
     private ComboBoxWithFilter<String> stateComboBox;
-    private JBTextArea whereClauseTextArea;
+    private LanguageTextField whereClauseField;
     private JButton queryBtn;
     private JButton resetBtn;
     protected FilterTable table;
@@ -68,10 +69,10 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     public ObjectBrowserComponent(@NotNull Project project, VirtualFile virtualFile) {
         this.project = project;
         this.virtualFile = virtualFile;
-        loadMatrixData();
         initComponents();
         setupListener();
         setupLayout();
+        loadMatrixData();
     }
 
     private void initComponents() {
@@ -85,7 +86,9 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         revisionTextField = new JBTextField("*");
         idTextField = new JBTextField("");
         physicalIdTextField = new JBTextField("");
-        whereClauseTextArea = new JBTextArea(3, 0);
+        whereClauseField = new LanguageTextField(MQLLanguage.INSTANCE, project, "", false);
+        whereClauseField.setBorder(JBUI.Borders.customLine(JBColor.LIGHT_GRAY));
+        whereClauseField.setPreferredSize(JBUI.size(-1, 80));
         queryBtn = new JButton(SpinnerBundle.message("button.query"));
         resetBtn = new JButton(SpinnerBundle.message("button.reset"));
         tableModel = new RowNumberTableModel(COLUMNS, 0);
@@ -102,9 +105,6 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         stateComboBox.setPreferredSize(JBUI.size(300, 30));
         organizationComboBox.setPreferredSize(JBUI.size(300, 30));
         projectComboBox.setPreferredSize(JBUI.size(300, 30));
-        whereClauseTextArea.setLineWrap(true); // 自动换行
-        whereClauseTextArea.setBorder(JBUI.Borders.customLine(JBColor.LIGHT_GRAY));
-        whereClauseTextArea.setMargin(JBUI.insets(4));
         queryBtn.setPreferredSize(new Dimension(80, 30));
         resetBtn.setPreferredSize(new Dimension(80, 30));
         table.getColumnModel().getColumn(0).setPreferredWidth(60);
@@ -132,7 +132,8 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
                         String item = policyComboBox.getItem();
                         if (CharSequenceUtil.isNotBlank(item) && !"*".equals(item)) {
                             try {
-                                String result = MQLUtil.execute(project, "print policy '{}' select state dump", item);
+                                String result = MQLUtil.execute(project,
+                                        "print policy '{}' select state dump", item);
                                 if (CharSequenceUtil.isNotBlank(result)) {
                                     SwingUtilities.invokeLater(() -> {
                                         stateComboBox.removeAllItems();
@@ -156,7 +157,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         stateComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
         organizationComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
         projectComboBox.getEditor().getEditorComponent().addKeyListener(new EnterPressListener());
-        whereClauseTextArea.addKeyListener(new EnterPressListener());
+        // WHERE field uses EditorTextField with MQL completion; Enter creates a new line.
         // 查询按钮点击事件
         queryBtn.addActionListener(e -> handleQuery());
         // 重置按钮点击事件
@@ -244,7 +245,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         gbc.gridwidth = 5;
         gbc.weighty = 1.0; // 垂直拉伸
         gbc.fill = GridBagConstraints.BOTH; // 水平+垂直填充
-        var textAreaScroll = ScrollPaneFactory.createScrollPane(whereClauseTextArea);
+        var textAreaScroll = ScrollPaneFactory.createScrollPane(whereClauseField);
         textAreaScroll.setPreferredSize(JBUI.size(-1, 100));
         conditionPanel.add(textAreaScroll, gbc);
         // 第5行：查询/重置按钮
@@ -268,45 +269,72 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
     }
 
     private void loadMatrixData() {
-        MatrixConnection connection = UserInput.getInstance().connection.get(project);
-        if (connection == null) return;
+        new TrackedBackgroundTask(project, SpinnerBundle.message("message.loading.data"), true) {
+            private List<String> loadedTypes = Collections.emptyList();
+            private List<String> loadedPolicies = Collections.emptyList();
+            private List<String> loadedOwners = Collections.emptyList();
+            private List<String> loadedOrganizations = Collections.emptyList();
+            private List<String> loadedProjects = Collections.emptyList();
 
-        try {
-            var statement = connection.executeStatement("list type");
-            var resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                typeList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                loadedTypes = MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.TYPE);
+                loadedPolicies = MatrixAdminDefinitionCache.get(project, MatrixAdminDefinitionCache.AdminType.POLICY);
+
+                MatrixConnection connection = UserInput.getInstance().connection.get(project);
+                if (connection == null || indicator.isCanceled()) {
+                    return;
+                }
+                try {
+                    loadedOwners = parseLineValues(MQLUtil.execute(project, "list person"));
+                    loadedProjects = parseRecordNames(MQLUtil.execute(project,
+                            "temp query bus PnOProject * * select name dump \001 recordsep \002"));
+                    loadedOrganizations = parseRecordNames(MQLUtil.execute(project,
+                            "temp query bus Company * * select name dump \001 recordsep \002"));
+                } catch (MQLException ex) {
+                    log.warn("Load Object Browser lookup data failed.", ex);
+                }
             }
-            statement = connection.executeStatement("list person");
-            resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                ownerList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
+
+            @Override
+            public void onSuccess() {
+                typeList = new ArrayList<>(loadedTypes);
+                policyList = new ArrayList<>(loadedPolicies);
+                ownerList = new ArrayList<>(loadedOwners);
+                organizationList = new ArrayList<>(loadedOrganizations);
+                projectList = new ArrayList<>(loadedProjects);
+                replaceComboBoxItems(typeComboBox, typeList);
+                replaceComboBoxItems(policyComboBox, policyList);
+                replaceComboBoxItems(ownerComboBox, ownerList);
+                replaceComboBoxItems(organizationComboBox, organizationList);
+                replaceComboBoxItems(projectComboBox, projectList);
             }
-            statement = connection.executeStatement("list policy");
-            resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> allData = CharSequenceUtil.split(resultSet.getResult(), "\n");
-                policyList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-            }
-            statement = connection.executeStatement("temp query bus PnOProject * * select name dump \001 recordsep \002");
-            resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> recordList = CharSequenceUtil.split(resultSet.getResult(), "\002");
-                List<String> allData = recordList.stream().filter(CharSequenceUtil::isNotBlank).map(str -> str.split("\001")[1]).toList();
-                projectList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-            }
-            statement = connection.executeStatement("temp query bus Company * * select name dump \001 recordsep \002");
-            resultSet = statement.executeQuery();
-            if (resultSet.isSuccess()) {
-                List<String> recordList = CharSequenceUtil.split(resultSet.getResult(), "\002");
-                List<String> allData = recordList.stream().filter(CharSequenceUtil::isNotBlank).map(str -> str.split("\001")[1]).toList();
-                organizationList = new ArrayList<>(allData.stream().filter(CharSequenceUtil::isNotBlank).toList());
-            }
-        } catch (MQLException ex) {
-            log.error(ex.getMessage(), ex);
-        }
+        }.queue();
+    }
+
+    private @NotNull List<String> parseLineValues(String result) {
+        return CharSequenceUtil.split(result, "\n").stream()
+                .filter(CharSequenceUtil::isNotBlank)
+                .toList();
+    }
+
+    private @NotNull List<String> parseRecordNames(String result) {
+        return CharSequenceUtil.split(result, "\002").stream()
+                .filter(CharSequenceUtil::isNotBlank)
+                .map(record -> record.split("\001"))
+                .filter(parts -> parts.length > 1)
+                .map(parts -> parts[1])
+                .filter(CharSequenceUtil::isNotBlank)
+                .toList();
+    }
+
+    private void replaceComboBoxItems(@NotNull ComboBoxWithFilter<String> comboBox,
+                                      @NotNull List<String> values) {
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        values.forEach(model::addElement);
+        comboBox.setModel(model);
+        comboBox.setItem("*");
     }
 
     private String buildWhereExpression() {
@@ -334,12 +362,13 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
             builder.append(builder.isEmpty() ? "" : " && ");
             builder.append("project == '").append(projectComboBox.getItem()).append("'");
         }
-        if (CharSequenceUtil.isNotBlank(whereClauseTextArea.getText())) {
+        String whereText = whereClauseField.getDocument().getText();
+        if (CharSequenceUtil.isNotBlank(whereText)) {
             if (!builder.isEmpty()) {
                 builder.insert(0, "(").append(")");
             }
             builder.append(builder.isEmpty() ? "" : " && ");
-            builder.append("(").append(whereClauseTextArea.getText()).append(")");
+            builder.append("(").append(whereText).append(")");
         }
         if (!builder.isEmpty()) {
             builder.insert(0, "(").append(")");
@@ -376,6 +405,7 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
                     MatrixConnection connection = UserInput.getInstance().connection.get(project);
                     if (connection == null) throw new MQLException(SpinnerBundle.message("message.connection.closed"));
 
+                    MatrixConnectionUtil.assertCurrentServerReachable(project);
                     MatrixQueryResult queryResult = connection.queryObject(objectQuery, List.of("type", "name", "revision", "id", "paths", "physicalid", "description", "originated", "modified", "lattice", "policy", "owner", "current", "organization", "project"));
                     dataList = new ArrayList<>();
                     if (!queryResult.isEmpty()) {
@@ -436,9 +466,14 @@ public class ObjectBrowserComponent extends JBPanel<ObjectBrowserComponent> {
         revisionTextField.setText("*");
         idTextField.setText("");
         physicalIdTextField.setText("");
+        whereClauseField.setText("");
     }
 
     private boolean emptyExpression() {
+        // If WHERE clause is filled, allow query with only WHERE conditions.
+        if (CharSequenceUtil.isNotBlank(whereClauseField.getDocument().getText())) {
+            return false;
+        }
         return (CharSequenceUtil.isBlank(typeComboBox.getItem()) || "*".equals(typeComboBox.getItem()))
                 && (CharSequenceUtil.isBlank(policyComboBox.getItem()) || "*".equals(policyComboBox.getItem()))
                 && (CharSequenceUtil.isBlank(stateComboBox.getItem()) || "*".equals(stateComboBox.getItem()))

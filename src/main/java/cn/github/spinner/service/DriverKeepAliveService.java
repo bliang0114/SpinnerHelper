@@ -20,12 +20,11 @@ import java.util.concurrent.TimeUnit;
 
 @Service(Service.Level.PROJECT)
 public final class DriverKeepAliveService implements Disposable {
-    private static final int BUSY_RETRY_MINUTES = 1;
-
     private final Project project;
     private final Object lock = new Object();
     private ScheduledFuture<?> keepAliveFuture;
     private EnvironmentConfig environment;
+    private int keepAliveMinutes = MatrixDriversConfig.DEFAULT_KEEP_ALIVE_MINUTES;
     private long generation;
 
     public DriverKeepAliveService(@NotNull Project project) {
@@ -41,7 +40,8 @@ public final class DriverKeepAliveService implements Disposable {
         synchronized (lock) {
             generation++;
             this.environment = environment;
-            scheduleLocked(generation, keepAliveMinutes);
+            this.keepAliveMinutes = Math.max(keepAliveMinutes, 1);
+            scheduleLocked(generation, this.keepAliveMinutes);
         }
     }
 
@@ -56,6 +56,7 @@ public final class DriverKeepAliveService implements Disposable {
         synchronized (lock) {
             generation++;
             environment = null;
+            keepAliveMinutes = MatrixDriversConfig.DEFAULT_KEEP_ALIVE_MINUTES;
             cancelLocked();
         }
     }
@@ -87,11 +88,13 @@ public final class DriverKeepAliveService implements Disposable {
         }
 
         EnvironmentConfig targetEnvironment;
+        int targetKeepAliveMinutes;
         synchronized (lock) {
             if (targetGeneration != generation) {
                 return;
             }
             targetEnvironment = environment;
+            targetKeepAliveMinutes = keepAliveMinutes;
         }
         if (targetEnvironment == null) {
             return;
@@ -108,7 +111,7 @@ public final class DriverKeepAliveService implements Disposable {
         if (userInput.isBackgroundTaskRunning(project) || userInput.connectingEnvironment.containsKey(project)) {
             synchronized (lock) {
                 if (targetGeneration == generation) {
-                    scheduleLocked(targetGeneration, BUSY_RETRY_MINUTES);
+                    scheduleLocked(targetGeneration, targetKeepAliveMinutes);
                 }
             }
             return;

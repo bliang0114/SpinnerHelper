@@ -2,7 +2,9 @@ package cn.github.spinner.editor.ui.dataview.details;
 
 import cn.github.driver.MQLException;
 import cn.github.spinner.i18n.SpinnerBundle;
+import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.MQLUtil;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.util.ui.JBInsets;
@@ -11,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import javax.swing.*;
 import java.awt.*;
+import org.jetbrains.annotations.NotNull;
 
 @Slf4j
 public class ObjectDetailsWindow extends JFrame {
@@ -22,6 +25,7 @@ public class ObjectDetailsWindow extends JFrame {
         this.project = project;
         this.id = id;
         setSize(JBUI.size(1200, 800));
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setTitle(id);
         initComponents();
     }
@@ -36,25 +40,48 @@ public class ObjectDetailsWindow extends JFrame {
     }
 
     public static void showWindow(Project project, String id) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> showWindow(project, id));
+            return;
+        }
         ObjectDetailsWindow window = new ObjectDetailsWindow(project, id);
         window.setVisible(true);
         window.setLocationRelativeTo(null);
     }
 
     private void initComponents() {
-        try {
-            String result = MQLUtil.execute(project, "print bus {} select id", id);
-            String[] array = result.split("\n");
-            String title = array[0];
-            title = title.replaceAll("business object {2}", "");
-            updateFrameTitle(title);
-        } catch (MQLException ignored) {
-        }
         tabbedPane = new JBTabbedPane();
         tabbedPane.setTabPlacement(JTabbedPane.TOP);
         tabbedPane.setTabComponentInsets(JBInsets.create(new Insets(0, 8, 0, 0)));
         tabbedPane.addChangeListener(e -> loadTabData());
         createCenterPanel();
+        loadFrameTitle();
+    }
+
+    private void loadFrameTitle() {
+        new TrackedBackgroundTask(project, SpinnerBundle.message("message.loading.data"), true) {
+            private String title;
+
+            @Override
+            protected void runTracked(@NotNull ProgressIndicator indicator) {
+                indicator.setIndeterminate(true);
+                try {
+                    String result = MQLUtil.execute(project, "print bus {} select id", id);
+                    String[] values = result.split("\n");
+                    if (values.length > 0) {
+                        title = values[0].replaceAll("business object {2}", "");
+                    }
+                } catch (MQLException ignored) {
+                }
+            }
+
+            @Override
+            public void onSuccess() {
+                if (title != null && !title.isBlank() && isDisplayable()) {
+                    updateFrameTitle(title);
+                }
+            }
+        }.queue();
     }
 
     protected void createCenterPanel() {

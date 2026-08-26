@@ -10,7 +10,7 @@ public class URLParserAction extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent anActionEvent) {
-        new URLFormatterDialog().show();
+        URLFormatterDialog.showWindow();
     }
 
     @Override
