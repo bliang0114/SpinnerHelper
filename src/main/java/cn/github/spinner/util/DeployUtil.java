@@ -43,10 +43,10 @@ public class DeployUtil {
             String result = MQLUtil.execute(project, "list program " + fileName);
             if (result.isEmpty()) {
                 MQLUtil.execute(project, "escape add program " + fileName + " java code " + code);
+            } else {
+                MQLUtil.execute(project, "escape modify program " + fileName + " code " + code);
             }
-            // else {
-            //     // MQLUtil.execute(project, "escape mod program EnoBrowserJPO code " + code2);
-            // }
+            MQLUtil.execute(project, "compile program " + fileName + " force update");
         } catch (Exception ex2) {
             UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.install", fileName), ex2.getLocalizedMessage());
         }

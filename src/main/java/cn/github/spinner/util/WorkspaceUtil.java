@@ -192,4 +192,8 @@ public class WorkspaceUtil {
     public static void reloadCache(MatrixConnection connection) throws Exception {
         connection.invokeJPOMethod("SpinnerDeployJPO", "reloadCache", new String[]{}, String.class);
     }
+
+    public static String reloadProperties(MatrixConnection connection) throws Exception {
+        return connection.invokeJPOMethod("SpinnerDeployJPO", "reloadProperties", new String[]{}, String.class);
+    }
 }
