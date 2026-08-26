@@ -1,5 +1,6 @@
 package cn.github.spinner.util;
 
+import cn.github.driver.MatrixDriverManager;
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.config.EnvironmentConfig;
@@ -43,6 +44,25 @@ public final class MatrixConnectionUtil {
         } catch (IOException e) {
             throw new MQLException("Server unreachable: " + endpoint.host() + ":" + endpoint.port(), e);
         }
+    }
+
+    public static @NotNull MatrixConnection openIndependentConnection(@NotNull Project project,
+                                                                       @NotNull EnvironmentConfig environment)
+            throws MQLException {
+        ClassLoader classLoader = MatrixJarLoadManager.getMatrixClassLoader(project, environment.getName());
+        if (classLoader == null) {
+            throw new MQLException(SpinnerBundle.message("message.matrix.driver.classloader.missing"));
+        }
+        assertServerReachable(environment);
+        return MatrixDriverManager.getConnection(
+                environment.getHostUrl(),
+                environment.getUser(),
+                environment.getPassword(),
+                environment.getVault(),
+                environment.getRole(),
+                environment.isCas(),
+                classLoader
+        );
     }
 
     public static void closeAsync(@Nullable Project project,

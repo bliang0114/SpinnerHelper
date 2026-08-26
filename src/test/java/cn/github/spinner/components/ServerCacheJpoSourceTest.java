@@ -4,6 +4,8 @@ import org.junit.Test;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -34,11 +36,21 @@ public class ServerCacheJpoSourceTest {
             assertNotNull(input);
             String pluginXml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
 
-            assertFalse(pluginXml.contains("Spinner Config.LoadDefinitions"));
+            assertTrue(pluginXml.contains("Spinner Config.LoadDefinitions"));
             assertTrue(pluginXml.contains("Spinner Config.ReloadServerCache"));
             assertTrue(pluginXml.contains("AllIcons.Actions.ClearCash"));
             assertTrue(pluginXml.contains("Spinner Config.ReloadI18n"));
             assertTrue(pluginXml.contains("AllIcons.Actions.Properties"));
         }
+    }
+
+    @Test
+    public void reloadActionsDoNotUseTheSharedDeploymentConnection() throws Exception {
+        Path actionSource = Path.of(System.getProperty("user.dir"),
+                "src/main/java/cn/github/spinner/action/basic/AbstractReloadCacheAction.java");
+        String source = Files.readString(actionSource, StandardCharsets.UTF_8);
+
+        assertFalse(source.contains("UserInput.getInstance().connection.get"));
+        assertTrue(source.contains("MatrixConnectionUtil.openIndependentConnection"));
     }
 }

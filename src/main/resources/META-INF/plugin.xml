@@ -194,6 +194,9 @@
                     icon="AllIcons.Actions.Search"/>
         </group>
         <group id="Spinner Config.RightToolbar">
+            <action id="Spinner Config.LoadDefinitions"
+                    class="cn.github.spinner.action.editor.LoadDefinitionForMQLAction"
+                    icon="AllIcons.Actions.Refresh"/>
             <action id="Spinner Config.ReloadServerCache"
                     class="cn.github.spinner.action.basic.ReloadServerCacheAction"
                     icon="AllIcons.Actions.ClearCash"/>

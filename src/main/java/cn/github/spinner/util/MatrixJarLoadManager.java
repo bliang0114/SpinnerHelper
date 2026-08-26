@@ -3,6 +3,7 @@ package cn.github.spinner.util;
 import lombok.extern.slf4j.Slf4j;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +43,11 @@ public class MatrixJarLoadManager {
         classLoader = new MatrixJarClassLoader(jarFiles, parent);
         environmentClassLoaders.put(environment, classLoader);
         return classLoader;
+    }
+
+    public static @Nullable ClassLoader getMatrixClassLoader(@NotNull Project project, @NotNull String environment) {
+        ConcurrentHashMap<String, MatrixJarClassLoader> environmentClassLoaders = projectClassLoaders.get(project);
+        return environmentClassLoaders == null ? null : environmentClassLoaders.get(environment);
     }
 
     public static void closeEnvironment(@NotNull Project project, String environment) {

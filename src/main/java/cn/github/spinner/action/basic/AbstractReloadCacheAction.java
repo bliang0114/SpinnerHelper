@@ -5,6 +5,7 @@ import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.TrackedBackgroundTask;
+import cn.github.spinner.util.MatrixConnectionUtil;
 import cn.github.spinner.util.UIUtil;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
@@ -31,8 +32,8 @@ abstract class AbstractReloadCacheAction extends AnAction {
         Project project = event.getProject();
         if (project == null) return;
 
-        MatrixConnection connection = UserInput.getInstance().connection.get(project);
-        if (connection == null) {
+        EnvironmentConfig environment = UserInput.getInstance().connectEnvironment.get(project);
+        if (environment == null || !UserInput.getInstance().connection.containsKey(project)) {
             UIUtil.showWarningNotification(project, SpinnerBundle.message(titleKey),
                     SpinnerBundle.message("message.connect.required"));
             return;
@@ -42,7 +43,7 @@ abstract class AbstractReloadCacheAction extends AnAction {
             @Override
             protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
-                try {
+                try (MatrixConnection connection = MatrixConnectionUtil.openIndependentConnection(project, environment)) {
                     reload(connection);
                     UIUtil.showNotification(project, SpinnerBundle.message(titleKey), SpinnerBundle.message(successKey));
                 } catch (Exception exception) {
