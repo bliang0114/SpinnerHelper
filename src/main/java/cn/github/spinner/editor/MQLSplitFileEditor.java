@@ -1,6 +1,7 @@
 package cn.github.spinner.editor;
 
 import cn.github.spinner.config.SpinnerSettings;
+import cn.github.spinner.components.EnvironmentIndicator;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutionEntry;
 import cn.github.spinner.i18n.SpinnerBundle;
@@ -45,6 +46,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
     private static final int PANEL_MINIMUM_HEIGHT = 80;
 
     private final VirtualFile file;
+    private final Project project;
     private final TextEditor textEditor;
     private final ConsoleManager consoleManager;
     private final SpinnerSettings spinnerSettings;
@@ -60,6 +62,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
     private ResultAreaState resultAreaState = ResultAreaState.NORMAL;
 
     public MQLSplitFileEditor(@NotNull Project project, @NotNull VirtualFile file) {
+        this.project = project;
         this.file = file;
         this.textEditor = (TextEditor) TextEditorProvider.getInstance().createEditor(project, file);
         this.spinnerSettings = SpinnerSettings.getInstance(project);
@@ -176,6 +179,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         rightToolbar.setTargetComponent(textEditor.getPreferredFocusedComponent());
 
         toolbarPanel.add(leftToolbar.getComponent(), BorderLayout.WEST);
+        toolbarPanel.add(new EnvironmentIndicator(project), BorderLayout.CENTER);
         toolbarPanel.add(rightToolbar.getComponent(), BorderLayout.EAST);
         return toolbarPanel;
     }

@@ -1,6 +1,7 @@
 package cn.github.spinner.ui;
 
 import cn.github.spinner.components.FilterTable;
+import cn.github.spinner.components.EnvironmentIndicator;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.TrackedBackgroundTask;
@@ -148,7 +149,10 @@ public class TriggerQueryDialog extends JFrame {
     private @NotNull JComponent createContentPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(JBUI.Borders.empty(8));
-        panel.add(createQueryPanel(), BorderLayout.NORTH);
+        JPanel northPanel = new JPanel(new BorderLayout(0, JBUI.scale(8)));
+        northPanel.add(new EnvironmentIndicator(project), BorderLayout.NORTH);
+        northPanel.add(createQueryPanel(), BorderLayout.CENTER);
+        panel.add(northPanel, BorderLayout.NORTH);
         panel.add(createTablePanel(), BorderLayout.CENTER);
         return panel;
     }

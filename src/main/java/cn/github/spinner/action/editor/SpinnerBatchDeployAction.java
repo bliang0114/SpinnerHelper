@@ -2,6 +2,7 @@ package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.context.UserInput;
+import cn.github.spinner.components.EnvironmentIndicator;
 import cn.github.spinner.deploy.BatchFileCommand;
 import cn.github.spinner.deploy.FileOperationCommand;
 import cn.github.spinner.deploy.FileOperationContext;
@@ -23,6 +24,13 @@ import java.util.*;
  */
 public class SpinnerBatchDeployAction extends AnAction {
     private static final Logger LOGGER = Logger.getInstance(SpinnerBatchDeployAction.class);
+
+    @Override
+    public void update(@NotNull AnActionEvent e) {
+        Project project = e.getProject();
+        String baseText = SpinnerBundle.message("action.SpinnerBatchDeploy.text");
+        e.getPresentation().setText(project == null ? baseText : EnvironmentIndicator.actionText(project, baseText));
+    }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {

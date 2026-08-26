@@ -1,6 +1,7 @@
 package cn.github.spinner.editor.ui;
 
 import cn.github.spinner.editor.MatrixDataViewFileType;
+import cn.github.spinner.components.EnvironmentIndicator;
 import cn.github.spinner.editor.ui.dataview.AdminDefinitionListComponent;
 import cn.github.spinner.editor.ui.dataview.ObjectBrowserComponent;
 import cn.github.spinner.editor.ui.dataview.RelationshipDataViewComponent;
@@ -28,6 +29,7 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
     private final Project project;
     private final VirtualFile virtualFile;
     private final JComponent editorComponent;
+    private final JComponent rootComponent;
     private final AtomicBoolean isDisposed = new AtomicBoolean(false);
 
     public MatrixCommonViewEditor(@NotNull Project project, VirtualFile virtualFile) {
@@ -66,11 +68,15 @@ public class MatrixCommonViewEditor extends UserDataHolderBase implements FileEd
                 this.editorComponent = new JPanel();
                 break;
         }
+        JPanel panel = new JPanel(new java.awt.BorderLayout());
+        panel.add(new EnvironmentIndicator(project), java.awt.BorderLayout.NORTH);
+        panel.add(editorComponent, java.awt.BorderLayout.CENTER);
+        this.rootComponent = panel;
     }
 
     @Override
     public @NotNull JComponent getComponent() {
-        return editorComponent;
+        return rootComponent;
     }
 
     @Override

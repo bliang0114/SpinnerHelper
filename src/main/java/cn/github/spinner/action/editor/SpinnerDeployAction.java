@@ -2,6 +2,7 @@ package cn.github.spinner.action.editor;
 
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.constant.TitleConstant;
+import cn.github.spinner.components.EnvironmentIndicator;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.task.TrackedBackgroundTask;
@@ -240,6 +241,13 @@ public class SpinnerDeployAction extends AnAction {
     @FunctionalInterface
     private interface DeployOperation {
         String execute() throws Exception;
+    }
+
+    @Override
+    public void update(@NotNull AnActionEvent e) {
+        Project project = e.getProject();
+        String baseText = SpinnerBundle.message("action.SpinnerDeploy.text");
+        e.getPresentation().setText(project == null ? baseText : EnvironmentIndicator.actionText(project, baseText));
     }
 
     @Override

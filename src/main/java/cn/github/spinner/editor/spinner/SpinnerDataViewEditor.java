@@ -1,5 +1,6 @@
 package cn.github.spinner.editor.spinner;
 
+import cn.github.spinner.components.EnvironmentIndicator;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
@@ -21,12 +22,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class SpinnerDataViewEditor extends UserDataHolderBase implements FileEditor {
     private final VirtualFile virtualFile;
     private final JComponent editorComponent;
+    private final JComponent rootComponent;
     private final AtomicBoolean isDisposed = new AtomicBoolean(false);
     private final MessageBusConnection connection;
 
     public SpinnerDataViewEditor(@NotNull Project project, @NotNull VirtualFile virtualFile) {
         this.virtualFile = virtualFile;
         this.editorComponent = new AbstractSpinnerViewComponent(project, virtualFile) {};
+        JPanel panel = new JPanel(new java.awt.BorderLayout());
+        panel.add(new EnvironmentIndicator(project), java.awt.BorderLayout.NORTH);
+        panel.add(editorComponent, java.awt.BorderLayout.CENTER);
+        this.rootComponent = panel;
         this.connection = project.getMessageBus().connect();
         this.connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
             @Override
@@ -42,7 +48,7 @@ public class SpinnerDataViewEditor extends UserDataHolderBase implements FileEdi
 
     @Override
     public @NotNull JComponent getComponent() {
-        return editorComponent;
+        return rootComponent;
     }
 
     @Override

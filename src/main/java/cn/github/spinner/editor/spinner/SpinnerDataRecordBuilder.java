@@ -3,6 +3,7 @@ package cn.github.spinner.editor.spinner;
 import cn.github.driver.connection.MatrixConnection;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.components.ComboBoxWithFilter;
+import cn.github.spinner.components.EnvironmentIndicator;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
@@ -178,6 +179,14 @@ public class SpinnerDataRecordBuilder {
             }
             List<String> lines = FileUtil.readLines(virtualFile.getPath(), virtualFile.getCharset());
             WorkspaceUtil.importSpinnerFile(connection, project, virtualFile.getPath(), lines.getFirst() + "\n" + finalValue);
+        }
+
+        @Override
+        public void update(@NotNull AnActionEvent e) {
+            e.getPresentation().setText(EnvironmentIndicator.actionText(
+                    project,
+                    SpinnerBundle.message("action.deploy.text")
+            ));
         }
 
         @Override

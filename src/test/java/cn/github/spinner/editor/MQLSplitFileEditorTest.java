@@ -1,6 +1,7 @@
 package cn.github.spinner.editor;
 
 import com.intellij.icons.AllIcons;
+import cn.github.spinner.components.EnvironmentIndicator;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 
@@ -31,6 +32,7 @@ public class MQLSplitFileEditorTest extends BasePlatformTestCase {
             assertTrue(maximize.getText() == null || maximize.getText().isEmpty());
             assertTrue(reset.getText() == null || reset.getText().isEmpty());
             assertNull(findComponent(root, JCheckBox.class));
+            assertNotNull(findComponent(root, EnvironmentIndicator.class));
             assertTrue(SwingUtilities.isDescendingFrom(sourceEditor, root));
 
             maximize.doClick();
