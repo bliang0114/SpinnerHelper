@@ -100,7 +100,8 @@ public class ObjectPathsComponent extends JPanel {
         header.setReorderingAllowed(false);
         header.setBackground(JBColor.background());
         table.setTransferHandler(new CellCopyTransferHandler(table));
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setCellSelectionEnabled(true);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.setBackground(JBColor.background());
         table.setForeground(JBColor.foreground());
         table.setShowGrid(true);

@@ -44,6 +44,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
     private static final int SPLITTER_DIVIDER_WIDTH = 8;
     private static final int PANEL_MINIMUM_WIDTH = 120;
     private static final int PANEL_MINIMUM_HEIGHT = 80;
+    private static final int RESULT_AREA_BUTTON_SIZE = 24;
 
     private final VirtualFile file;
     private final Project project;
@@ -118,7 +119,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         title.addMouseMotionListener(dockDragHandler);
 
         // 使用系统窗口标题栏语义图标，让结果区的最小化、最大化和还原行为一目了然。
-        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         actionsPanel.setOpaque(false);
         actionsPanel.add(createResultAreaButton(
                 "button.result.minimize",
@@ -151,6 +152,7 @@ public class MQLSplitFileEditor extends UserDataHolderBase implements TextEditor
         button.getAccessibleContext().setAccessibleName(label);
         button.setFocusable(false);
         button.setBorder(JBUI.Borders.empty(3));
+        button.setPreferredSize(JBUI.size(RESULT_AREA_BUTTON_SIZE, RESULT_AREA_BUTTON_SIZE));
         button.setContentAreaFilled(false);
         button.setOpaque(false);
         button.addActionListener(event -> action.run());

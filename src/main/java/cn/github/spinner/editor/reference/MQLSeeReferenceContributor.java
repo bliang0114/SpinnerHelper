@@ -29,12 +29,15 @@ import java.util.regex.Pattern;
 /**
  * 为 MQL 文档注释中的 {@code @see} 引用提供 Java 源码导航。
  *
- * <p>支持 {@code Foo.java}、{@code Foo.java#method} 和
- * {@code com.example.Foo#method} 三种常用写法。</p>
+ * <p>支持 {@code Foo.java}、{@code Foo.java#method}、
+ * {@code com.example.Foo#method} 和 Java 复制格式
+ * {@code Foo.method(Type)} 等常用写法。</p>
  */
 public final class MQLSeeReferenceContributor extends PsiReferenceContributor {
     private static final Pattern SEE_REFERENCE = Pattern.compile(
             "@see\\s+(?:<([^>]+)>|([^\\s*]+))");
+    private static final Pattern DOT_METHOD_REFERENCE = Pattern.compile(
+            "(.+)\\.([A-Za-z_$][\\w$]*)(?:\\([^)]*\\))?");
 
     @Override
     public void registerReferenceProviders(@NotNull PsiReferenceRegistrar registrar) {
@@ -69,15 +72,26 @@ public final class MQLSeeReferenceContributor extends PsiReferenceContributor {
 
         @Override
         public @Nullable PsiElement resolve() {
-            // 先按“文件/类”定位，再按 # 后面的名称定位方法。
+            // 先按“文件/类”定位，再按 # 或 . 后面的名称定位方法。
             Project project = getElement().getProject();
-            String[] parts = target.split("#", 2);
-            String owner = parts[0];
-            String methodName = parts.length == 2 ? parts[1] : null;
+            String owner = target;
+            String methodName = null;
 
-            PsiClass psiClass = owner.endsWith(".java")
-                    ? findClassInJavaFile(project, owner)
-                    : findClass(project, owner);
+            String[] hashParts = target.split("#", 2);
+            if (hashParts.length == 2) {
+                owner = hashParts[0];
+                methodName = hashParts[1];
+            } else if (!target.endsWith(".java")) {
+                // IDEA 从 Java 方法复制引用时通常生成 Class.method(Type) 格式。
+                PsiClass directClass = findOwnerClass(project, owner);
+                Matcher methodMatcher = DOT_METHOD_REFERENCE.matcher(target);
+                if (directClass == null && methodMatcher.matches()) {
+                    owner = methodMatcher.group(1);
+                    methodName = methodMatcher.group(2);
+                }
+            }
+
+            PsiClass psiClass = findOwnerClass(project, owner);
             if (psiClass == null) {
                 return null;
             }
@@ -86,6 +100,12 @@ public final class MQLSeeReferenceContributor extends PsiReferenceContributor {
             }
             PsiMethod[] methods = psiClass.findMethodsByName(methodName, false);
             return methods.length == 0 ? null : methods[0];
+        }
+
+        private static @Nullable PsiClass findOwnerClass(@NotNull Project project, @NotNull String owner) {
+            return owner.endsWith(".java")
+                    ? findClassInJavaFile(project, owner)
+                    : findClass(project, owner);
         }
 
         private static @Nullable PsiClass findClassInJavaFile(@NotNull Project project, @NotNull String owner) {
@@ -123,8 +143,16 @@ public final class MQLSeeReferenceContributor extends PsiReferenceContributor {
             if (qualifiedName.endsWith(".java")) {
                 qualifiedName = qualifiedName.substring(0, qualifiedName.length() - ".java".length());
             }
-            return com.intellij.psi.JavaPsiFacade.getInstance(project)
-                    .findClass(qualifiedName, GlobalSearchScope.projectScope(project));
+            GlobalSearchScope scope = GlobalSearchScope.projectScope(project);
+            PsiClass psiClass = com.intellij.psi.JavaPsiFacade.getInstance(project)
+                    .findClass(qualifiedName, scope);
+            if (psiClass != null) {
+                return psiClass;
+            }
+
+            // JPO 源码经常没有包名，按简单类名回退到同名 Java 文件。
+            String relativePath = qualifiedName.replace('.', '/') + ".java";
+            return findClassInJavaFile(project, relativePath);
         }
     }
 }

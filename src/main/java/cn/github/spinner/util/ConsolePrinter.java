@@ -1,5 +1,8 @@
 package cn.github.spinner.util;
 
+import cn.github.spinner.execution.MQLResultParser;
+import cn.github.spinner.execution.MQLResultTabbedPane;
+import cn.github.spinner.execution.MQLResultViewData;
 import com.intellij.execution.impl.ConsoleViewImpl;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ConsoleViewContentType;
@@ -24,7 +27,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
@@ -40,6 +45,9 @@ public class ConsolePrinter {
     private final IntConsumer trimHandler;
     private final List<StyledRange> styledRanges = new ArrayList<>();
     private final List<EditorEx> resultEditors = new CopyOnWriteArrayList<>();
+    private final List<MQLResultTabbedPane> resultTabbedPanes = new CopyOnWriteArrayList<>();
+    private final Map<JComponent, EditorEx> componentEditors = new ConcurrentHashMap<>();
+    private volatile MQLResultViewData currentResultView = MQLResultViewData.defaultView();
     private volatile boolean softWrapsEnabled;
 
     public ConsolePrinter(Project project, ConsoleView consoleView,
@@ -69,7 +77,15 @@ public class ConsolePrinter {
             consoleView.clear();
             resultDocument.setText("");
             clearResultHighlighters();
+            currentResultView = MQLResultViewData.defaultView();
+            updateResultTabbedPanes(currentResultView);
         }));
+    }
+
+    public void showStructuredResult(@Nullable String command, @Nullable String result) {
+        MQLResultViewData parsedResult = MQLResultParser.parse(command, result);
+        currentResultView = parsedResult;
+        ApplicationManager.getApplication().invokeLater(() -> updateResultTabbedPanes(parsedResult));
     }
 
     public int printSync(String message) {
@@ -128,9 +144,13 @@ public class ConsolePrinter {
 
     public @NotNull JComponent createResultComponent() {
         AtomicInteger ready = new AtomicInteger();
-        final EditorEx[] editorRef = new EditorEx[1];
+        final JComponent[] componentRef = new JComponent[1];
         Runnable task = () -> {
-            editorRef[0] = createResultEditor();
+            EditorEx editor = createResultEditor();
+            MQLResultTabbedPane tabbedPane = new MQLResultTabbedPane(editor.getComponent(), currentResultView);
+            resultTabbedPanes.add(tabbedPane);
+            componentEditors.put(tabbedPane, editor);
+            componentRef[0] = tabbedPane;
             ready.set(1);
         };
         if (ApplicationManager.getApplication().isDispatchThread()) {
@@ -138,8 +158,8 @@ public class ConsolePrinter {
         } else {
             ApplicationManager.getApplication().invokeAndWait(task);
         }
-        if (ready.get() == 1 && editorRef[0] != null) {
-            return editorRef[0].getComponent();
+        if (ready.get() == 1 && componentRef[0] != null) {
+            return componentRef[0];
         }
         throw new IllegalStateException("Failed to create result component");
     }
@@ -149,15 +169,10 @@ public class ConsolePrinter {
             return;
         }
         ApplicationManager.getApplication().invokeLater(() -> {
-            EditorEx targetEditor = null;
-            for (EditorEx resultEditor : resultEditors) {
-                if (resultEditor.getComponent() == component) {
-                    targetEditor = resultEditor;
-                    break;
-                }
-            }
+            EditorEx targetEditor = componentEditors.remove(component);
             if (targetEditor != null) {
                 resultEditors.remove(targetEditor);
+                resultTabbedPanes.remove(component);
                 EditorFactory.getInstance().releaseEditor(targetEditor);
             }
         });
@@ -167,6 +182,8 @@ public class ConsolePrinter {
         Runnable task = () -> {
             List<EditorEx> editors = List.copyOf(resultEditors);
             resultEditors.clear();
+            resultTabbedPanes.clear();
+            componentEditors.clear();
             for (EditorEx resultEditor : editors) {
                 if (!resultEditor.isDisposed()) {
                     EditorFactory.getInstance().releaseEditor(resultEditor);
@@ -207,6 +224,12 @@ public class ConsolePrinter {
         }
         resultEditors.add(resultEditor);
         return resultEditor;
+    }
+
+    private void updateResultTabbedPanes(@NotNull MQLResultViewData resultView) {
+        for (MQLResultTabbedPane tabbedPane : resultTabbedPanes) {
+            tabbedPane.updateResult(resultView);
+        }
     }
 
     private int appendToResultEditor(String message, ConsoleViewContentType contentType) {

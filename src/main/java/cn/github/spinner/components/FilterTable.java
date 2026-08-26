@@ -62,7 +62,8 @@ public class FilterTable extends JBTable {
         header.setBackground(JBColor.background());
 //        header.setFont(font);
         setTransferHandler(new CellCopyTransferHandler(this));
-        setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        setCellSelectionEnabled(true);
+        setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         setBackground(JBColor.background());
         setForeground(JBColor.foreground());
         setShowGrid(true);

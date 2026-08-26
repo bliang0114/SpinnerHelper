@@ -6,6 +6,7 @@ import cn.github.driver.connection.MatrixResultSet;
 import cn.github.spinner.config.SpinnerSettings;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.execution.MQLExecutionEntry;
+import cn.github.spinner.execution.MQLResultDisplayPolicy;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.ConsoleManager;
 import cn.github.spinner.util.MQLUtil;
@@ -70,6 +71,8 @@ public class ExecuteMQLCommand extends TrackedBackgroundTask {
                                  @NotNull MatrixConnection connection,
                                  @NotNull ConsoleManager consoleManager) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        boolean showStructuredResult = MQLResultDisplayPolicy.supportsStructuredView(commandList.size());
+        consoleManager.showStructuredResult(null, null);
         for (int i = 0; i < commandList.size(); i++) {
             if (indicator.isCanceled()) {
                 break;
@@ -89,6 +92,9 @@ public class ExecuteMQLCommand extends TrackedBackgroundTask {
                     MQLExecutionGutterManager.markResult(project, consoleManager.getConsoleFile(), commandEntry.lineNumber(), true, successMessage);
                     recordExecutionEntry(project, consoleManager, commandEntry, consoleResultOffset, true, successMessage);
                     consoleManager.printSync(resultSet.getResult(), ConsoleViewContentType.LOG_INFO_OUTPUT);
+                    if (showStructuredResult) {
+                        consoleManager.showStructuredResult(command, resultSet.getResult());
+                    }
                 } else {
                     String errorMessage = normalizeMessage(resultSet.getMessage(), false);
                     MQLExecutionGutterManager.markResult(project, consoleManager.getConsoleFile(), commandEntry.lineNumber(), false, errorMessage);

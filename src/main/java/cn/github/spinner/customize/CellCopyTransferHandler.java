@@ -19,15 +19,26 @@ public class CellCopyTransferHandler extends TransferHandler {
         int[] selectedRows = table.getSelectedRows();
         int[] selectedColumns = table.getSelectedColumns();
 
-        // 如果只选中了一个单元格，复制该单元格的值
-        if (selectedRows.length == 1 && selectedColumns.length == 1) {
-            Object value = table.getValueAt(selectedRows[0], selectedColumns[0]);
-            String stringValue = value != null ? value.toString() : "";
-            return new StringSelection(stringValue);
+        if (selectedRows.length == 0 || selectedColumns.length == 0) {
+            return null;
         }
 
-        // 多选时使用默认行为（复制整行）
-        return super.createTransferable(c);
+        StringBuilder content = new StringBuilder();
+        for (int rowIndex = 0; rowIndex < selectedRows.length; rowIndex++) {
+            if (rowIndex > 0) {
+                content.append('\n');
+            }
+            for (int columnIndex = 0; columnIndex < selectedColumns.length; columnIndex++) {
+                if (columnIndex > 0) {
+                    content.append('\t');
+                }
+                Object value = table.getValueAt(selectedRows[rowIndex], selectedColumns[columnIndex]);
+                if (value != null) {
+                    content.append(value);
+                }
+            }
+        }
+        return new StringSelection(content.toString());
     }
 
     @Override

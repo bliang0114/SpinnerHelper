@@ -154,6 +154,10 @@ public class ConsoleManager implements Disposable {
         consolePrinter.setSoftWrapsEnabled(enabled);
     }
 
+    public void showStructuredResult(@Nullable String command, @Nullable String result) {
+        consolePrinter.showStructuredResult(command, result);
+    }
+
     public JComponent createResultComponent() {
         return consolePrinter.createResultComponent();
     }
