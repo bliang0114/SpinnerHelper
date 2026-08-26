@@ -1,15 +1,9 @@
 package cn.github.spinner.deploy;
 
 import cn.github.spinner.constant.FileConstant;
-import cn.github.spinner.constant.TitleConstant;
-import cn.github.spinner.i18n.SpinnerBundle;
-import cn.github.spinner.task.TrackedBackgroundTask;
 import cn.github.spinner.util.WorkspaceUtil;
 import cn.hutool.core.text.CharSequenceUtil;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -42,24 +36,4 @@ public class PropertiesFileStrategy extends AbstractFileStrategy {
     protected String executeDeployCommand(String remoteSpinnerDir, String remoteRelativePath, List<String> fileNames) throws Exception {
         return WorkspaceUtil.runPageImportBatch(context.getProject(), context.getMatrixConnection(), remoteSpinnerDir, remoteRelativePath, fileNames);
     }
-
-    @Override
-    protected void afterDeploySuccess(String fullRemoteSpinnerDir, String remoteBaseDir) {
-        ProgressManager.getInstance().run(new TrackedBackgroundTask(context.getProject(), TitleConstant.SPINNER_DEPLOY) {
-            @Override
-            protected void runTracked(@NotNull ProgressIndicator indicator) {
-                indicator.setIndeterminate(false);
-                indicator.setText(SpinnerBundle.message("progress.recache.page"));
-                try {
-                    WorkspaceUtil.deleteRemoteTempDir(context.getMatrixConnection(), fullRemoteSpinnerDir, remoteBaseDir);
-                    WorkspaceUtil.reloadProperties(context.getMatrixConnection());
-                } catch (Exception e) {
-                    handleException(e);
-                }
-            }
-        });
-    }
-
-
-
 }

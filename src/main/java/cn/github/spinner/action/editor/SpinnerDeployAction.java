@@ -131,9 +131,6 @@ public class SpinnerDeployAction extends AnAction {
                     remoteBaseDir + "/" + remoteRelativePath + "/" + fileName,
                     fileName
             );
-            if (result == null || (!result.contains("Error") && !result.contains("failed"))) {
-                WorkspaceUtil.reloadProperties(connection);
-            }
             return normalizeDeployResult(result, remoteBaseDir, remoteSpinnerDir);
         });
     }

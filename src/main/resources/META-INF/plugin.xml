@@ -194,15 +194,12 @@
                     icon="AllIcons.Actions.Search"/>
         </group>
         <group id="Spinner Config.RightToolbar">
-            <action id="Spinner Config.LoadDefinitions"
-                    class="cn.github.spinner.action.editor.LoadDefinitionForMQLAction"
-                    icon="AllIcons.Actions.Refresh"/>
             <action id="Spinner Config.ReloadServerCache"
                     class="cn.github.spinner.action.basic.ReloadServerCacheAction"
-                    icon="AllIcons.Actions.Restart"/>
-            <action id="Spinner Config.ReloadProperties"
-                    class="cn.github.spinner.action.basic.ReloadPropertiesAction"
-                    icon="AllIcons.Actions.Refresh"/>
+                    icon="AllIcons.Actions.ClearCash"/>
+            <action id="Spinner Config.ReloadI18n"
+                    class="cn.github.spinner.action.basic.ReloadI18nAction"
+                    icon="AllIcons.Actions.Properties"/>
             <action id="Spinner Config.Dependencies"
                     class="cn.github.spinner.action.basic.MatrixDriverSettingsAction"
                     icon="AllIcons.Toolwindows.Dependencies"/>
