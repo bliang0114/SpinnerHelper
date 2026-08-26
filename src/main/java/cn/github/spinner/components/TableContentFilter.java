@@ -4,10 +4,13 @@ import javax.swing.*;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,15 +31,46 @@ public final class TableContentFilter {
 
     public static void apply(TableRowSorter<TableModel> sorter, String filterText,
                              Map<Integer, Set<String>> columnFilters) {
+        sorter.setRowFilter(buildFilter(sorter.getModel(), filterText, columnFilters));
+    }
+
+    /**
+     * Returns the distinct values available for one column after applying the global filter and
+     * every other column filter. The target column's own selection is intentionally ignored.
+     */
+    public static List<String> collectVisibleDistinctValues(TableModel model, String filterText,
+                                                            Map<Integer, Set<String>> columnFilters,
+                                                            int targetColumnIndex) {
+        if (targetColumnIndex < 0 || targetColumnIndex >= model.getColumnCount()) {
+            return List.of();
+        }
+
+        Map<Integer, Set<String>> otherColumnFilters = new LinkedHashMap<>(columnFilters);
+        otherColumnFilters.remove(targetColumnIndex);
+        RowFilter<TableModel, Integer> filter = buildFilter(model, filterText, otherColumnFilters);
+
+        Set<String> values = new TreeSet<>((left, right) -> {
+            int caseInsensitiveResult = String.CASE_INSENSITIVE_ORDER.compare(left, right);
+            return caseInsensitiveResult != 0 ? caseInsensitiveResult : left.compareTo(right);
+        });
+        for (int row = 0; row < model.getRowCount(); row++) {
+            if (filter == null || filter.include(new ModelRowEntry(model, row))) {
+                values.add(Objects.toString(model.getValueAt(row, targetColumnIndex), ""));
+            }
+        }
+        return new ArrayList<>(values);
+    }
+
+    private static RowFilter<TableModel, Integer> buildFilter(TableModel model, String filterText,
+                                                               Map<Integer, Set<String>> columnFilters) {
         String text = filterText == null ? "" : filterText.trim();
         if (text.isEmpty() && columnFilters.isEmpty()) {
-            sorter.setRowFilter(null);
-            return;
+            return null;
         }
 
         List<RowFilter<TableModel, Integer>> filters = new ArrayList<>();
         if (!text.isEmpty()) {
-            List<ColumnCondition> conditions = parseColumnConditions(sorter.getModel(), text);
+            List<ColumnCondition> conditions = parseColumnConditions(model, text);
             if (conditions == null) {
                 filters.add(new ContentRowFilter(null, text));
             } else {
@@ -47,11 +81,11 @@ public final class TableContentFilter {
         }
 
         for (Map.Entry<Integer, Set<String>> entry : columnFilters.entrySet()) {
-            if (entry.getKey() >= 0 && entry.getKey() < sorter.getModel().getColumnCount()) {
+            if (entry.getKey() >= 0 && entry.getKey() < model.getColumnCount()) {
                 filters.add(new SelectedValuesRowFilter(entry.getKey(), entry.getValue()));
             }
         }
-        sorter.setRowFilter(filters.isEmpty() ? null : RowFilter.andFilter(filters));
+        return filters.isEmpty() ? null : RowFilter.andFilter(filters);
     }
 
     private static List<ColumnCondition> parseColumnConditions(TableModel model, String text) {
@@ -144,6 +178,36 @@ public final class TableContentFilter {
         @Override
         public boolean include(Entry<? extends TableModel, ? extends Integer> entry) {
             return selectedValues.contains(entry.getStringValue(columnIndex));
+        }
+    }
+
+    private static final class ModelRowEntry extends RowFilter.Entry<TableModel, Integer> {
+        private final TableModel model;
+        private final int rowIndex;
+
+        private ModelRowEntry(TableModel model, int rowIndex) {
+            this.model = model;
+            this.rowIndex = rowIndex;
+        }
+
+        @Override
+        public TableModel getModel() {
+            return model;
+        }
+
+        @Override
+        public int getValueCount() {
+            return model.getColumnCount();
+        }
+
+        @Override
+        public Object getValue(int index) {
+            return model.getValueAt(rowIndex, index);
+        }
+
+        @Override
+        public Integer getIdentifier() {
+            return rowIndex;
         }
     }
 }

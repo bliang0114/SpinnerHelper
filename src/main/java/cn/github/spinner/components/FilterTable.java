@@ -18,17 +18,17 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.TableColumnModelEvent;
 import javax.swing.event.TableColumnModelListener;
+import javax.swing.event.TableModelEvent;
 import javax.swing.table.*;
 import java.awt.*;
-import java.util.ArrayList;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class FilterTable extends JBTable {
     private final TableRowSorter<TableModel> sorter;
@@ -100,6 +100,12 @@ public class FilterTable extends JBTable {
         TableContentFilter.apply(sorter, filterComponent.getFilter(), columnFilters);
     }
 
+    public void clearColumnFilters() {
+        if (columnFilterHeader != null) {
+            columnFilterHeader.clearAllColumnFilters();
+        }
+    }
+
     @Override
     public @NotNull Component prepareRenderer(@NotNull TableCellRenderer renderer, int row, int column) {
         TableModel model = this.getModel();
@@ -156,6 +162,12 @@ public class FilterTable extends JBTable {
         private final JTableHeader tableHeader;
         private final Map<TableColumn, JToggleButton> buttons = new LinkedHashMap<>();
         private final Map<Integer, Set<String>> selectedValues = new LinkedHashMap<>();
+        private final Color activeAccent = JBColor.namedColor(
+                "Component.accentColor", new JBColor(0x3574F0, 0x548AF7));
+        private final Color activeBackground = JBColor.namedColor(
+                "ActionButton.pressedBackground", new JBColor(0xDCEBFF, 0x3D4B5C));
+        private final Icon activeFilterIcon = new ActiveFilterIcon(AllIcons.General.Filter, activeAccent);
+        private boolean clearAfterModelChangeScheduled;
 
         private ColumnFilterHeader(JTableHeader tableHeader) {
             this.tableHeader = tableHeader;
@@ -163,6 +175,10 @@ public class FilterTable extends JBTable {
             setOpaque(true);
             setBackground(JBColor.background());
             tableHeader.getColumnModel().addColumnModelListener(this);
+            getModel().addTableModelListener(this::scheduleClearAfterModelChange);
+            MouseAdapter popupHandler = createHeaderPopupHandler();
+            addMouseListener(popupHandler);
+            tableHeader.addMouseListener(popupHandler);
             rebuildButtons();
             attachTableHeader();
         }
@@ -193,6 +209,7 @@ public class FilterTable extends JBTable {
                 button.setMargin(JBUI.emptyInsets());
                 button.setBorder(JBUI.Borders.empty());
                 button.setToolTipText(SpinnerBundle.message("tooltip.table.column.filter", columnName));
+                button.addMouseListener(createHeaderPopupHandler());
                 button.addActionListener(e -> {
                     button.setSelected(selectedValues.containsKey(modelIndex));
                     showFilterPopup(column, button);
@@ -203,6 +220,58 @@ public class FilterTable extends JBTable {
             updateButtonStates();
             revalidate();
             repaint();
+        }
+
+        private MouseAdapter createHeaderPopupHandler() {
+            return new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    showClearFiltersPopup(e);
+                }
+
+                @Override
+                public void mouseReleased(MouseEvent e) {
+                    showClearFiltersPopup(e);
+                }
+            };
+        }
+
+        private void showClearFiltersPopup(MouseEvent event) {
+            if (!event.isPopupTrigger()) {
+                return;
+            }
+            JMenuItem clearItem = new JMenuItem(SpinnerBundle.message("menu.clear.all.column.filters"));
+            clearItem.setEnabled(!selectedValues.isEmpty());
+            clearItem.addActionListener(e -> clearAllColumnFilters());
+
+            JPopupMenu popupMenu = new JPopupMenu();
+            popupMenu.add(clearItem);
+            popupMenu.show((Component) event.getSource(), event.getX(), event.getY());
+        }
+
+        private void scheduleClearAfterModelChange(TableModelEvent event) {
+            boolean bulkDataChange = event.getFirstRow() == TableModelEvent.HEADER_ROW
+                    || event.getType() == TableModelEvent.INSERT
+                    || event.getType() == TableModelEvent.DELETE
+                    || event.getColumn() == TableModelEvent.ALL_COLUMNS;
+            if (!bulkDataChange || selectedValues.isEmpty() || clearAfterModelChangeScheduled) {
+                return;
+            }
+
+            clearAfterModelChangeScheduled = true;
+            SwingUtilities.invokeLater(() -> {
+                clearAfterModelChangeScheduled = false;
+                clearAllColumnFilters();
+            });
+        }
+
+        private void clearAllColumnFilters() {
+            if (selectedValues.isEmpty()) {
+                return;
+            }
+            selectedValues.clear();
+            updateButtonStates();
+            applyFilters();
         }
 
         private Map<Integer, Set<String>> getSelectedValues() {
@@ -293,15 +362,8 @@ public class FilterTable extends JBTable {
         }
 
         private List<String> collectColumnValues(int modelIndex) {
-            Set<String> values = new TreeSet<>((left, right) -> {
-                int caseInsensitiveResult = String.CASE_INSENSITIVE_ORDER.compare(left, right);
-                return caseInsensitiveResult != 0 ? caseInsensitiveResult : left.compareTo(right);
-            });
-            TableModel model = getModel();
-            for (int row = 0; row < model.getRowCount(); row++) {
-                values.add(Objects.toString(model.getValueAt(row, modelIndex), ""));
-            }
-            return new ArrayList<>(values);
+            return TableContentFilter.collectVisibleDistinctValues(
+                    getModel(), filterComponent.getFilter(), selectedValues, modelIndex);
         }
 
         private String displayValue(String value) {
@@ -328,7 +390,24 @@ public class FilterTable extends JBTable {
 
         private void updateButtonStates() {
             for (Map.Entry<TableColumn, JToggleButton> entry : buttons.entrySet()) {
-                entry.getValue().setSelected(selectedValues.containsKey(entry.getKey().getModelIndex()));
+                JToggleButton button = entry.getValue();
+                int modelIndex = entry.getKey().getModelIndex();
+                boolean active = selectedValues.containsKey(modelIndex);
+                String columnName = getModel().getColumnName(modelIndex);
+
+                button.setSelected(active);
+                button.setIcon(active ? activeFilterIcon : AllIcons.General.Filter);
+                button.setBorder(active
+                        ? JBUI.Borders.customLine(activeAccent, 1)
+                        : JBUI.Borders.empty());
+                button.setBorderPainted(active);
+                button.setContentAreaFilled(active);
+                button.setOpaque(active);
+                button.setBackground(activeBackground);
+                button.setToolTipText(SpinnerBundle.message(
+                        active ? "tooltip.table.column.filter.active" : "tooltip.table.column.filter",
+                        columnName));
+                button.repaint();
             }
         }
 
@@ -384,6 +463,42 @@ public class FilterTable extends JBTable {
 
         @Override
         public void columnSelectionChanged(javax.swing.event.ListSelectionEvent e) {
+        }
+    }
+
+    private static final class ActiveFilterIcon implements Icon {
+        private static final int STATUS_DOT_SIZE = 6;
+
+        private final Icon delegate;
+        private final Color accentColor;
+
+        private ActiveFilterIcon(Icon delegate, Color accentColor) {
+            this.delegate = delegate;
+            this.accentColor = accentColor;
+        }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            delegate.paintIcon(component, graphics, x, y);
+            Graphics2D graphics2D = (Graphics2D) graphics.create();
+            try {
+                graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int dotX = x + getIconWidth() - STATUS_DOT_SIZE;
+                graphics2D.setColor(accentColor);
+                graphics2D.fillOval(dotX, y, STATUS_DOT_SIZE, STATUS_DOT_SIZE);
+            } finally {
+                graphics2D.dispose();
+            }
+        }
+
+        @Override
+        public int getIconWidth() {
+            return delegate.getIconWidth();
+        }
+
+        @Override
+        public int getIconHeight() {
+            return delegate.getIconHeight();
         }
     }
 }
