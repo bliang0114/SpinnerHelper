@@ -31,4 +31,18 @@ public class MQLCommandParserTest extends TestCase {
         assertEquals("print type Part", entries.get(0).command());
         assertEquals(1, entries.get(0).lineNumber());
     }
+
+    public void testIgnoresJavadocStyleCommentAndSeeTag() {
+        String source = "/**\n"
+                + " * Describes the command.\n"
+                + " * @see type Part;\n"
+                + " */\n"
+                + "print type Part;";
+
+        List<MQLCommandEntry> entries = MQLCommandParser.parse(source, 0, source.length(), ";");
+
+        assertEquals(1, entries.size());
+        assertEquals("print type Part", entries.get(0).command());
+        assertEquals(4, entries.get(0).lineNumber());
+    }
 }

@@ -134,6 +134,9 @@
         <lang.commenter language="MQL"
                         implementationClass="cn.github.spinner.editor.MQLCommenter"/>
 
+        <psi.referenceContributor language="MQL"
+                                  implementation="cn.github.spinner.editor.reference.MQLSeeReferenceContributor"/>
+
         <enterHandlerDelegate implementation="cn.github.spinner.editor.MQLCommentEnterHandler"/>
 
         <completion.contributor language="MQL"

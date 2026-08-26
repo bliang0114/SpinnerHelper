@@ -23,7 +23,8 @@ LETTER         = [a-zA-Z_]                   // 字母（含下划线）
 IDENTIFIER     = {LETTER}({LETTER}|{DIGIT})* // 标识符（字母开头，后接字母/数字）
 
 LINE_COMMENT   = "//"[^\r\n]*                // 单行注释（// 开头，到行尾结束）
-BLOCK_COMMENT  = "/"\*([^*]|\*+[^*/])*(\*+"/")? // 多行注释（/* 或 /** 开头，*/ 结尾）
+DOC_COMMENT    = "/"\*\*([^*]|\*+[^*/])*(\*+"/")? // 文档注释（/** 开头，支持 @see 等标签）
+BLOCK_COMMENT  = "/"\*([^*]|\*+[^*/])*(\*+"/")?   // 多行注释（/* 开头，*/ 结尾）
 
 STRING         = \"([^\\\"\r\n]|\\[^\r\n])*\"? // 字符串（双引号包裹，支持转义字符）
 CHAR           = '([^\\']|\\[^])*'?           // 字符（单引号包裹，支持转义字符）
@@ -39,6 +40,7 @@ NUMBER         = ({DIGIT}+|{DIGIT}*\.{DIGIT}+)([eE][-+]?{DIGIT}+)? // 数值（�
     // 2. 注释处理
     #[^\n]*                { return MQLTokenTypes.COMMENT; }
     {LINE_COMMENT}         { return MQLTokenTypes.COMMENT; }
+    {DOC_COMMENT}          { return MQLTokenTypes.COMMENT; }
     {BLOCK_COMMENT}        { return MQLTokenTypes.COMMENT; }
 
     // 3. 字面量处理（字符串、字符、数值）

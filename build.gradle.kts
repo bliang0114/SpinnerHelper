@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "3.0.6"
+version = "3.1.0"
 
 repositories {
 //    mavenCentral()
@@ -47,6 +47,11 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
+            <h2>3.1.0</h2>
+            <ul>
+            <li>MQL 文件支持 <code>/** ... */</code> 文档注释语法，并正确忽略注释中的 <code>@see</code> 内容和命令分隔符</li>
+            <li>支持在 <code>@see</code> 后使用 Java 文件、类或方法引用，并通过 Ctrl/⌘-点击跳转到对应源码</li>
+            </ul>
             <h2>3.0.6</h2>
             <ul>
             <li>修复 Program 视图无法打开对应源文件的问题：双击 JPO 行时优先从服务端拉取源码，找不到再回退到工程内索引的 class / 编译产物导航，不再写入临时文件</li>
@@ -99,7 +104,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.6"
+        version = "3.1.0"
     }
 }
 
@@ -143,6 +148,6 @@ tasks {
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.0.6"
+        version = "3.1.0"
     }
 }
