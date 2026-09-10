@@ -146,6 +146,7 @@
 
         <fileEditorProvider implementation="cn.github.spinner.editor.ui.MatrixCommonViewProvider"/>
         <fileEditorProvider implementation="cn.github.spinner.editor.spinner.SpinnerDataViewProvider"/>
+        <stripTrailingSpacesFilterFactory implementation="cn.github.spinner.editor.spinner.SpinnerTrailingSpacesFilterFactory"/>
         <fileEditorProvider implementation="cn.github.spinner.editor.MQLSplitEditorProvider"/>
     </extensions>
     <actions>

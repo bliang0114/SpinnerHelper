@@ -9,7 +9,6 @@ import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.actionSystem.*;
@@ -20,7 +19,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDocumentManager;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.util.ui.FormBuilder;
@@ -43,6 +41,9 @@ public class SpinnerDataRecordBuilder {
     private int modelRowIndex;
     private AbstractSpinnerViewComponent spinnerViewComponent;
     private JComponent[] components;
+    private String originalLine;
+    private String[] renderedBaseline;
+    private boolean building;
     private final DefaultActionGroup actionGroup;
 
     private SpinnerDataRecordBuilder(VirtualFile virtualFile, int modelRowIndex, AbstractSpinnerViewComponent spinnerViewComponent) {
@@ -63,6 +64,8 @@ public class SpinnerDataRecordBuilder {
     }
 
     public JComponent build(String[] headers, Vector<String> values) {
+        building = true;
+        originalLine = String.join("\t", values.stream().map(value -> value == null ? "" : value).toList());
         long startedNanos = System.nanoTime();
         this.components = new JComponent[headers.length];
         SpinnerType spinnerType = SpinnerType.fromFile(this.virtualFile);
@@ -73,7 +76,8 @@ public class SpinnerDataRecordBuilder {
             if (CharSequenceUtil.containsAny(headers[i], "Setting Name")) {
                 label = label.replace(" Names ", " Names \\& Values ");
                 label = label.replace(" Name ", " Name \\& Value ");
-                this.components[i] = new SpinnerSettingsComponent(spinnerType, value, values.elementAt(i + 1), this::applyIfChanged);
+                this.components[i] = new SpinnerSettingsComponent(spinnerType, value,
+                        i + 1 < values.size() ? values.elementAt(i + 1) : "", this::applyIfChanged);
             } else if (CharSequenceUtil.containsAny(label, "Setting Value")) {
                 continue;
             } else if (spinnerType == SpinnerType.ATTRIBUTE && "Type".equals(label)) {
@@ -139,25 +143,47 @@ public class SpinnerDataRecordBuilder {
         panel.add(scrollPane, BorderLayout.CENTER);
         logPerformance("record form build", startedNanos, SLOW_BUILD_MS,
                 "row=" + modelRowIndex + ", columns=" + headers.length + ", spinnerType=" + spinnerType);
+        renderedBaseline = getRenderedValues();
+        building = false;
         return panel;
     }
 
     public String getValue() {
-        StringBuilder value = new StringBuilder();
+        if (renderedBaseline == null) return originalLine;
+        String[] edited = getRenderedValues();
+        String[] result = originalLine.split("\t", -1);
+        for (int i = 0; i < edited.length; i++) {
+            if (java.util.Objects.equals(edited[i], renderedBaseline[i])) continue;
+            if (i >= result.length) {
+                int previousLength = result.length;
+                result = Arrays.copyOf(result, i + 1);
+                Arrays.fill(result, previousLength, result.length, "");
+            }
+            result[i] = edited[i];
+        }
+        return String.join("\t", result);
+    }
+
+    private String[] getRenderedValues() {
+        String[] values = new String[components.length];
+        Arrays.fill(values, "");
         if (this.components != null) {
-            for (JComponent component : this.components) {
+            for (int i = 0; i < components.length; i++) {
+                JComponent component = components[i];
                 if (component instanceof SpinnerTextFieldComponent textFieldComponent) {
-                    value.append(textFieldComponent.getValue()).append("\t");
+                    values[i] = textFieldComponent.getValue();
                 } else if (component instanceof ComboBox<?> comboBox) {
-                    value.append(comboBox.getItem()).append("\t");
+                    values[i] = String.valueOf(comboBox.getEditor().getItem());
                 } else if (component instanceof SpinnerSettingsComponent settingsComponent) {
-                    value.append(settingsComponent.getValue()).append("\t");
+                    String[] pair = settingsComponent.getValue().split("\t", -1);
+                    values[i] = pair[0];
+                    if (i + 1 < values.length) values[++i] = pair[1];
                 } else if (component instanceof SpinnerMultiTextFieldComponent multiTextFieldComponent) {
-                    value.append(multiTextFieldComponent.getValue()).append("\t");
+                    values[i] = multiTextFieldComponent.getValue();
                 }
             }
         }
-        return value.toString();
+        return values;
     }
 
     public class DeployAction extends AnAction {
@@ -167,7 +193,9 @@ public class SpinnerDataRecordBuilder {
 
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
+            if (!spinnerViewComponent.isDocumentCurrent()) return;
             String finalValue = apply();
+            if (finalValue == null) return;
             if (project == null) {
                 UIUtil.showWarningNotification(null, SpinnerBundle.message("notification.title.spinner.data.view"), SpinnerBundle.message("message.batch.processing.failed", "project is null"));
                 return;
@@ -210,12 +238,15 @@ public class SpinnerDataRecordBuilder {
     }
 
     private void applyIfChanged() {
+        if (building) return;
         apply();
     }
 
     public String apply(){
         long totalStartedNanos = System.nanoTime();
         String value = getValue();
+        if (building || value == null || value.equals(originalLine)) return value;
+        if (!spinnerViewComponent.isDocumentCurrent()) return null;
         int lineNumber = modelRowIndex + 1;
         long documentLookupStartedNanos = System.nanoTime();
         Document document = ReadAction.compute(() -> FileDocumentManager.getInstance().getDocument(virtualFile));
@@ -243,13 +274,7 @@ public class SpinnerDataRecordBuilder {
                     Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
             return null;
         }
-        String[] valueArr = value.split("\t", -1);
-        String[] lineValueArr = snapshot.lineValue.split("\t", -1);
-        boolean notNeedRefactor = valueArr.length <= lineValueArr.length || Arrays.stream(valueArr, lineValueArr.length, valueArr.length).anyMatch(StrUtil::isNotEmpty);
-        if (!notNeedRefactor) {
-            String[] newValueArr = Arrays.copyOf(valueArr, lineValueArr.length);
-            value = String.join("\t", newValueArr);
-        }
+        if (!snapshot.lineValue.equals(originalLine)) return null;
         String finalValue = value;
         if (finalValue.equals(snapshot.lineValue)) {
             return finalValue;
@@ -258,17 +283,17 @@ public class SpinnerDataRecordBuilder {
         spinnerViewComponent.runInternalDocumentUpdate(() ->
                 WriteCommandAction.runWriteCommandAction(project, () -> {
                     document.replaceString(snapshot.startOffset, snapshot.endOffset, finalValue);
-                    PsiDocumentManager.getInstance(project).commitDocument(document);
                 })
         );
-        long writeAndCommitMs = elapsedMillis(writeStartedNanos);
+        long writeMs = elapsedMillis(writeStartedNanos);
         long reloadStartedNanos = System.nanoTime();
         spinnerViewComponent.reloadValue(modelRowIndex, finalValue);
+        originalLine = finalValue;
+        renderedBaseline = getRenderedValues();
         long reloadMs = elapsedMillis(reloadStartedNanos);
-        long totalMs = elapsedMillis(totalStartedNanos);
         String details = "row=" + modelRowIndex + ", valueChars=" + finalValue.length() +
                 ", documentLookupMs=" + documentLookupMs + ", snapshotMs=" + snapshotMs +
-                ", writeAndCommitMs=" + writeAndCommitMs + ", reloadMs=" + reloadMs;
+                ", writeMs=" + writeMs + ", reloadMs=" + reloadMs;
         logPerformance("apply row edit", totalStartedNanos, SLOW_APPLY_MS, details);
         return finalValue;
     }

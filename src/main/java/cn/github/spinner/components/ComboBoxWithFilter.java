@@ -17,8 +17,14 @@ public class ComboBoxWithFilter<E> extends ComboBox<E> {
     }
 
     public ComboBoxWithFilter(List<E> itemList, E defaultValue) {
+        this(itemList, defaultValue, false);
+    }
+
+    public ComboBoxWithFilter(List<E> itemList, E defaultValue, boolean preserveWhitespace) {
         super();
         DefaultComboBoxModel<E> comboBoxModel = new DefaultComboBoxModel<>();
+        // Give autocomplete an exact match, including unknown names and empty slots.
+        if (preserveWhitespace && defaultValue != null) comboBoxModel.addElement(defaultValue);
         for (E item : itemList) {
             comboBoxModel.addElement(item);
         }
@@ -28,7 +34,7 @@ public class ComboBoxWithFilter<E> extends ComboBox<E> {
             @Override
             public String getPreferredStringForItem(Object o) {
                 if (o instanceof String str) {
-                    return str.trim();
+                    return preserveWhitespace ? str : str.trim();
                 }
                 return String.valueOf(o);
             }

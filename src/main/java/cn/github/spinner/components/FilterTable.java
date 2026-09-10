@@ -35,6 +35,11 @@ public class FilterTable extends JBTable {
     @Getter
     private final FilterComponent filterComponent;
     private final ColumnFilterHeader columnFilterHeader;
+    private boolean preserveColumnFiltersOnDataChange;
+
+    public void setPreserveColumnFiltersOnDataChange(boolean preserve) {
+        preserveColumnFiltersOnDataChange = preserve;
+    }
 
     public FilterTable() {
         this(new DefaultTableModel());
@@ -251,6 +256,7 @@ public class FilterTable extends JBTable {
         }
 
         private void scheduleClearAfterModelChange(TableModelEvent event) {
+            if (preserveColumnFiltersOnDataChange && event.getFirstRow() != TableModelEvent.HEADER_ROW) return;
             boolean bulkDataChange = event.getFirstRow() == TableModelEvent.HEADER_ROW
                     || event.getType() == TableModelEvent.INSERT
                     || event.getType() == TableModelEvent.DELETE

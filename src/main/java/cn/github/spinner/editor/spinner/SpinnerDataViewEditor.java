@@ -3,14 +3,11 @@ package cn.github.spinner.editor.spinner;
 import cn.github.spinner.components.EnvironmentIndicator;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManagerEvent;
-import com.intellij.openapi.fileEditor.FileEditorManagerListener;
 import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.util.messages.MessageBusConnection;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,7 +21,6 @@ public class SpinnerDataViewEditor extends UserDataHolderBase implements FileEdi
     private final JComponent editorComponent;
     private final JComponent rootComponent;
     private final AtomicBoolean isDisposed = new AtomicBoolean(false);
-    private final MessageBusConnection connection;
 
     public SpinnerDataViewEditor(@NotNull Project project, @NotNull VirtualFile virtualFile) {
         this.virtualFile = virtualFile;
@@ -33,17 +29,6 @@ public class SpinnerDataViewEditor extends UserDataHolderBase implements FileEdi
         panel.add(new EnvironmentIndicator(project), java.awt.BorderLayout.NORTH);
         panel.add(editorComponent, java.awt.BorderLayout.CENTER);
         this.rootComponent = panel;
-        this.connection = project.getMessageBus().connect();
-        this.connection.subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, new FileEditorManagerListener() {
-            @Override
-            public void selectionChanged(@NotNull FileEditorManagerEvent event) {
-                if (event.getNewEditor() == SpinnerDataViewEditor.this &&
-                        editorComponent instanceof AbstractSpinnerViewComponent spinnerViewComponent &&
-                        spinnerViewComponent.hasPendingRefresh()) {
-                    SwingUtilities.invokeLater(spinnerViewComponent::refreshFromDocument);
-                }
-            }
-        });
     }
 
     @Override
@@ -73,7 +58,7 @@ public class SpinnerDataViewEditor extends UserDataHolderBase implements FileEdi
 
     @Override
     public boolean isValid() {
-        return true;
+        return !isDisposed.get() && virtualFile.isValid();
     }
 
     @Override
@@ -94,13 +79,12 @@ public class SpinnerDataViewEditor extends UserDataHolderBase implements FileEdi
     @Override
     public void selectNotify() {
         if (editorComponent instanceof AbstractSpinnerViewComponent spinnerViewComponent && spinnerViewComponent.hasPendingRefresh()) {
-            SwingUtilities.invokeLater(spinnerViewComponent::refreshFromDocument);
+            spinnerViewComponent.refreshFromDocument();
         }
     }
 
     @Override
     public void dispose() {
-        connection.disconnect();
         if (editorComponent instanceof Disposable disposable && isDisposed.compareAndSet(false, true)) {
             Disposer.dispose(disposable);
         }

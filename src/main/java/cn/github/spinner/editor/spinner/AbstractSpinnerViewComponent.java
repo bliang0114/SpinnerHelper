@@ -1,12 +1,13 @@
 package cn.github.spinner.editor.spinner;
 
 import cn.github.spinner.components.FilterTable;
-import cn.github.spinner.components.RowNumberTableModel;
 import cn.github.spinner.i18n.SpinnerBundle;
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ModalityState;
+import com.intellij.util.Alarm;
+import com.intellij.util.concurrency.AppExecutorUtil;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.editor.Document;
@@ -44,7 +45,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
     protected DefaultActionGroup actionGroup;
     protected RecordPaneVisibleAction recordPaneVisibleAction;
     protected JBTabbedPane recordPane;
-    protected String[] headers;
+    protected String[] headers = new String[0];
     protected final List<String[]> dataList = new ArrayList<>();
     private DocumentListener documentListener;
     private boolean pendingRefresh;
@@ -53,7 +54,12 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
     private boolean internalDocumentUpdate;
     private boolean recordComponentLoaded;
     private int displayedRecordModelRow = -1;
-    private String pendingDocumentText;
+    private Document document;
+    private volatile boolean disposed;
+    private long appliedStamp = -1;
+    private final Alarm refreshAlarm = new Alarm(Alarm.ThreadToUse.SWING_THREAD, this);
+    private final Alarm recordAlarm = new Alarm(Alarm.ThreadToUse.SWING_THREAD, this);
+    private org.jetbrains.concurrency.CancellablePromise<?> parseRequest;
 
     public AbstractSpinnerViewComponent(@NotNull Project project, @NotNull VirtualFile virtualFile) {
         this.project = project;
@@ -61,7 +67,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         long totalStartedNanos = System.nanoTime();
         try {
             long phaseStartedNanos = System.nanoTime();
-            readFile();
+            if (!"xls".equals(virtualFile.getExtension())) throw new IllegalArgumentException("Invalid Spinner file");
             logPhase("readFile", phaseStartedNanos, "rows=" + dataList.size() + ", columns=" + headers.length);
             phaseStartedNanos = System.nanoTime();
             initComponents();
@@ -73,7 +79,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
             setupLayout();
             logPhase("setupLayout", phaseStartedNanos, "columns=" + tableModel.getColumnCount());
             phaseStartedNanos = System.nanoTime();
-            setValue();
+            refreshFromDocument();
             logPhase("populateTable", phaseStartedNanos, "rows=" + tableModel.getRowCount());
             log.info("[SpinnerEditorPerf] component initialization completed: file={}, elapsedMs={}, rows={}, columns={}, thread={}, edt={}",
                     virtualFile.getPath(), elapsedMillis(totalStartedNanos), tableModel.getRowCount(), tableModel.getColumnCount(),
@@ -88,8 +94,9 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
     }
 
     protected void initComponents() {
-        tableModel = new RowNumberTableModel(headers, 0);
+        tableModel = new SpinnerTableModel();
         table = new FilterTable(tableModel);
+        table.setPreserveColumnFiltersOnDataChange(true);
         recordPane = new JBTabbedPane();
         recordPane.add(SpinnerBundle.message("tab.record"), new JPanel());
         recordPaneVisibleAction = new RecordPaneVisibleAction();
@@ -126,9 +133,12 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
             }
 
             int modelRowIndex = table.convertRowIndexToModel(selectedRow);
-            showRecordForRow(modelRowIndex, false);
+            recordAlarm.cancelAllRequests();
+            recordAlarm.addRequest(() -> {
+                if (!disposed && getSelectedModelRow() == modelRowIndex) showRecordForRow(modelRowIndex, false);
+            }, 75);
         });
-        Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
+        document = FileDocumentManager.getInstance().getDocument(virtualFile);
         if (document == null) {
             log.warn("Document not found for file: {}", virtualFile.getPath());
             return;
@@ -139,19 +149,10 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
                 if (internalDocumentUpdate) {
                     return;
                 }
-                long eventStartedNanos = System.nanoTime();
-                SwingUtilities.invokeLater(() -> {
-                    long queueDelayMs = elapsedMillis(eventStartedNanos);
-                    long captureStartedNanos = System.nanoTime();
-                    pendingDocumentText = event.getDocument().getText();
-                    long captureMs = elapsedMillis(captureStartedNanos);
-                    if (queueDelayMs >= SLOW_PHASE_MS || captureMs >= SLOW_PHASE_MS) {
-                        log.warn("[SpinnerEditorPerf] documentChanged handoff slow: file={}, queueDelayMs={}, captureTextMs={}, documentChars={}, showing={}, thread={}, edt={}",
-                                virtualFile.getPath(), queueDelayMs, captureMs, event.getDocument().getTextLength(), isShowing(),
-                                Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
-                    }
+                pendingRefresh = true;
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    if (disposed) return;
                     if (!isShowing()) {
-                        pendingRefresh = true;
                         return;
                     }
                     scheduleRefreshFromDocument();
@@ -201,21 +202,16 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         add(splitter, BorderLayout.CENTER);
     }
 
-    protected void setValue() {
-        for (String[] row : dataList) {
-            tableModel.addRow(row);
-        }
-    }
-
     public void reloadValue(int rowIndex, String line) {
-        int columnCount = tableModel.getColumnCount();
-        String[] values = line.split("\t");
+        String[] values = line.split("\t", -1);
         dataList.set(rowIndex, values);
-        pendingDocumentText = null;
-        for (int i = 0; i < columnCount; i++) {
-            String value = i >= values.length ? "" : values[i];
-            tableModel.setValueAt(value, rowIndex, i);
+        updatingTable = true;
+        try {
+            ((SpinnerTableModel) tableModel).replaceRow(rowIndex, values);
+        } finally {
+            updatingTable = false;
         }
+        appliedStamp = document.getModificationStamp();
     }
 
     void runInternalDocumentUpdate(@NotNull Runnable update) {
@@ -228,81 +224,102 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
     }
 
     public void refreshFromDocument() {
-        long startedNanos = System.nanoTime();
-        String text = pendingDocumentText;
-        boolean usedPendingText = text != null;
-        if (text == null) {
-            text = ReadAction.compute(() -> {
-                Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
-                return document == null ? null : document.getText();
-            });
-        }
-        if (text != null) {
-            refreshFromText(text);
-        }
-        long elapsedMs = elapsedMillis(startedNanos);
-        if (elapsedMs >= SLOW_REFRESH_MS) {
-            log.warn("[SpinnerEditorPerf] refreshFromDocument slow: file={}, elapsedMs={}, source={}, textChars={}, rows={}, thread={}, edt={}",
-                    virtualFile.getPath(), elapsedMs, usedPendingText ? "pending-event" : "document", text == null ? 0 : text.length(),
-                    tableModel.getRowCount(), Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
-        }
-    }
-
-    private void scheduleRefreshFromDocument() {
-        if (refreshScheduled) {
-            pendingRefresh = true;
+        if (disposed || document == null) return;
+        if (document.getModificationStamp() == appliedStamp) {
+            pendingRefresh = false;
             return;
         }
-        refreshScheduled = true;
         pendingRefresh = true;
-        SwingUtilities.invokeLater(() -> {
-            refreshScheduled = false;
-            if (!isDisplayable() || !isShowing() || !pendingRefresh) {
-                return;
-            }
-            refreshFromDocument();
-        });
+        if (refreshScheduled) return;
+        refreshScheduled = true;
+        refreshAlarm.addRequest(() -> {
+            if (disposed) return;
+            if (parseRequest != null) parseRequest.cancel();
+            parseRequest = ReadAction.nonBlocking(() -> {
+                long stamp = document.getModificationStamp();
+                return new ParsedDocument(stamp, SpinnerTableSnapshot.parse(document.getText()));
+            }).expireWith(this).coalesceBy(this)
+                    .finishOnUiThread(ModalityState.any(), parsed -> {
+                        if (disposed) return;
+                        refreshScheduled = false;
+                        if (document.getModificationStamp() != parsed.stamp()) {
+                            refreshFromDocument();
+                            return;
+                        }
+                        applySnapshot(parsed.snapshot());
+                        appliedStamp = parsed.stamp();
+                        pendingRefresh = false;
+                    }).submit(AppExecutorUtil.getAppExecutorService());
+        }, 75);
     }
 
-    private void refreshFromText(@NotNull String text) {
+    private record ParsedDocument(long stamp, SpinnerTableSnapshot snapshot) {}
+
+    private void scheduleRefreshFromDocument() {
+        if (!disposed && isShowing() && pendingRefresh) refreshFromDocument();
+    }
+
+    private void applySnapshot(SpinnerTableSnapshot snapshot) {
         long totalStartedNanos = System.nanoTime();
         int selectedModelRow = getSelectedModelRow();
+        int[] selectedRows = java.util.Arrays.stream(table.getSelectedRows()).map(table::convertRowIndexToModel).toArray();
+        int[] selectedColumns = java.util.Arrays.stream(table.getSelectedColumns()).map(table::convertColumnIndexToModel).toArray();
         boolean recordVisible = recordPane.isVisible();
-        long parseMs;
-        long populateMs;
-        long restoreMs;
+        JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, table);
+        Point position = viewport == null ? null : viewport.getViewPosition();
+        boolean structureChanged = !java.util.Arrays.equals(headers, snapshot.headers());
         updatingTable = true;
         try {
-            tableModel.setRowCount(0);
-            dataList.clear();
-            long parseStartedNanos = System.nanoTime();
-            List<String> lines = parseLines(text);
-            if (!lines.isEmpty()) {
-                lines.remove(0);
-                dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
+            if (structureChanged) {
+                table.clearColumnFilters();
+                // The old filter may refer to columns removed by the new header.
+                ((DefaultRowSorter<?, ?>) table.getRowSorter()).setRowFilter(null);
             }
-            parseMs = elapsedMillis(parseStartedNanos);
-            long populateStartedNanos = System.nanoTime();
-            setValue();
-            populateMs = elapsedMillis(populateStartedNanos);
-            long restoreStartedNanos = System.nanoTime();
-            restoreSelection(selectedModelRow);
+            dataList.clear();
+            dataList.addAll(snapshot.rows());
+            headers = snapshot.headers();
+            ((SpinnerTableModel) tableModel).replace(snapshot);
+            if (structureChanged) {
+                table.getFilterComponent().filter();
+                table.getColumnModel().getColumn(0).setMaxWidth(60);
+                for (int i = 1; i < tableModel.getColumnCount(); i++) {
+                    table.getColumnModel().getColumn(i).setPreferredWidth(240);
+                }
+            }
+            table.clearSelection();
+            for (int row : selectedRows) {
+                if (row < tableModel.getRowCount()) {
+                    int viewRow = table.convertRowIndexToView(row);
+                    if (viewRow >= 0) table.addRowSelectionInterval(viewRow, viewRow);
+                }
+            }
+            for (int column : selectedColumns) {
+                if (column < tableModel.getColumnCount()) {
+                    int viewColumn = table.convertColumnIndexToView(column);
+                    if (viewColumn >= 0) table.addColumnSelectionInterval(viewColumn, viewColumn);
+                }
+            }
             refreshRecordPane(selectedModelRow, recordVisible);
-            restoreMs = elapsedMillis(restoreStartedNanos);
+            if (viewport != null && position != null) {
+                viewport.setViewPosition(new Point(Math.min(position.x, Math.max(0, table.getPreferredSize().width - viewport.getWidth())),
+                        Math.min(position.y, Math.max(0, table.getPreferredSize().height - viewport.getHeight()))));
+            }
         } finally {
             updatingTable = false;
         }
-        pendingRefresh = false;
         long totalMs = elapsedMillis(totalStartedNanos);
         if (totalMs >= SLOW_REFRESH_MS) {
-            log.warn("[SpinnerEditorPerf] table refresh slow: file={}, elapsedMs={}, parseMs={}, populateMs={}, restoreAndRecordMs={}, textChars={}, rows={}, columns={}, recordVisible={}, thread={}, edt={}",
-                    virtualFile.getPath(), totalMs, parseMs, populateMs, restoreMs, text.length(), tableModel.getRowCount(),
-                    tableModel.getColumnCount(), recordVisible, Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
+            log.warn("[SpinnerEditorPerf] table snapshot apply: file={}, elapsedMs={}, rows={}, columns={}",
+                    virtualFile.getPath(), totalMs, tableModel.getRowCount(), tableModel.getColumnCount());
         }
     }
 
     public boolean hasPendingRefresh() {
         return pendingRefresh;
+    }
+
+    boolean isDocumentCurrent() {
+        return !disposed && document != null && document.getModificationStamp() == appliedStamp;
     }
 
     @Override
@@ -315,13 +332,16 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
 
     @Override
     public void dispose() {
+        disposed = true;
+        refreshAlarm.cancelAllRequests();
+        recordAlarm.cancelAllRequests();
+        if (parseRequest != null) parseRequest.cancel();
         documentListener = null;
         pendingRefresh = false;
         refreshScheduled = false;
         internalDocumentUpdate = false;
         recordComponentLoaded = false;
         displayedRecordModelRow = -1;
-        pendingDocumentText = null;
         if (recordPane != null) {
             recordPane.removeAll();
         }
@@ -329,51 +349,9 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         dataList.clear();
     }
 
-    protected void readFile() throws Exception {
-        String extension = this.virtualFile.getExtension();
-        if (!"xls".equals(extension)) {
-            throw new Exception("Error: invalid spinner file");
-        }
-        List<String> lines = ReadAction.compute(() -> {
-            Document document = FileDocumentManager.getInstance().getDocument(virtualFile);
-            return document == null ? null : parseLines(document.getText());
-        });
-        try {
-            if (lines == null || lines.isEmpty()) {
-                lines = FileUtil.readLines(virtualFile.getPath(), virtualFile.getCharset());
-            }
-            if (lines == null || lines.isEmpty()) {
-                throw new Exception("Error: file is empty");
-            }
-        } catch (Exception e) {
-            throw new Exception("Error: error while reading file");
-        }
-        String header = lines.get(0);
-        headers = header.split("\t");
-        lines.remove(0);
-        dataList.addAll(lines.stream().map(line -> line.split("\t")).toList());
-    }
-
-    private static List<String> parseLines(@NotNull String text) {
-        return CharSequenceUtil.split(text.replace("\r\n", "\n").replace('\r', '\n'), "\n");
-    }
-
     private int getSelectedModelRow() {
         int selectedRow = table.getSelectedRow();
         return selectedRow >= 0 ? table.convertRowIndexToModel(selectedRow) : -1;
-    }
-
-    private void restoreSelection(int selectedModelRow) {
-        if (selectedModelRow < 0 || selectedModelRow >= tableModel.getRowCount()) {
-            table.clearSelection();
-            return;
-        }
-        int viewRow = table.convertRowIndexToView(selectedModelRow);
-        if (viewRow >= 0) {
-            table.setRowSelectionInterval(viewRow, viewRow);
-        } else {
-            table.clearSelection();
-        }
     }
 
     private void refreshRecordPane(int selectedModelRow, boolean recordVisible) {
@@ -403,8 +381,7 @@ public abstract class AbstractSpinnerViewComponent extends JPanel implements Dis
         if (!force && recordComponentLoaded && displayedRecordModelRow == modelRowIndex) {
             return;
         }
-        @SuppressWarnings("unchecked")
-        Vector<String> vector = tableModel.getDataVector().get(modelRowIndex);
+        Vector<String> vector = new Vector<>(java.util.Arrays.asList(dataList.get(modelRowIndex)));
         long startedNanos = System.nanoTime();
         JComponent component = SpinnerDataRecordBuilder.createBuilder(this.virtualFile, modelRowIndex, AbstractSpinnerViewComponent.this)
                 .setProject(project).build(headers, vector);

@@ -45,7 +45,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
     }
 
     private void initComponents() {
-        String[] values = this.value.split("[" + separator + "]");
+        String[] values = this.value.split(java.util.regex.Pattern.quote(separator), -1);
         components =  new ArrayList<>(values.length);
         for (String s : values) {
             components.add(createTextField(s));
@@ -86,17 +86,7 @@ public class SpinnerMultiTextFieldComponent extends JPanel {
     }
 
     public String getValue() {
-        StringBuilder value = new StringBuilder();
-        for (ExpandableTextField textField : components) {
-            String text = textField.getText();
-            if (!text.isEmpty()) {
-                value.append(textField.getText()).append(separator);
-            }
-        }
-        if (!value.isEmpty()) {
-            value.deleteCharAt(value.length() - 1);
-        }
-        return value.toString();
+        return String.join(separator, components.stream().map(ExpandableTextField::getText).toList());
     }
 
     private ExpandableTextField createTextField(String value) {

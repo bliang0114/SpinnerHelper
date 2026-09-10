@@ -40,14 +40,14 @@ public class SpinnerSettingsComponent extends JPanel {
     }
 
     private void initComponents() {
-        String[] settingNames = this.settingName.split("(?<!\\|)\\|(?!\\|)");
-        String[] settingValues = this.settingValue.split("(?<!\\|)\\|(?!\\|)");
+        String[] settingNames = this.settingName.split("(?<!\\|)\\|(?!\\|)", -1);
+        String[] settingValues = this.settingValue.split("(?<!\\|)\\|(?!\\|)", -1);
         settingNameComponents =  new ArrayList<>(settingNames.length);
         settingValueComponents =  new ArrayList<>(settingNames.length);
         List<String> settingNameItems = SpinnerSettingNameConfig.getSettingNames(this.spinnerType);
-        for (int i = 0; i < settingNames.length; i++) {
-            settingNameComponents.add(createSettingNameComponent(settingNameItems, settingNames[i]));
-            String value = i >= settingValues.length ? "" : settingValues[i];
+        for (int i = 0; i < Math.max(settingNames.length, settingValues.length); i++) {
+            settingNameComponents.add(createSettingNameComponent(settingNameItems, i < settingNames.length ? settingNames[i] : null));
+            String value = i >= settingValues.length ? null : settingValues[i];
             settingValueComponents.add(createSettingValueComponent(value));
         }
         actionGroup = new DefaultActionGroup();
@@ -97,25 +97,36 @@ public class SpinnerSettingsComponent extends JPanel {
     }
 
     private void getComponentValue(StringBuilder value, List<?> settingComponents) {
-        int startLength = value.length();
+        List<String> tokens = new ArrayList<>();
+        int lastPresent = -1;
         for (Object component : settingComponents) {
             String text = "";
             if (component instanceof ExpandableTextField textField) {
                 text = textField.getText();
             } else if (component instanceof ComboBoxWithFilter<?> comboBox) {
-                text = String.valueOf(comboBox.getItem());
+                text = String.valueOf(comboBox.getEditor().getItem());
             }
-            if (!text.isEmpty()) {
-                value.append(text).append("|");
-            }
+            String original = (String) ((JComponent) component).getClientProperty("spinner.rawToken");
+            tokens.add(preserveSpacing(original, text));
+            if (original != null || !text.isEmpty()) lastPresent = tokens.size() - 1;
         }
-        if (value.length() > startLength) {
-            value.deleteCharAt(value.length() - 1);
-        }
+        value.append(String.join("|", tokens.subList(0, lastPresent + 1)));
+    }
+
+    private static String preserveSpacing(String original, String text) {
+        if (original == null || original.equals(text)) return text;
+        int start = 0;
+        int end = original.length();
+        while (start < end && original.charAt(start) == ' ') start++;
+        while (end > start && original.charAt(end - 1) == ' ') end--;
+        String prefix = original.substring(0, start);
+        String suffix = original.substring(end);
+        return (text.startsWith(prefix) ? "" : prefix) + text + (text.endsWith(suffix) ? "" : suffix);
     }
 
     private ComboBoxWithFilter<String> createSettingNameComponent(List<String> settingNameItems, String value) {
-        ComboBoxWithFilter<String> comboBox = new ComboBoxWithFilter<>(settingNameItems, value);
+        ComboBoxWithFilter<String> comboBox = new ComboBoxWithFilter<>(settingNameItems, value == null ? "" : value, true);
+        comboBox.putClientProperty("spinner.rawToken", value);
         comboBox.addActionListener(e -> notifyValueChanged());
         Component editorComponent = comboBox.getEditor().getEditorComponent();
         if (editorComponent instanceof JTextField textField) {
@@ -133,6 +144,7 @@ public class SpinnerSettingsComponent extends JPanel {
     private ExpandableTextField createSettingValueComponent(String value) {
         ExpandableTextField textField = new ExpandableTextField();
         textField.setText(value);
+        textField.putClientProperty("spinner.rawToken", value);
         textField.addActionListener(e -> notifyValueChanged());
         textField.addFocusListener(new FocusAdapter() {
             @Override

@@ -9,6 +9,11 @@ gen/
 .gradle-user-home
 /.workbuddy/
 src/test/
+/docs/
+AGENTS.md
+/.scratch/
+/imported-chats/
+test
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
