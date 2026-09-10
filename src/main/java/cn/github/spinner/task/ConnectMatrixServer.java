@@ -22,6 +22,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class ConnectMatrixServer extends TrackedBackgroundTask {
@@ -31,7 +33,9 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
 
     public ConnectMatrixServer(@Nullable Project project, EnvironmentConfig environment) {
         super(project, SpinnerBundle.message("progress.connect.3dexperience"), true);
-        this.environment = environment;
+        this.environment = environment == null ? null : new EnvironmentConfig(
+                environment.getName(), environment.getHostUrl(), environment.getUser(), environment.getPassword(),
+                environment.getVault(), environment.getSecurityContext(), environment.getDriver(), environment.isCas());
         setCancelText(SpinnerBundle.message("progress.cancel.connect"));
     }
 
@@ -69,9 +73,11 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
             return;
         }
         Future<MatrixConnection> future;
+        AtomicBoolean abandoned = new AtomicBoolean();
+        AtomicReference<MatrixConnection> pending = new AtomicReference<>();
         try {
-            future = MatrixTaskExecutor.getInstance().submit(() ->
-                    MatrixDriverManager.getConnection(
+            future = MatrixTaskExecutor.getInstance().submit(() -> {
+                    MatrixConnection opened = MatrixDriverManager.getConnection(
                             environment.getHostUrl(),
                             environment.getUser(),
                             environment.getPassword(),
@@ -79,8 +85,25 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
                             environment.getRole(),
                             environment.isCas(),
                             classLoader
-                    )
-            );
+                    );
+                    try {
+                        MatrixConnectionUtil.requireSession(opened);
+                    } catch (Exception e) {
+                        try {
+                            opened.close();
+                        } catch (IOException cleanup) {
+                            e.addSuppressed(cleanup);
+                        }
+                        throw e;
+                    }
+                    pending.set(opened);
+                    if (abandoned.get()) {
+                        MatrixConnection orphan = pending.getAndSet(null);
+                        if (orphan != null) orphan.close();
+                        throw new CancellationException("Connection attempt was cancelled.");
+                    }
+                    return opened;
+            });
         } catch (RejectedExecutionException e) {
             UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER,
                     SpinnerBundle.message("message.matrix.operation.busy"));
@@ -89,6 +112,7 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
         try {
             // 用 IDEA 提供的工具方法等待，不阻塞进度条
             MatrixConnection newConnection = future.get(20, TimeUnit.SECONDS);
+            pending.compareAndSet(newConnection, null);
             if (myProject.isDisposed()) {
                 try {
                     newConnection.close();
@@ -107,10 +131,14 @@ public class ConnectMatrixServer extends TrackedBackgroundTask {
                 successHandler.run();
             }
         } catch (TimeoutException e) {
+            abandoned.set(true);
             future.cancel(true);
+            MatrixConnectionUtil.closeAsync(myProject, pending.getAndSet(null), getTitle(), null);
             UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.connect.timeout", 20));
         } catch (InterruptedException e) {
+            abandoned.set(true);
             future.cancel(true);
+            MatrixConnectionUtil.closeAsync(myProject, pending.getAndSet(null), getTitle(), null);
             Thread.currentThread().interrupt();
         } catch (ExecutionException e) {
             UIUtil.showErrorNotification(myProject, UserInput.NOTIFICATION_TITLE_CONNECT_MATRIX_SERVER, SpinnerBundle.message("message.connect.failed", e.getCause().getMessage()));

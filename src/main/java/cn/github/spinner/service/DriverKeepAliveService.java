@@ -1,6 +1,7 @@
 package cn.github.spinner.service;
 
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.driver.MQLException;
 import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.config.MatrixDriversConfig;
 import cn.github.spinner.context.UserInput;
@@ -69,7 +70,7 @@ public final class DriverKeepAliveService implements Disposable {
     private void scheduleLocked(long targetGeneration, int delayMinutes) {
         cancelLocked();
         keepAliveFuture = AppExecutorUtil.getAppScheduledExecutorService().schedule(
-                () -> reconnectWhenIdle(targetGeneration),
+                () -> keepAlive(targetGeneration),
                 Math.max(delayMinutes, 1),
                 TimeUnit.MINUTES
         );
@@ -82,7 +83,7 @@ public final class DriverKeepAliveService implements Disposable {
         }
     }
 
-    private void reconnectWhenIdle(long targetGeneration) {
+    private void keepAlive(long targetGeneration) {
         if (project.isDisposed()) {
             return;
         }
@@ -104,22 +105,36 @@ public final class DriverKeepAliveService implements Disposable {
         EnvironmentConfig connectedEnvironment = userInput.connectEnvironment.get(project);
         MatrixConnection connection = userInput.connection.get(project);
         if (connection == null || connectedEnvironment == null || !isSameConnection(targetEnvironment, connectedEnvironment)) {
-            cancel();
+            synchronized (lock) {
+                if (targetGeneration == generation) cancel();
+            }
             return;
         }
 
-        if (userInput.isBackgroundTaskRunning(project) || userInput.connectingEnvironment.containsKey(project)) {
+        try {
+            MatrixConnectionUtil.requireSession(connection).keepAlive();
             synchronized (lock) {
                 if (targetGeneration == generation) {
                     scheduleLocked(targetGeneration, targetKeepAliveMinutes);
                 }
             }
             return;
+        } catch (MQLException e) {
+            // A failed probe must not interrupt an in-flight business operation.
+            if (userInput.isBackgroundTaskRunning(project) || userInput.connectingEnvironment.containsKey(project)) {
+                synchronized (lock) {
+                    if (targetGeneration == generation) scheduleLocked(targetGeneration, targetKeepAliveMinutes);
+                }
+                return;
+            }
         }
 
-        userInput.connection.remove(project);
-        userInput.connectEnvironment.remove(project);
-        userInput.connectingEnvironment.put(project, targetEnvironment);
+        synchronized (lock) {
+            if (targetGeneration != generation || project.isDisposed()
+                    || !userInput.connection.remove(project, connection)) return;
+            userInput.connectEnvironment.remove(project, connectedEnvironment);
+            userInput.connectingEnvironment.put(project, targetEnvironment);
+        }
         UIUtil.refreshEnvironmentToolWindow(project);
         MatrixConnectionUtil.closeAsync(project, connection, SpinnerBundle.message("action.Spinner Config.ReConnect.text"), () -> {
             if (project.isDisposed() || !isCurrentGeneration(targetGeneration)) {

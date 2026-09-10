@@ -64,7 +64,6 @@ public class ObjectRelConnectionsComponent extends AbstractObjectDetailsTableCom
         super.initComponents();
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.setAutoCreateRowSorter(false);
-        table.setRowSorter(null);
         table.setRowHeight(26);
         table.setDefaultEditor(Object.class, null);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);

@@ -242,7 +242,7 @@ public class MatrixDriversDialog extends DialogWrapper {
             @Override
             protected void runTracked(@NotNull ProgressIndicator indicator) {
                 indicator.setIndeterminate(true);
-                indicator.setText(SpinnerBundle.message("progress.downloading", MatrixConnectorPackageManager.FILE_NAME));
+                indicator.setText(SpinnerBundle.message("progress.download.matrix.connector"));
                 try {
                     connectorFile = MatrixConnectorPackageManager.getOrDownload();
                 } catch (InterruptedException e) {
@@ -274,6 +274,16 @@ public class MatrixDriversDialog extends DialogWrapper {
         int selectedIndex = driverUIList.getSelectedIndex();
         String selectedDriverName = selectedIndex >= 0 ? driverListModel.elementAt(selectedIndex) : "";
         if (driverName.equals(selectedDriverName)) {
+            boolean removedOlderConnector = false;
+            for (int row = driverTableModel.getRowCount() - 1; row >= 0; row--) {
+                String name = String.valueOf(driverTableModel.getValueAt(row, 0));
+                if (name.startsWith("matrix-connector-") && name.endsWith(".jar")
+                        && !getJarPath(connectorFile).equals(driverTableModel.getValueAt(row, 1))) {
+                    existedJars.remove(String.valueOf(driverTableModel.getValueAt(row, 1)));
+                    driverTableModel.removeRow(row);
+                    removedOlderConnector = true;
+                }
+            }
             if (addJarFileToTable(connectorFile)) {
                 reloadDriverImplementation();
                 selectMatrixConnectorDriverClass();
@@ -283,6 +293,10 @@ public class MatrixDriversDialog extends DialogWrapper {
                                 ? SpinnerBundle.message("message.matrix.connector.reused", driverName)
                                 : SpinnerBundle.message("message.matrix.connector.added", driverName));
             } else {
+                if (removedOlderConnector) {
+                    reloadDriverImplementation();
+                    selectMatrixConnectorDriverClass();
+                }
                 UIUtil.showNotification(project,
                         SpinnerBundle.message("notification.title.matrix.drivers"),
                         SpinnerBundle.message("message.matrix.connector.exists", driverName));
@@ -316,6 +330,9 @@ public class MatrixDriversDialog extends DialogWrapper {
 
     private boolean addMatrixConnectorToDriverInfo(MatrixDriversConfig.DriverInfo driverInfo, File file) {
         String path = getJarPath(file);
+        driverInfo.getDriverFiles().removeIf(driverFile -> driverFile.getName() != null
+                && driverFile.getName().startsWith("matrix-connector-") && driverFile.getName().endsWith(".jar")
+                && !path.equals(driverFile.getPath()));
         boolean exists = driverInfo.getDriverFiles().stream().anyMatch(driverFile -> path.equals(driverFile.getPath()));
         if (exists) {
             return false;

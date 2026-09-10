@@ -26,9 +26,9 @@ public class MatrixCommonDriver implements MatrixDriver {
 
     @Override
     public MatrixConnection connect(MatrixDriverProperty matrixDriverProperty) throws MQLException {
+        Context ctx = null;
         try {
             Passport.setTrustManager(false);
-            Context ctx;
             if (matrixDriverProperty.isCas()) {
                 String ticket = Passport.getTicket(matrixDriverProperty.getUrl(), matrixDriverProperty.getUsername(), matrixDriverProperty.getPassword());
                 String newUrl = Passport.addUrlParam(matrixDriverProperty.getUrl(), "ticket", ticket);
@@ -46,8 +46,15 @@ public class MatrixCommonDriver implements MatrixDriver {
             } else {
                 checkLibraryVersion(getUsedServerRelease(ctx));
             }
-            return new MatrixCommonConnection(ctx);
+            return new MatrixCommonSession(ctx);
         } catch (Exception e) {
+            if (ctx != null) {
+                try {
+                    ctx.shutdown();
+                } catch (MatrixException cleanup) {
+                    e.addSuppressed(cleanup);
+                }
+            }
             String msg = formatConnectError(e, matrixDriverProperty);
             throw new MQLException(msg);
         }
@@ -122,6 +129,7 @@ public class MatrixCommonDriver implements MatrixDriver {
 
     String formatConnectError(Exception ex, MatrixDriverProperty matrixDriverProperty) {
         String msg = ex.getLocalizedMessage();
+        if (msg == null) msg = ex.getClass().getSimpleName();
         String templateMsg = "%s";
         if (msg.contains("XML: Expected") || msg.contains("Exception: Expected") || msg.contains("XML: -1")) {
             templateMsg = """

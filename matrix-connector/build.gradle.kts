@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "cn.github"
-version = "1.3.0"
+version = "1.4.0"
 
 repositories {
     maven {
@@ -22,6 +22,8 @@ dependencies {
 
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation(project(":matrix-driver"))
+    testImplementation(fileTree("libs"))
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

@@ -228,7 +228,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
             List<File> driverFiles = MatrixDriversConfig.getInstance().getDriverFiles(getDriver());
             try (MatrixJarClassLoader classLoader = new MatrixJarClassLoader(driverFiles, this.getClass().getClassLoader())) {
                 Class.forName(driverInfo.getDriverClass(), true, classLoader);
-                MatrixConnection connection = MatrixDriverManager.getConnection(getHostUrl(), getUsername(), getPassword(), getVault(), isCas(), classLoader);
+                try (MatrixConnection connection = MatrixDriverManager.getConnection(getHostUrl(), getUsername(), getPassword(), getVault(), isCas(), classLoader)) {
                 MatrixStatement statement = connection.executeStatement("list person '" + getUsername() + "' select assignment dump");
                 MatrixResultSet resultSet = statement.executeQuery();
                 if (!resultSet.isSuccess()) {
@@ -246,6 +246,7 @@ public class EnvironmentSettingsDialog extends DialogWrapper {
                 }
                 if (environment != null) {
                     securityContextComboBox.setItem(environment.getSecurityContext());
+                }
                 }
             } catch (ClassNotFoundException e) {
                 UIUtil.showErrorNotification(project, SpinnerBundle.message("notification.title.spinner.environment"), SpinnerBundle.message("message.load.driver.error", getDriver()));

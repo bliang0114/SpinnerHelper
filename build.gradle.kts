@@ -127,6 +127,13 @@ sourceSets {
 }
 
 tasks {
+    processResources {
+        dependsOn(":matrix-connector:jar")
+        from(project(":matrix-connector").layout.buildDirectory.file("libs/matrix-connector-1.4.0.jar")) {
+            into("matrix-drivers")
+        }
+    }
+
     generateLexer {
         sourceFile.set(file("src/main/java/cn/github/spinner/editor/highlights/MQL.flex"))
         targetOutputDir.set(file("gen/cn/github/spinner/editor/highlights/"))

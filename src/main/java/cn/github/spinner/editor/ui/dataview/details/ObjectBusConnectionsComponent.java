@@ -77,7 +77,7 @@ public class ObjectBusConnectionsComponent extends AbstractObjectDetailsTableCom
 
                         int columnIndex = table.columnAtPoint(e.getPoint());
                         try {
-                            if (columnIndex <= 3) {
+                            if (columnIndex < 3) {
                                 String connectionId = String.valueOf(tableModel.getValueAt(modelRowIndex, 2));
                                 if (StrUtil.isNotEmpty(connectionId)) {
                                     ConnectionDetailsWindow.showWindow(project, connectionId);

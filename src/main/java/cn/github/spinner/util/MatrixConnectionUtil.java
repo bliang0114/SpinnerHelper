@@ -1,8 +1,8 @@
 package cn.github.spinner.util;
 
-import cn.github.driver.MatrixDriverManager;
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.MatrixConnection;
+import cn.github.driver.connection.MatrixSession;
 import cn.github.spinner.config.EnvironmentConfig;
 import cn.github.spinner.context.UserInput;
 import cn.github.spinner.i18n.SpinnerBundle;
@@ -16,6 +16,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
 
 public final class MatrixConnectionUtil {
     private static final int REACHABILITY_TIMEOUT_MILLIS = 3000;
@@ -49,20 +50,23 @@ public final class MatrixConnectionUtil {
     public static @NotNull MatrixConnection openIndependentConnection(@NotNull Project project,
                                                                        @NotNull EnvironmentConfig environment)
             throws MQLException {
-        ClassLoader classLoader = MatrixJarLoadManager.getMatrixClassLoader(project, environment.getName());
-        if (classLoader == null) {
-            throw new MQLException(SpinnerBundle.message("message.matrix.driver.classloader.missing"));
+        EnvironmentConfig connected = UserInput.getInstance().connectEnvironment.get(project);
+        if (connected == null || !Objects.equals(connected.getName(), environment.getName())
+                || !Objects.equals(connected.getDriver(), environment.getDriver())
+                || !Objects.equals(connected.getHostUrl(), environment.getHostUrl())
+                || !Objects.equals(connected.getUser(), environment.getUser())
+                || !Objects.equals(connected.getPassword(), environment.getPassword())
+                || !Objects.equals(connected.getVault(), environment.getVault())
+                || !Objects.equals(connected.getRole(), environment.getRole())
+                || connected.isCas() != environment.isCas()) {
+            throw new MQLException(SpinnerBundle.message("message.connected.environment.missing"));
         }
-        assertServerReachable(environment);
-        return MatrixDriverManager.getConnection(
-                environment.getHostUrl(),
-                environment.getUser(),
-                environment.getPassword(),
-                environment.getVault(),
-                environment.getRole(),
-                environment.isCas(),
-                classLoader
-        );
+        return requireSession(UserInput.getInstance().connection.get(project)).openContext();
+    }
+
+    public static @NotNull MatrixSession requireSession(@Nullable MatrixConnection connection) throws MQLException {
+        if (connection instanceof MatrixSession session) return session;
+        throw new MQLException(SpinnerBundle.message("message.matrix.session.unsupported"));
     }
 
     public static void closeAsync(@Nullable Project project,

@@ -2,7 +2,6 @@ package cn.github.connector;
 
 import cn.github.driver.MQLException;
 import cn.github.driver.connection.*;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import matrix.db.*;
 import matrix.util.MatrixException;
@@ -15,15 +14,57 @@ import java.util.*;
 @Slf4j
 public class MatrixCommonConnection implements MatrixConnection {
     private Context context;
-    public static String systemprops;
+    private Properties systemProperties;
+    private final MatrixCommonSession session;
+    private boolean closed;
+    private final Object executionLock = new Object();
 
-    public MatrixCommonConnection(@NonNull Context context) {
-        this.context = context;
+    MatrixCommonConnection(MatrixCommonSession session) {
+        this.session = session;
+    }
+
+    private MatrixCommonSession owner() {
+        return session == null ? (MatrixCommonSession) this : session;
+    }
+
+    @FunctionalInterface
+    interface ContextOperation<T> {
+        T execute(Context context) throws MatrixException, MQLException;
+    }
+
+    <T> T withContext(ContextOperation<T> operation) throws MQLException {
+        synchronized (executionLock) {
+            if (closed) throw new MQLException("Matrix context is closed.");
+            owner().ensureOpen();
+            try {
+                if (context == null) context = owner().deriveContext();
+                return operation.execute(context);
+            } catch (MatrixException | MQLException e) {
+                // Do not replay a possibly committed write. Rebuild on the next call.
+                try {
+                    discardContext();
+                } catch (MatrixException cleanup) {
+                    e.addSuppressed(cleanup);
+                }
+                throw e instanceof MQLException mql ? mql : new MQLException(e);
+            }
+        }
+    }
+
+    private void discardContext() throws MatrixException {
+        Context previous = context;
+        context = null;
+        systemProperties = null;
+        if (previous != null) previous.shutdown();
     }
 
     @Override
     public MatrixStatement executeStatement(String mql) {
-        return new MatrixCommonStatement(context, mql);
+        return () -> withContext(ctx -> {
+            MatrixResultSet result = new MatrixCommonStatement(ctx, mql).executeQuery();
+            if (!result.isSuccess()) discardContext();
+            return result;
+        });
     }
 
     @Override
@@ -31,7 +72,7 @@ public class MatrixCommonConnection implements MatrixConnection {
         var query = getObjectQuery(objectQuery);
         var orderBy = StringList.asList("type", "name", "revision");
         var queryFields = StringList.asList(fields);
-        try {
+        return withContext(context -> {
             context.start(false);
             List<Map<String, String>> data = new ArrayList<>();
             try (var iter = query.getIterator(context, queryFields, (short) 0, orderBy)) {
@@ -45,9 +86,7 @@ public class MatrixCommonConnection implements MatrixConnection {
             }
             context.commit();
             return new MatrixQueryResult(data);
-        } catch (MatrixException e) {
-            throw new MQLException(e);
-        }
+        });
     }
 
     @Override
@@ -55,7 +94,7 @@ public class MatrixCommonConnection implements MatrixConnection {
         var query = getConnectionQuery(connectionQuery);
         var orderBy = StringList.asList("type", "id");
         var queryFields = StringList.asList(fields);
-        try {
+        return withContext(context -> {
             context.start(false);
             List<Map<String, String>> data = new ArrayList<>();
             try (var iter = query.getIterator(context, queryFields, (short) 0, orderBy)) {
@@ -69,9 +108,7 @@ public class MatrixCommonConnection implements MatrixConnection {
             }
             context.commit();
             return new MatrixQueryResult(data);
-        } catch (MatrixException e) {
-            throw new MQLException(e);
-        }
+        });
     }
 
     private static Query getObjectQuery(MatrixObjectQuery objectQuery) {
@@ -98,39 +135,26 @@ public class MatrixCommonConnection implements MatrixConnection {
 
     @Override
     public String getEnvironmentVariable(String var) throws MQLException {
-        try {
+        return withContext(context -> {
             if (Character.isUpperCase(var.charAt(0))) {
                 return Environment.getValue(context, var);
             } else {
-                if (systemprops == null) {
-                    Properties props = JPO.invoke(context, "EnoBrowserJPO", null, "getProperties", null, Properties.class);
-                    systemprops = props.toString().replace(", ", "\n").replace("{", "").replace("}", "");
+                if (systemProperties == null) {
+                    systemProperties = JPO.invoke(context, "EnoBrowserJPO", null, "getProperties", null, Properties.class);
                 }
-                int a = systemprops.indexOf(var + "=");
-                int b = systemprops.indexOf("\n", a);
-                return systemprops.substring(a + var.length() + 1, b);
+                return systemProperties.getProperty(var);
             }
-        } catch (MatrixException e) {
-            throw new MQLException(e);
-        }
+        });
     }
 
     @Override
     public int invokeJPOMethod(String jpoName, String methodName, String[] params) throws MQLException {
-        try {
-            return JPO.invoke(context, jpoName, null, methodName, params);
-        } catch (MatrixException e) {
-            throw new MQLException(e);
-        }
+        return withContext(context -> JPO.invoke(context, jpoName, null, methodName, params));
     }
 
     @Override
     public <T> T invokeJPOMethod(String jpoName, String methodName, String[] params, Class<T> clazz) throws MQLException {
-        try {
-            return JPO.invoke(context, jpoName, null, methodName, params, clazz);
-        } catch (MatrixException e) {
-            throw new MQLException(e);
-        }
+        return withContext(context -> JPO.invoke(context, jpoName, null, methodName, params, clazz));
     }
 
     @Override
@@ -140,24 +164,26 @@ public class MatrixCommonConnection implements MatrixConnection {
             tempDir = System.getenv("TMP").replace("\\", "/");
         }
         tempDir += "/";
-        try {
-            FcsSupport.fcsCheckout(objectId, context, false, format, fileName, tempDir);
-            return new File(tempDir + fileName);
-        } catch (MatrixException e) {
-            throw new MQLException(e);
-        }
+        String directory = tempDir;
+        return withContext(context -> {
+            FcsSupport.fcsCheckout(objectId, context, false, format, fileName, directory);
+            return new File(directory + fileName);
+        });
     }
 
     @Override
     public void close() throws IOException {
-        try {
-            if(this.context != null){
-                this.context.shutdown();
+        synchronized (executionLock) {
+            if (closed) return;
+            closed = true;
+            try {
+                discardContext();
+            } catch (MatrixException e) {
+                throw new IOException(e);
+            } finally {
+                owner().release(this);
             }
-        } catch (MatrixException e) {
-            throw new IOException(e);
         }
-        this.context = null;
     }
 
 }
