@@ -39,7 +39,7 @@ public enum SpinnerType {
             case "bo_eService Trigger Program Parameters_ALL.xls" -> TRIGGER_PROGRAM_PARAMETERS;
             case "rel-b2b_eService Number Generator_ALL.xls" -> REL_NUMBER_GENERATOR;
             default -> {
-                String parentDir = virtualFile.getParent().getName();
+                String parentDir = virtualFile.getParent() == null ? "" : virtualFile.getParent().getName();
                 if ("Rule".equalsIgnoreCase(parentDir)) {
                     yield RULE_FILE;
                 } else if ("Policy".equalsIgnoreCase(parentDir)) {

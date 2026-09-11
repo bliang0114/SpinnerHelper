@@ -113,7 +113,7 @@ public class SpinnerSettingsComponent extends JPanel {
         value.append(String.join("|", tokens.subList(0, lastPresent + 1)));
     }
 
-    private static String preserveSpacing(String original, String text) {
+    static String preserveSpacing(String original, String text) {
         if (original == null || original.equals(text)) return text;
         int start = 0;
         int end = original.length();

@@ -7,17 +7,11 @@ import cn.github.spinner.components.EnvironmentIndicator;
 import cn.github.spinner.i18n.SpinnerBundle;
 import cn.github.spinner.util.UIUtil;
 import cn.github.spinner.util.WorkspaceUtil;
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.actionSystem.*;
-import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import com.intellij.ui.ScrollPaneFactory;
@@ -35,7 +29,6 @@ import java.util.Vector;
 @Slf4j
 public class SpinnerDataRecordBuilder {
     private static final long SLOW_BUILD_MS = 100L;
-    private static final long SLOW_APPLY_MS = 50L;
     private Project project;
     private VirtualFile virtualFile;
     private int modelRowIndex;
@@ -145,7 +138,24 @@ public class SpinnerDataRecordBuilder {
                 "row=" + modelRowIndex + ", columns=" + headers.length + ", spinnerType=" + spinnerType);
         renderedBaseline = getRenderedValues();
         building = false;
+        watchInput(panel);
         return panel;
+    }
+
+    boolean hasChanges() { return !building && !java.util.Objects.equals(originalLine, getValue()); }
+    void deactivate() { building = true; }
+
+    private void watchInput(Container parent) {
+        for (Component child : parent.getComponents()) {
+            if (child instanceof javax.swing.text.JTextComponent text) {
+                text.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                    public void insertUpdate(javax.swing.event.DocumentEvent e) { spinnerViewComponent.pendingInputChanged(); }
+                    public void removeUpdate(javax.swing.event.DocumentEvent e) { spinnerViewComponent.pendingInputChanged(); }
+                    public void changedUpdate(javax.swing.event.DocumentEvent e) { spinnerViewComponent.pendingInputChanged(); }
+                });
+            }
+            if (child instanceof Container container) watchInput(container);
+        }
     }
 
     public String getValue() {
@@ -194,7 +204,7 @@ public class SpinnerDataRecordBuilder {
         @Override
         public void actionPerformed(@NotNull AnActionEvent e) {
             if (!spinnerViewComponent.isDocumentCurrent()) return;
-            String finalValue = apply();
+            String finalValue = spinnerViewComponent.appliedRecord(modelRowIndex);
             if (finalValue == null) return;
             if (project == null) {
                 UIUtil.showWarningNotification(null, SpinnerBundle.message("notification.title.spinner.data.view"), SpinnerBundle.message("message.batch.processing.failed", "project is null"));
@@ -205,8 +215,7 @@ public class SpinnerDataRecordBuilder {
                 UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.connect.required"));
                 return;
             }
-            List<String> lines = FileUtil.readLines(virtualFile.getPath(), virtualFile.getCharset());
-            WorkspaceUtil.importSpinnerFile(connection, project, virtualFile.getPath(), lines.getFirst() + "\n" + finalValue);
+            WorkspaceUtil.importSpinnerFile(connection, project, virtualFile.getPath(), finalValue);
         }
 
         @Override
@@ -243,59 +252,12 @@ public class SpinnerDataRecordBuilder {
     }
 
     public String apply(){
-        long totalStartedNanos = System.nanoTime();
         String value = getValue();
         if (building || value == null || value.equals(originalLine)) return value;
-        if (!spinnerViewComponent.isDocumentCurrent()) return null;
-        int lineNumber = modelRowIndex + 1;
-        long documentLookupStartedNanos = System.nanoTime();
-        Document document = ReadAction.compute(() -> FileDocumentManager.getInstance().getDocument(virtualFile));
-        long documentLookupMs = elapsedMillis(documentLookupStartedNanos);
-        if (document == null) {
-            log.warn("[SpinnerEditorPerf] apply skipped: file={}, row={}, reason=document-not-found, elapsedMs={}, thread={}, edt={}",
-                    virtualFile.getPath(), modelRowIndex, elapsedMillis(totalStartedNanos),
-                    Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
-            return null;
-        }
-        long snapshotStartedNanos = System.nanoTime();
-        LineSnapshot snapshot = ReadAction.compute(() -> {
-            if (lineNumber >= document.getLineCount()) {
-                return null;
-            }
-            int startOffset = document.getLineStartOffset(lineNumber);
-            int endOffset = document.getLineEndOffset(lineNumber);
-            String lineValue = document.getText(new TextRange(startOffset, endOffset));
-            return new LineSnapshot(startOffset, endOffset, lineValue);
-        });
-        long snapshotMs = elapsedMillis(snapshotStartedNanos);
-        if (snapshot == null) {
-            log.warn("[SpinnerEditorPerf] apply skipped: file={}, row={}, reason=line-not-found, lineCount={}, elapsedMs={}, thread={}, edt={}",
-                    virtualFile.getPath(), modelRowIndex, document.getLineCount(), elapsedMillis(totalStartedNanos),
-                    Thread.currentThread().getName(), SwingUtilities.isEventDispatchThread());
-            return null;
-        }
-        if (!snapshot.lineValue.equals(originalLine)) return null;
-        String finalValue = value;
-        if (finalValue.equals(snapshot.lineValue)) {
-            return finalValue;
-        }
-        long writeStartedNanos = System.nanoTime();
-        spinnerViewComponent.runInternalDocumentUpdate(() ->
-                WriteCommandAction.runWriteCommandAction(project, () -> {
-                    document.replaceString(snapshot.startOffset, snapshot.endOffset, finalValue);
-                })
-        );
-        long writeMs = elapsedMillis(writeStartedNanos);
-        long reloadStartedNanos = System.nanoTime();
-        spinnerViewComponent.reloadValue(modelRowIndex, finalValue);
-        originalLine = finalValue;
+        if (!spinnerViewComponent.editDraft(modelRowIndex, originalLine, value)) return null;
+        originalLine = value;
         renderedBaseline = getRenderedValues();
-        long reloadMs = elapsedMillis(reloadStartedNanos);
-        String details = "row=" + modelRowIndex + ", valueChars=" + finalValue.length() +
-                ", documentLookupMs=" + documentLookupMs + ", snapshotMs=" + snapshotMs +
-                ", writeMs=" + writeMs + ", reloadMs=" + reloadMs;
-        logPerformance("apply row edit", totalStartedNanos, SLOW_APPLY_MS, details);
-        return finalValue;
+        return value;
     }
 
     private void logPerformance(@NotNull String operation, long startedNanos, long slowThresholdMs, @NotNull String details) {
@@ -312,8 +274,6 @@ public class SpinnerDataRecordBuilder {
         return (System.nanoTime() - startedNanos) / 1_000_000L;
     }
 
-    private record LineSnapshot(int startOffset, int endOffset, String lineValue) {
-    }
 
 
 }

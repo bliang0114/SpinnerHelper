@@ -5,7 +5,19 @@ import java.util.Arrays;
 import java.util.Vector;
 
 final class SpinnerTableModel extends RowNumberTableModel {
-    SpinnerTableModel() { super(new String[0], 0); }
+    private final AbstractSpinnerViewComponent view;
+    SpinnerTableModel(AbstractSpinnerViewComponent view) {
+        super(new String[0], 0);
+        this.view = view;
+    }
+
+    @Override
+    public boolean isCellEditable(int row, int column) { return column > 0 && view.canEditGrid(); }
+
+    @Override
+    public void setValueAt(Object value, int row, int column) {
+        if (column > 0) view.editGridCell(row, column, String.valueOf(value), view.rawRow(row));
+    }
 
     void replace(SpinnerTableSnapshot snapshot) {
         Vector<String> columns = new Vector<>(Arrays.asList(snapshot.headers()));

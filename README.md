@@ -1,5 +1,7 @@
 # SpinnerHelper
 
+当前版本：**3.2.0**。详见 [3.2.0 更新说明与升级提示](docs/releases/3.2.0.md)。
+
 ## 一、简介
 
  SpinnerHelper 是一款专为 IDEA 开发的插件，主要用于辅助 3DE的开发工作。
@@ -37,6 +39,8 @@
 ![img.png](img/依赖添加2.png)
 #### 1.2 驱动配置
 > 添加驱动并选择驱动
+
+3.2.0 内嵌 `matrix-connector-1.4.0.jar`。点击“使用 matrix-connector”安装，保存配置后重新连接；自定义驱动升级要求见 [Matrix Session 说明](docs/matrix-session.md)。
 
 ![img.png](img/驱动添加1.png)
 ![img.png](img/驱动添加2.png)

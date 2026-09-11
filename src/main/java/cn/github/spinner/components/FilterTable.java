@@ -36,6 +36,7 @@ public class FilterTable extends JBTable {
     private final FilterComponent filterComponent;
     private final ColumnFilterHeader columnFilterHeader;
     private boolean preserveColumnFiltersOnDataChange;
+    private final boolean nativeHeader;
 
     public void setPreserveColumnFiltersOnDataChange(boolean preserve) {
         preserveColumnFiltersOnDataChange = preserve;
@@ -46,7 +47,12 @@ public class FilterTable extends JBTable {
     }
 
     public FilterTable(TableModel model) {
+        this(model, false);
+    }
+
+    public FilterTable(TableModel model, boolean nativeHeader) {
         super(model);
+        this.nativeHeader = nativeHeader;
         sorter = new TableRowSorter<>(model);
         setRowSorter(sorter);
         filterComponent = new FilterComponent("TABLE_FILTER_HISTORY", 10) {
@@ -74,13 +80,32 @@ public class FilterTable extends JBTable {
         setShowGrid(true);
         setRowHeight(28);
         setGridColor(JBColor.border());
-        columnFilterHeader = new ColumnFilterHeader(header);
+        columnFilterHeader = nativeHeader ? null : new ColumnFilterHeader(header);
+        if (nativeHeader) applyNativeStyle();
 //        setFont(font);
     }
 
     @Override
+    public void updateUI() {
+        super.updateUI();
+        if (nativeHeader && getTableHeader() != null) applyNativeStyle();
+    }
+
+    private void applyNativeStyle() {
+        setFont(UIManager.getFont("Table.font"));
+        getTableHeader().setFont(UIUtil.getLabelFont());
+        getTableHeader().setPreferredSize(null);
+        getTableHeader().setReorderingAllowed(true);
+        setRowHeight(getFontMetrics(getFont()).getHeight() + JBUI.scale(8));
+        setIntercellSpacing(JBUI.size(1, 1));
+    }
+
+    @Override
     protected void configureEnclosingScrollPane() {
+        if (getParent() instanceof JViewport viewport && viewport.getParent() instanceof JScrollPane pane
+                && pane.getViewport() != viewport) return;
         super.configureEnclosingScrollPane();
+        if (nativeHeader) return;
         Container parent = getParent();
         if (parent instanceof JViewport viewport && viewport.getParent() instanceof JScrollPane scrollPane) {
             columnFilterHeader.attachTableHeader();
@@ -91,6 +116,9 @@ public class FilterTable extends JBTable {
     @Override
     protected void unconfigureEnclosingScrollPane() {
         Container parent = getParent();
+        // A frozen table lives in the row header; it must never install or remove the main header.
+        if (parent instanceof JViewport viewport && viewport.getParent() instanceof JScrollPane pane
+                && pane.getViewport() != viewport) return;
         if (parent instanceof JViewport viewport && viewport.getParent() instanceof JScrollPane scrollPane
                 && scrollPane.getColumnHeader() != null
                 && scrollPane.getColumnHeader().getView() == columnFilterHeader) {
@@ -116,7 +144,7 @@ public class FilterTable extends JBTable {
     public @NotNull Component prepareRenderer(@NotNull TableCellRenderer renderer, int row, int column) {
         TableModel model = this.getModel();
         Component c = super.prepareRenderer(renderer, row, column);
-        if (column == 0 && model instanceof RowNumberTableModel) { // 行号列特殊处理
+        if (convertColumnIndexToModel(column) == 0 && model instanceof RowNumberTableModel) { // 行号列特殊处理
             if (c instanceof JLabel label) {
                 label.setHorizontalAlignment(SwingConstants.LEFT);
                 if (isRowSelected(row)) {
@@ -157,6 +185,10 @@ public class FilterTable extends JBTable {
         } else {
             return "Noto Sans CJK SC"; // Linux 系统（需安装思源黑体）
         }
+    }
+
+    static void selectVisibleValues(java.util.Collection<JCheckBox> checkBoxes) {
+        checkBoxes.forEach(checkBox -> checkBox.setSelected(checkBox.isVisible()));
     }
 
     private final class ColumnFilterHeader extends JPanel implements TableColumnModelListener {
@@ -334,9 +366,9 @@ public class FilterTable extends JBTable {
                 }
             });
 
-            JButton selectAllButton = new JButton(SpinnerBundle.message("button.select.all"));
+            JButton selectAllButton = new JButton(SpinnerBundle.message("button.table.filter.select.results"));
             selectAllButton.addActionListener(e -> {
-                checkBoxes.values().forEach(checkBox -> checkBox.setSelected(true));
+                selectVisibleValues(checkBoxes.values());
                 updateSelection(modelIndex, values, checkBoxes);
             });
             JButton clearButton = new JButton(SpinnerBundle.message("button.clear"));

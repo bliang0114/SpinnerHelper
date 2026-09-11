@@ -26,7 +26,7 @@ public enum SpinnerSettingNameConfig {
             case CHANNEL -> splitName(CHANNEL);
             case FORM_FIELD -> splitName(FORM_FIELD);
             case TABLE_COLUMN -> splitName(TABLE_COLUMN);
-            default -> throw new IllegalStateException();
+            default -> List.of();
         };
     }
 

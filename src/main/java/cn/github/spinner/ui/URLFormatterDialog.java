@@ -31,6 +31,8 @@ public class URLFormatterDialog extends JFrame {
     private JBTextField textField;
     private FilterTable table;
     private DefaultTableModel tableModel;
+    private java.util.function.Predicate<String> applyHandler;
+    private final JButton applyButton = new JButton(SpinnerBundle.message("spinner.url.apply"));
 
     private URLFormatterDialog() {
         setTitle(SpinnerBundle.message("dialog.url.parameter.title"));
@@ -57,8 +59,12 @@ public class URLFormatterDialog extends JFrame {
     }
 
     public static void showWindow(String initialText) {
+        showWindow(initialText, null);
+    }
+
+    public static void showWindow(String initialText, java.util.function.Predicate<String> applyHandler) {
         if (!SwingUtilities.isEventDispatchThread()) {
-            SwingUtilities.invokeLater(() -> showWindow(initialText));
+            SwingUtilities.invokeLater(() -> showWindow(initialText, applyHandler));
             return;
         }
 
@@ -68,6 +74,8 @@ public class URLFormatterDialog extends JFrame {
         if (initialText != null) {
             instance.getTextField().setText(initialText);
         }
+        instance.applyHandler = applyHandler;
+        instance.applyButton.setVisible(applyHandler != null);
         instance.bringToFront();
     }
 
@@ -87,8 +95,22 @@ public class URLFormatterDialog extends JFrame {
         tableModel = new DefaultTableModel(new String[]{
                 SpinnerBundle.message("table.column.parameter.name.spaced"),
                 SpinnerBundle.message("table.column.parameter.value.spaced")
-        }, 0);
+        }, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return column == 1; }
+            @Override public void setValueAt(Object value, int row, int column) {
+                if (column != 1) return;
+                String replacement = replaceParsedValue(textField.getText(), String.valueOf(getValueAt(row, 0)),
+                        String.valueOf(getValueAt(row, 1)), String.valueOf(value));
+                if (replacement != null) textField.setText(replacement);
+            }
+        };
         table = new FilterTable(tableModel);
+        applyButton.addActionListener(e -> {
+            if (table.isEditing() && !table.getCellEditor().stopCellEditing()) return;
+            if (applyHandler != null && !applyHandler.test(textField.getText())) {
+                JOptionPane.showMessageDialog(this, SpinnerBundle.message("spinner.url.stale"));
+            }
+        });
     }
 
     private void setupListener() {
@@ -124,7 +146,23 @@ public class URLFormatterDialog extends JFrame {
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
         panel.add(scrollPane, BorderLayout.CENTER);
+        panel.add(applyButton, BorderLayout.SOUTH);
         return panel;
+    }
+
+    public static String replaceParsedValue(String url, String key, String oldValue, String value) {
+        if (value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0 || value.indexOf('\t') >= 0) return null;
+        if ("URL".equals(key)) return url.startsWith(oldValue) ? value + url.substring(oldValue.length()) : null;
+        String leaf = key.substring(key.lastIndexOf('.') + 1);
+        Matcher matches = Pattern.compile("[?&]" + Pattern.quote(leaf) + "=").matcher(url);
+        int start = -1;
+        while (matches.find()) {
+            int offset = matches.end(), end = offset + oldValue.length();
+            if (!url.startsWith(oldValue, offset) || end < url.length() && "?&#".indexOf(url.charAt(end)) < 0) continue;
+            if (start >= 0) return null; // Ambiguous duplicate: edit the complete URL instead.
+            start = offset;
+        }
+        return start < 0 ? null : url.substring(0, start) + value + url.substring(start + oldValue.length());
     }
 
     private void parseUrl(String url) {

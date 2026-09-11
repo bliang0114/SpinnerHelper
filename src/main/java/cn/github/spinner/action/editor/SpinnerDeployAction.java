@@ -72,7 +72,7 @@ public class SpinnerDeployAction extends AnAction {
                     UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.editor.unavailable"));
                     return;
                 }
-                WorkspaceUtil.importSpinnerFile(connection, project, filePath, buildSelectedSpinnerContent(editor));
+                deploySpinnerContent(project, filePath, buildSelectedSpinnerContent(editor));
                 return;
             }
 
@@ -85,6 +85,15 @@ public class SpinnerDeployAction extends AnAction {
         } catch (Exception ex) {
             showDeployError(project, ex);
         }
+    }
+
+    public static void deploySpinnerContent(Project project, String filePath, String content) {
+        MatrixConnection connection = UserInput.getInstance().connection.get(project);
+        if (connection == null) {
+            UIUtil.showWarningNotification(project, UserInput.NOTIFICATION_TITLE_DEPLOY, SpinnerBundle.message("message.connect.required"));
+            return;
+        }
+        WorkspaceUtil.importSpinnerFile(connection, project, filePath, content);
     }
 
     private String buildSelectedSpinnerContent(@NotNull Editor editor) {

@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "cn.github.spinner"
-version = "3.1.0"
+version = "3.2.0"
 
 repositories {
 //    mavenCentral()
@@ -47,6 +47,17 @@ intellijPlatform {
             sinceBuild = "251"
         }
         changeNotes = """
+            <h2>3.2.0</h2>
+            <ul>
+            <li>Spinner 编辑器改为主表与 Settings 子表，支持单元格展开编辑、统一草稿应用与放弃、Ctrl+Z 撤销、切换和关闭时保护未应用修改</li>
+            <li>支持完整行复制、在指定行下方粘贴、多行对比及加入对比；修复固定名称列时的行号顺序、表头显示和取消固定后的列恢复</li>
+            <li>Settings Name 支持自由输入与候选项搜索；配对增删、按名称合并粘贴保留原始格式，修复新增再删除后的残留草稿差异</li>
+            <li>主表与 Settings 子表统一筛选、排序及紧凑工具栏；支持批量勾选筛选搜索结果，增大右键菜单间距，子表独立窗口关闭后自动回到底部</li>
+            <li>URL 内容可通过解析窗口预览、编辑参数并写回原单元格，写回前校验源记录是否变化</li>
+            <li>Spinner 右键支持 Deploy，新增 Git 文件差异查看与新增、修改记录的差异部署；非 Git 文件禁用相关入口，删除行不自动转为服务端删除</li>
+            <li>MQL 单条命令结果支持默认、表单、表格及树形表格视图，表格支持多单元格复制；完善 Java 方法形式的文档 @see 引用跳转</li>
+            <li>内嵌 matrix-connector 1.4.0，连接器使用共享主会话与派生 Context，完善独立连接、保活、失败后重建及关闭清理；自定义驱动须适配 MatrixSession</li>
+            </ul>
             <h2>3.1.0</h2>
             <ul>
             <li>完善 MQL 编辑器注释支持：支持 <code>/* ... */</code>、<code>/** ... */</code>、<code>//</code> 和 <code>#</code> 注释，注释中的命令分隔符不会被执行</li>
@@ -108,7 +119,7 @@ intellijPlatform {
     }
     publishing {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.1.0"
+        version = "3.2.0"
     }
 }
 
@@ -159,6 +170,6 @@ tasks {
 
     publishPlugin {
         token = providers.environmentVariable("ORG_GRADLE_PROJECT_intellijPlatformPublishingToken")
-        version = "3.1.0"
+        version = "3.2.0"
     }
 }
